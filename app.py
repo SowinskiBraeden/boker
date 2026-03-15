@@ -69,14 +69,36 @@ def home() -> str:
 @app.get("/leaderboard")
 def leaderboard() -> str:
     events = load_events(DATA_PATH)
-    sessions = build_session_summaries(events)
-    board = build_leaderboard(sessions)
-    chart_data = cumulative_profit_series(sessions)
+    all_sessions = build_session_summaries(events)
+    selected_session_date = request.args.get("through_session", "").strip()
+    valid_session_dates = {session.session_date for session in all_sessions}
+
+    if selected_session_date not in valid_session_dates:
+        selected_session_date = ""
+
+    filtered_sessions = all_sessions
+    if selected_session_date:
+        filtered_sessions = [
+            session
+            for session in all_sessions
+            if session.session_date <= selected_session_date
+        ]
+
+    board = build_leaderboard(filtered_sessions)
+    chart_data = cumulative_profit_series(filtered_sessions)
     return render_template(
         "leaderboard.html",
         leaderboard=board,
-        session_count=len(sessions),
+        session_count=len(filtered_sessions),
+        total_session_count=len(all_sessions),
         chart_data=chart_data,
+        available_sessions=all_sessions,
+        selected_session_date=selected_session_date,
+        selected_session_label=(
+            safe_date_label(selected_session_date)
+            if selected_session_date
+            else "Latest session"
+        ),
     )
 
 

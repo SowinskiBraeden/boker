@@ -576,6 +576,45 @@ td a:hover {
     color: var(--accent-2);
 }
 
+.leaderboard-controls {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+}
+
+.session-filter-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.session-filter-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.session-filter-select {
+    min-width: 220px;
+    min-height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text);
+    outline: none;
+}
+
+.session-filter-select:focus {
+    border-color: rgba(240, 138, 56, 0.42);
+    box-shadow: 0 0 0 4px rgba(240, 138, 56, 0.12);
+}
+
+.compact-button {
+    min-height: 42px;
+}
+
 .positive,
 .negative,
 .neutral {
@@ -768,5 +807,21 @@ td a:hover {
 
     .chart-modal-frame {
         height: min(66vh, 680px);
+    }
+}
+
+@media (max-width: 860px) {
+    .leaderboard-header,
+    .leaderboard-controls {
+        align-items: start;
+        justify-items: start;
+    }
+
+    .session-filter-form {
+        width: 100%;
+    }
+
+    .session-filter-select {
+        width: 100%;
     }
 }
