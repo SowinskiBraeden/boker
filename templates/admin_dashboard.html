@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Admin · Poker Portal{% endblock %}
+{% block content %}
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Ledger controls</h1>
+        <p class="muted-text">Append new buy-ins, cash-outs, corrections, and note-only events to the audit trail.</p>
+    </div>
+</section>
+
+<section class="grid two-col admin-layout">
+    <form class="panel form-card" method="post">
+        <p class="eyebrow">New event</p>
+        <h2>Add to the ledger</h2>
+
+        <label>
+            <span>Session date</span>
+            <input type="date" name="session_date" required>
+        </label>
+
+        <label>
+            <span>Player name</span>
+            <input list="player_names" type="text" name="player_name" placeholder="Braeden" required>
+            <datalist id="player_names">
+                {% for player_name in player_names %}
+                    <option value="{{ player_name }}"></option>
+                {% endfor %}
+            </datalist>
+        </label>
+
+        <label>
+            <span>Event type</span>
+            <select name="event_type" required>
+                <option value="buyin">Buy-in</option>
+                <option value="cashout">Cash-out</option>
+                <option value="note">Note only</option>
+            </select>
+        </label>
+
+        <label>
+            <span>Amount</span>
+            <input type="number" step="0.01" name="amount" placeholder="50.00">
+        </label>
+
+        <label>
+            <span>Note</span>
+            <textarea name="note" rows="4" placeholder="Rebuy, correction, settled chips later, etc."></textarea>
+        </label>
+
+        <div class="helper-box">
+            <strong>Tip:</strong>
+            <span>Use positive amounts for normal buy-ins and cash-outs. Use negative amounts to correct a previous entry without editing history.</span>
+        </div>
+
+        <button class="primary-button" type="submit">Add event</button>
+    </form>
+
+    <div class="stack-gap">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Recent sessions</p>
+                    <h2>Current totals</h2>
+                </div>
+            </div>
+            <div class="table-wrap small-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Players</th>
+                            <th>Buy-ins</th>
+                            <th>Cash-outs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in recent_sessions %}
+                        <tr>
+                            <td><a href="{{ url_for('session_detail', session_date=session.session_date) }}">{{ session.session_date | pretty_date }}</a></td>
+                            <td>{{ session.entries|length }}</td>
+                            <td>{{ session.total_buy_in_cents | money }}</td>
+                            <td>{{ session.total_cash_out_cents | money }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4">No sessions yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Recent raw events</p>
+                    <h2>Ledger feed</h2>
+                </div>
+            </div>
+            <div class="event-feed condensed">
+                {% for event in recent_events %}
+                <article class="event-card">
+                    <div class="event-card-top">
+                        <strong>{{ event.player_name }}</strong>
+                        <span class="pill">{{ event.event_type }}</span>
+                    </div>
+                    <p class="event-amount">{{ event.amount_cents | money }}</p>
+                    <p class="muted-text small">{{ event.session_date | pretty_date }}</p>
+                    {% if event.note %}<p class="muted-text small">{{ event.note }}</p>{% endif %}
+                </article>
+                {% else %}
+                <p class="muted-text">No recent events.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}

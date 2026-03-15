@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard · Poker Portal{% endblock %}
+{% block content %}
+<section class="hero-card">
+    <div>
+        <p class="eyebrow">All-time results</p>
+        <h1>Leaderboard</h1>
+        <p class="muted-text">Track who is up, who is chasing, and how everyone has moved across {{ session_count }} recorded sessions.</p>
+    </div>
+</section>
+
+<section class="grid two-col leaderboard-layout">
+    <div class="panel chart-panel chart-panel-large">
+        <div class="panel-header panel-header-with-actions">
+            <div>
+                <p class="eyebrow">Trend</p>
+                <h2>Cumulative profit over time</h2>
+            </div>
+            <div class="panel-actions">
+                <button class="secondary-button" type="button" id="expandLeaderboardChart">Expand chart</button>
+            </div>
+        </div>
+        <div class="chart-frame chart-frame-interactive" id="leaderboardChartFrame" role="button" tabindex="0" aria-label="Expand cumulative profit chart">
+            <canvas id="leaderboardChart"></canvas>
+        </div>
+    </div>
+
+    <div class="panel stat-panel">
+        <p class="eyebrow">Quick read</p>
+        <h2>Table snapshot</h2>
+        <div class="stat-list">
+            <div class="stat-row"><span>Players tracked</span><strong>{{ leaderboard|length }}</strong></div>
+            <div class="stat-row"><span>Sessions tracked</span><strong>{{ session_count }}</strong></div>
+            <div class="stat-row"><span>Best player</span><strong>{% if leaderboard %}{{ leaderboard[0].player_name }}{% else %}—{% endif %}</strong></div>
+            <div class="stat-row"><span>Worst player</span><strong>{% if leaderboard %}{{ leaderboard[-1].player_name }}{% else %}—{% endif %}</strong></div>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Standings</p>
+            <h2>All-time leaderboard</h2>
+        </div>
+        <p class="muted-text small">Click any column to sort.</p>
+    </div>
+
+    <div class="table-wrap">
+        <table id="leaderboardTable" class="sortable-table" data-sort-key="net" data-sort-direction="desc">
+            <thead>
+                <tr>
+                    <th><button type="button" class="sort-button" data-sort-key="rank" data-sort-type="number" data-initial-direction="asc">Rank <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="player" data-sort-type="string" data-initial-direction="asc">Player <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="buyins" data-sort-type="number" data-initial-direction="desc">Buy-ins <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="cashouts" data-sort-type="number" data-initial-direction="desc">Cash-outs <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button is-active" data-sort-key="net" data-sort-type="number" data-initial-direction="desc">Net <span class="sort-indicator">↓</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="winpct" data-sort-type="number" data-initial-direction="desc">Win % <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="roi" data-sort-type="number" data-initial-direction="desc">ROI <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="avgwin" data-sort-type="number" data-initial-direction="desc">Avg Win <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="avgloss" data-sort-type="number" data-initial-direction="desc">Avg Loss <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="sessions" data-sort-type="number" data-initial-direction="desc">Sessions <span class="sort-indicator">↕</span></button></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in leaderboard %}
+                <tr data-player-row="true" data-original-rank="{{ loop.index }}">
+                    <td data-sort-value="{{ loop.index }}" data-rank-cell>#{{ loop.index }}</td>
+                    <td data-sort-value="{{ player.player_name|lower }}"><a href="{{ url_for('player_detail', player_name=player.player_name) }}">{{ player.player_name }}</a></td>
+                    <td data-sort-value="{{ player.total_buy_in_cents }}">{{ player.total_buy_in_cents | money }}</td>
+                    <td data-sort-value="{{ player.total_cash_out_cents }}">{{ player.total_cash_out_cents | money }}</td>
+                    <td data-sort-value="{{ player.total_net_cents }}" class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</td>
+                    <td data-sort-value="{{ '%.4f'|format(player.win_pct) }}">{{ "%.1f"|format(player.win_pct) }}%</td>
+                    <td data-sort-value="{{ '%.4f'|format(player.roi_pct) }}">{{ "%.1f"|format(player.roi_pct) }}%</td>
+                    <td data-sort-value="{{ player.avg_win_cents }}">{{ player.avg_win_cents | money }}</td>
+                    <td data-sort-value="{{ player.avg_loss_cents }}">{{ player.avg_loss_cents | money }}</td>
+                    <td data-sort-value="{{ player.sessions_played }}">{{ player.sessions_played }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10">No data yet. Add the first event from the admin page.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="chart-modal" id="chartModal" aria-hidden="true">
+    <div class="chart-modal-backdrop" data-close-chart-modal></div>
+    <div class="chart-modal-card">
+        <div class="panel-header panel-header-with-actions">
+            <div>
+                <p class="eyebrow">Expanded view</p>
+                <h2>Cumulative profit over time</h2>
+            </div>
+            <div class="panel-actions">
+                <button class="secondary-button" type="button" id="fullscreenLeaderboardChart">Fullscreen</button>
+                <button class="ghost-button" type="button" data-close-chart-modal>Close</button>
+            </div>
+        </div>
+        <div class="chart-modal-frame" id="chartModalFrame">
+            <canvas id="leaderboardChartExpanded"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    const leaderboardChartData = {{ chart_data | tojson }};
+    const rootStyles = getComputedStyle(document.documentElement);
+    const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
+    const lineColor = rootStyles.getPropertyValue('--line').trim();
+
+    function buildLeaderboardChartConfig(chartData) {
+        return {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'nearest', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: textMuted,
+                            usePointStyle: true,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 18,
+                        },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+                                const value = context.parsed.y;
+                                if (value === null || value === undefined) {
+                                    return `${context.dataset.label}: —`;
+                                }
+                                return `${context.dataset.label}: $${Number(value).toFixed(2)}`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        ticks: { color: textMuted, maxRotation: 0 },
+                        grid: { color: lineColor },
+                    },
+                    y: {
+                        ticks: {
+                            color: textMuted,
+                            callback(value) {
+                                return `$${value}`;
+                            },
+                        },
+                        grid: { color: lineColor },
+                    },
+                },
+            },
+        };
+    }
+
+    const leaderboardCtx = document.getElementById('leaderboardChart');
+    let leaderboardChart = null;
+    if (leaderboardCtx && leaderboardChartData.labels.length > 0) {
+        leaderboardChart = new Chart(leaderboardCtx, buildLeaderboardChartConfig(leaderboardChartData));
+    }
+
+    const chartModal = document.getElementById('chartModal');
+    const expandButton = document.getElementById('expandLeaderboardChart');
+    const chartFrame = document.getElementById('leaderboardChartFrame');
+    const fullscreenButton = document.getElementById('fullscreenLeaderboardChart');
+    const modalFrame = document.getElementById('chartModalFrame');
+    const expandedCtx = document.getElementById('leaderboardChartExpanded');
+    let expandedChart = null;
+
+    function openChartModal() {
+        if (!chartModal || !expandedCtx || leaderboardChartData.labels.length === 0) {
+            return;
+        }
+
+        chartModal.classList.add('is-open');
+        chartModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+
+        if (expandedChart) {
+            expandedChart.destroy();
+        }
+        expandedChart = new Chart(expandedCtx, buildLeaderboardChartConfig(leaderboardChartData));
+    }
+
+    function closeChartModal() {
+        if (!chartModal) {
+            return;
+        }
+        chartModal.classList.remove('is-open');
+        chartModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        if (expandedChart) {
+            expandedChart.destroy();
+            expandedChart = null;
+        }
+    }
+
+    expandButton?.addEventListener('click', openChartModal);
+    chartFrame?.addEventListener('click', openChartModal);
+    chartFrame?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openChartModal();
+        }
+    });
+
+    chartModal?.querySelectorAll('[data-close-chart-modal]').forEach((element) => {
+        element.addEventListener('click', closeChartModal);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && chartModal?.classList.contains('is-open')) {
+            closeChartModal();
+        }
+    });
+
+    fullscreenButton?.addEventListener('click', async () => {
+        if (!modalFrame) {
+            return;
+        }
+        if (document.fullscreenElement) {
+            await document.exitFullscreen();
+            return;
+        }
+        if (modalFrame.requestFullscreen) {
+            await modalFrame.requestFullscreen();
+        }
+    });
+
+    const leaderboardTable = document.getElementById('leaderboardTable');
+    const sortButtons = Array.from(document.querySelectorAll('.sort-button'));
+    const columnIndexMap = {
+        rank: 0,
+        player: 1,
+        buyins: 2,
+        cashouts: 3,
+        net: 4,
+        winpct: 5,
+        roi: 6,
+        avgwin: 7,
+        avgloss: 8,
+        sessions: 9,
+    };
+
+    function updateRankCells() {
+        if (!leaderboardTable) {
+            return;
+        }
+        Array.from(leaderboardTable.tBodies[0].querySelectorAll('tr[data-player-row="true"]')).forEach((row, index) => {
+            const rankCell = row.querySelector('[data-rank-cell]');
+            if (rankCell) {
+                rankCell.textContent = `#${index + 1}`;
+            }
+        });
+    }
+
+    function setActiveSortButton(sortKey, direction) {
+        sortButtons.forEach((button) => {
+            const isActive = button.dataset.sortKey === sortKey;
+            button.classList.toggle('is-active', isActive);
+            const indicator = button.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.textContent = isActive ? (direction === 'asc' ? '↑' : '↓') : '↕';
+            }
+        });
+    }
+
+    function sortLeaderboard(sortKey, sortType, forcedDirection) {
+        if (!leaderboardTable) {
+            return;
+        }
+
+        const tbody = leaderboardTable.tBodies[0];
+        const rows = Array.from(tbody.querySelectorAll('tr[data-player-row="true"]'));
+        const currentKey = leaderboardTable.dataset.sortKey;
+        const currentDirection = leaderboardTable.dataset.sortDirection || 'desc';
+        let direction = forcedDirection;
+
+        if (!direction) {
+            if (currentKey === sortKey) {
+                direction = currentDirection === 'desc' ? 'asc' : 'desc';
+            } else {
+                const trigger = sortButtons.find((button) => button.dataset.sortKey === sortKey);
+                direction = trigger?.dataset.initialDirection || 'desc';
+            }
+        }
+
+        const multiplier = direction === 'asc' ? 1 : -1;
+        const columnIndex = columnIndexMap[sortKey] ?? 0;
+
+        rows.sort((leftRow, rightRow) => {
+            const leftCell = leftRow.children[columnIndex];
+            const rightCell = rightRow.children[columnIndex];
+            const leftValue = leftCell?.dataset.sortValue ?? '';
+            const rightValue = rightCell?.dataset.sortValue ?? '';
+
+            if (sortType === 'number') {
+                const numericResult = (Number(leftValue) - Number(rightValue)) * multiplier;
+                if (numericResult !== 0) {
+                    return numericResult;
+                }
+            } else {
+                const stringResult = leftValue.localeCompare(rightValue) * multiplier;
+                if (stringResult !== 0) {
+                    return stringResult;
+                }
+            }
+
+            return Number(leftRow.dataset.originalRank) - Number(rightRow.dataset.originalRank);
+        });
+
+        rows.forEach((row) => tbody.appendChild(row));
+        leaderboardTable.dataset.sortKey = sortKey;
+        leaderboardTable.dataset.sortDirection = direction;
+        updateRankCells();
+        setActiveSortButton(sortKey, direction);
+    }
+
+    sortButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            sortLeaderboard(button.dataset.sortKey, button.dataset.sortType);
+        });
+    });
+
+    setActiveSortButton('net', 'desc');
+</script>
+{% endblock %}

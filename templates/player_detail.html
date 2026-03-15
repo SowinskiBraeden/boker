@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ player.player_name }} · Poker Portal{% endblock %}
+{% block content %}
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Player profile</p>
+        <h1>{{ player.player_name }}</h1>
+        <p class="muted-text">A quick read on lifetime performance, hit rate, and session-by-session movement.</p>
+    </div>
+</section>
+
+<section class="grid three-col">
+    <article class="panel stat-card"><span>Total Net</span><strong class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Win %</span><strong>{{ "%.1f"|format(player.win_pct) }}%</strong></article>
+    <article class="panel stat-card"><span>ROI</span><strong>{{ "%.1f"|format(player.roi_pct) }}%</strong></article>
+    <article class="panel stat-card"><span>Buy-ins</span><strong>{{ player.total_buy_in_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Cash-outs</span><strong>{{ player.total_cash_out_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Sessions</span><strong>{{ player.sessions_played }}</strong></article>
+</section>
+
+<section class="grid two-col">
+    <div class="panel chart-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Trend</p>
+                <h2>Cumulative profit</h2>
+            </div>
+        </div>
+        <div class="chart-frame">
+            <canvas id="playerCumulativeChart"></canvas>
+        </div>
+    </div>
+    <div class="panel chart-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Volatility</p>
+                <h2>Session results</h2>
+            </div>
+        </div>
+        <div class="chart-frame">
+            <canvas id="playerSessionChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Breakdown</p>
+            <h2>Detailed stats</h2>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <tbody>
+                <tr><th>Winning Sessions</th><td>{{ player.winning_sessions }}</td></tr>
+                <tr><th>Losing Sessions</th><td>{{ player.losing_sessions }}</td></tr>
+                <tr><th>Break-even Sessions</th><td>{{ player.break_even_sessions }}</td></tr>
+                <tr><th>Average Win</th><td>{{ player.avg_win_cents | money }}</td></tr>
+                <tr><th>Average Loss</th><td>{{ player.avg_loss_cents | money }}</td></tr>
+                <tr><th>Biggest Win</th><td>{{ player.biggest_win_cents | money }}</td></tr>
+                <tr><th>Biggest Loss</th><td>{{ player.biggest_loss_cents | money }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+    const playerChartData = {{ chart_data | tojson }};
+    const rootStyles = getComputedStyle(document.documentElement);
+    const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
+    const lineColor = rootStyles.getPropertyValue('--line').trim();
+
+    const sharedScaleOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: textMuted,
+                    usePointStyle: true,
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    padding: 18,
+                },
+            },
+        },
+        scales: {
+            x: {
+                ticks: { color: textMuted, maxRotation: 0 },
+                grid: { color: lineColor },
+            },
+            y: {
+                ticks: { color: textMuted },
+                grid: { color: lineColor },
+            },
+        },
+    };
+
+    const cumulativeCtx = document.getElementById('playerCumulativeChart');
+    if (cumulativeCtx) {
+        new Chart(cumulativeCtx, {
+            type: 'line',
+            data: {
+                labels: playerChartData.labels,
+                datasets: [{
+                    label: 'Cumulative Profit',
+                    data: playerChartData.cumulative_values,
+                    borderColor: playerChartData.color,
+                    backgroundColor: playerChartData.color,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    tension: 0.22,
+                }]
+            },
+            options: sharedScaleOptions,
+        });
+    }
+
+    const sessionCtx = document.getElementById('playerSessionChart');
+    if (sessionCtx) {
+        new Chart(sessionCtx, {
+            type: 'bar',
+            data: {
+                labels: playerChartData.labels,
+                datasets: [{
+                    label: 'Session Net',
+                    data: playerChartData.net_values,
+                    backgroundColor: playerChartData.net_colors,
+                    borderColor: playerChartData.net_colors,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: sharedScaleOptions,
+        });
+    }
+</script>
+{% endblock %}

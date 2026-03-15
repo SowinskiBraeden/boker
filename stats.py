@@ -1,0 +1,285 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+from storage import EventRow
+
+PLAYER_PALETTE = [
+    "#f4a261",
+    "#2a9d8f",
+    "#8d99ae",
+    "#e76f51",
+    "#7c6cf2",
+    "#84cc16",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#06b6d4",
+    "#a855f7",
+    "#eab308",
+]
+
+
+@dataclass
+class SessionEntry:
+    session_date: str
+    player_name: str
+    buy_in_cents: int = 0
+    cash_out_cents: int = 0
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def net_cents(self) -> int:
+        return self.cash_out_cents - self.buy_in_cents
+
+
+@dataclass
+class SessionSummary:
+    session_date: str
+    entries: list[SessionEntry]
+
+    @property
+    def total_buy_in_cents(self) -> int:
+        return sum(entry.buy_in_cents for entry in self.entries)
+
+    @property
+    def total_cash_out_cents(self) -> int:
+        return sum(entry.cash_out_cents for entry in self.entries)
+
+    @property
+    def total_net_cents(self) -> int:
+        return sum(entry.net_cents for entry in self.entries)
+
+
+@dataclass
+class PlayerStats:
+    player_name: str
+    sessions_played: int
+    winning_sessions: int
+    losing_sessions: int
+    break_even_sessions: int
+    win_pct: float
+    avg_win_cents: int
+    avg_loss_cents: int
+    biggest_win_cents: int
+    biggest_loss_cents: int
+    total_buy_in_cents: int
+    total_cash_out_cents: int
+    total_net_cents: int
+    roi_pct: float
+
+
+
+def cents_to_dollars(cents: int) -> str:
+    value = cents / 100
+    return f"${value:,.2f}"
+
+
+
+def safe_date_label(session_date: str) -> str:
+    try:
+        return datetime.strptime(session_date, "%Y-%m-%d").strftime("%b %d, %Y")
+    except ValueError:
+        return session_date
+
+
+
+def color_for_name(name: str, names: list[str]) -> str:
+    try:
+        index = sorted(names, key=str.casefold).index(name)
+    except ValueError:
+        index = abs(hash(name))
+    return PLAYER_PALETTE[index % len(PLAYER_PALETTE)]
+
+
+
+def net_tone(value_cents: int) -> str:
+    if value_cents > 0:
+        return "#22c55e"
+    if value_cents < 0:
+        return "#ef4444"
+    return "#f59e0b"
+
+
+
+def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
+    grouped: dict[tuple[str, str], SessionEntry] = {}
+
+    for event in events:
+        key = (event["session_date"], event["player_name"])
+        if key not in grouped:
+            grouped[key] = SessionEntry(
+                session_date=event["session_date"],
+                player_name=event["player_name"],
+            )
+
+        entry = grouped[key]
+        if event["event_type"] == "buyin":
+            entry.buy_in_cents += event["amount_cents"]
+        elif event["event_type"] == "cashout":
+            entry.cash_out_cents += event["amount_cents"]
+
+        if event["note"]:
+            entry.notes.append(event["note"])
+
+    by_session: dict[str, list[SessionEntry]] = defaultdict(list)
+    for entry in grouped.values():
+        by_session[entry.session_date].append(entry)
+
+    sessions = [
+        SessionSummary(
+            session_date=session_date,
+            entries=sorted(entries, key=lambda entry: entry.player_name.casefold()),
+        )
+        for session_date, entries in by_session.items()
+    ]
+    sessions.sort(key=lambda session: session.session_date, reverse=True)
+    return sessions
+
+
+
+def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
+    player_entries: dict[str, list[SessionEntry]] = defaultdict(list)
+    for session in sessions:
+        for entry in session.entries:
+            player_entries[entry.player_name].append(entry)
+
+    leaderboard: list[PlayerStats] = []
+    for player_name, entries in player_entries.items():
+        nets = [entry.net_cents for entry in entries]
+        wins = [value for value in nets if value > 0]
+        losses = [value for value in nets if value < 0]
+        total_buy_in = sum(entry.buy_in_cents for entry in entries)
+        total_cash_out = sum(entry.cash_out_cents for entry in entries)
+        total_net = total_cash_out - total_buy_in
+        sessions_played = len(entries)
+        winning_sessions = len(wins)
+        losing_sessions = len(losses)
+        break_even_sessions = sessions_played - winning_sessions - losing_sessions
+        win_pct = (winning_sessions / sessions_played * 100) if sessions_played else 0.0
+        avg_win = round(sum(wins) / len(wins)) if wins else 0
+        avg_loss = round(sum(abs(value) for value in losses) / len(losses)) if losses else 0
+        biggest_win = max(wins) if wins else 0
+        biggest_loss = min(losses) if losses else 0
+        roi_pct = (total_net / total_buy_in * 100) if total_buy_in else 0.0
+
+        leaderboard.append(
+            PlayerStats(
+                player_name=player_name,
+                sessions_played=sessions_played,
+                winning_sessions=winning_sessions,
+                losing_sessions=losing_sessions,
+                break_even_sessions=break_even_sessions,
+                win_pct=win_pct,
+                avg_win_cents=avg_win,
+                avg_loss_cents=avg_loss,
+                biggest_win_cents=biggest_win,
+                biggest_loss_cents=biggest_loss,
+                total_buy_in_cents=total_buy_in,
+                total_cash_out_cents=total_cash_out,
+                total_net_cents=total_net,
+                roi_pct=roi_pct,
+            )
+        )
+
+    leaderboard.sort(
+        key=lambda player: (player.total_net_cents, player.total_cash_out_cents),
+        reverse=True,
+    )
+    return leaderboard
+
+
+
+def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
+    ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
+    player_names = sorted(
+        {entry.player_name for session in ordered_sessions for entry in session.entries},
+        key=str.casefold,
+    )
+
+    labels = [safe_date_label(session.session_date) for session in ordered_sessions]
+    datasets = []
+
+    for player_name in player_names:
+        series: list[float | None] = []
+        running_total = 0
+        has_started = False
+
+        for session in ordered_sessions:
+            matching_entry = next(
+                (entry for entry in session.entries if entry.player_name == player_name),
+                None,
+            )
+            if matching_entry is not None:
+                has_started = True
+                running_total += matching_entry.net_cents
+                series.append(round(running_total / 100, 2))
+            elif has_started:
+                series.append(round(running_total / 100, 2))
+            else:
+                series.append(None)
+
+        datasets.append(
+            {
+                "label": player_name,
+                "data": series,
+                "borderColor": color_for_name(player_name, player_names),
+                "backgroundColor": color_for_name(player_name, player_names),
+                "pointRadius": 3,
+                "pointHoverRadius": 5,
+                "pointHitRadius": 10,
+                "borderWidth": 2.5,
+                "tension": 0.22,
+                "spanGaps": False,
+            }
+        )
+
+    return {"labels": labels, "datasets": datasets}
+
+
+
+def player_session_series(sessions: list[SessionSummary], player_name: str) -> dict[str, Any]:
+    ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
+    labels: list[str] = []
+    net_values: list[float] = []
+    cumulative_values: list[float] = []
+    running_total = 0
+
+    all_player_names = sorted(
+        {entry.player_name for session in ordered_sessions for entry in session.entries},
+        key=str.casefold,
+    )
+
+    for session in ordered_sessions:
+        matching_entry = next(
+            (entry for entry in session.entries if entry.player_name == player_name),
+            None,
+        )
+        if matching_entry is None:
+            continue
+
+        labels.append(safe_date_label(session.session_date))
+        net_values.append(round(matching_entry.net_cents / 100, 2))
+        running_total += matching_entry.net_cents
+        cumulative_values.append(round(running_total / 100, 2))
+
+    return {
+        "labels": labels,
+        "color": color_for_name(player_name, all_player_names),
+        "net_values": net_values,
+        "net_colors": [net_tone(round(value * 100)) for value in net_values],
+        "cumulative_values": cumulative_values,
+    }
+
+
+
+def session_events(events: list[EventRow], session_date: str) -> list[EventRow]:
+    return [event for event in events if event["session_date"] == session_date]
+
+
+
+def unique_player_names(events: list[EventRow]) -> list[str]:
+    return sorted({event["player_name"] for event in events}, key=str.casefold)
