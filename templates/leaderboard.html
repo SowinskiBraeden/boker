@@ -5,7 +5,7 @@
     <div>
         <p class="eyebrow">All-time results</p>
         <h1>Leaderboard</h1>
-        <p class="muted-text">Track who is up, who is chasing, and how everyone has moved across {{ session_count }} recorded sessions.</p>
+        <p class="muted-text">Track who is up, who is chasing, and how everyone has moved across {{ session_count }} recorded sessions{% if selected_session_date %} through {{ selected_session_label }}{% endif %}.</p>
     </div>
 </section>
 
@@ -30,7 +30,8 @@
         <h2>Table snapshot</h2>
         <div class="stat-list">
             <div class="stat-row"><span>Players tracked</span><strong>{{ leaderboard|length }}</strong></div>
-            <div class="stat-row"><span>Sessions tracked</span><strong>{{ session_count }}</strong></div>
+            <div class="stat-row"><span>Sessions tracked</span><strong>{{ session_count }}{% if total_session_count != session_count %} / {{ total_session_count }}{% endif %}</strong></div>
+            <div class="stat-row"><span>Through session</span><strong>{{ selected_session_label }}</strong></div>
             <div class="stat-row"><span>Best player</span><strong>{% if leaderboard %}{{ leaderboard[0].player_name }}{% else %}—{% endif %}</strong></div>
             <div class="stat-row"><span>Worst player</span><strong>{% if leaderboard %}{{ leaderboard[-1].player_name }}{% else %}—{% endif %}</strong></div>
         </div>
@@ -38,12 +39,26 @@
 </section>
 
 <section class="panel">
-    <div class="panel-header">
+    <div class="panel-header leaderboard-header">
         <div>
             <p class="eyebrow">Standings</p>
             <h2>All-time leaderboard</h2>
         </div>
-        <p class="muted-text small">Click any column to sort.</p>
+        <div class="leaderboard-controls">
+            <form method="get" class="session-filter-form">
+                <label for="through_session" class="session-filter-label">Through session</label>
+                <select id="through_session" name="through_session" class="session-filter-select" onchange="this.form.submit()">
+                    <option value="" {% if not selected_session_date %}selected{% endif %}>Latest session</option>
+                    {% for session in available_sessions %}
+                    <option value="{{ session.session_date }}" {% if selected_session_date == session.session_date %}selected{% endif %}>{{ session.session_date | pretty_date }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_session_date %}
+                <a class="ghost-button compact-button" href="{{ url_for('leaderboard') }}">Reset</a>
+                {% endif %}
+            </form>
+            <p class="muted-text small">Click any column to sort.</p>
+        </div>
     </div>
 
     <div class="table-wrap">
