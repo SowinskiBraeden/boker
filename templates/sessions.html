@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Sessions · Poker Portal{% endblock %}
+{% block content %}
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Session history</p>
+        <h1>Sessions</h1>
+        <p class="muted-text">Browse every recorded game night, inspect the table totals, and drill into each player result.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Archive</p>
+            <h2>All sessions by date</h2>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Players</th>
+                    <th>Total Buy-ins</th>
+                    <th>Total Cash-outs</th>
+                    <th>Table Net</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr>
+                    <td><a href="{{ url_for('session_detail', session_date=session.session_date) }}">{{ session.session_date | pretty_date }}</a></td>
+                    <td>{{ session.entries|length }}</td>
+                    <td>{{ session.total_buy_in_cents | money }}</td>
+                    <td>{{ session.total_cash_out_cents | money }}</td>
+                    <td class="{{ 'positive' if session.total_net_cents > 0 else 'negative' if session.total_net_cents < 0 else '' }}">{{ session.total_net_cents | money }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">No sessions yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

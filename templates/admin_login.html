@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Admin Login · Poker Portal{% endblock %}
+{% block content %}
+<section class="form-shell narrow">
+    <form class="panel form-card" method="post">
+        <p class="eyebrow">Restricted access</p>
+        <h1>Admin login</h1>
+        <p class="muted-text">Only the ledger manager needs credentials. All stats pages stay public.</p>
+
+        <label>
+            <span>Username</span>
+            <input type="text" name="username" required>
+        </label>
+
+        <label>
+            <span>Password</span>
+            <input type="password" name="password" required>
+        </label>
+
+        <button class="primary-button" type="submit">Login</button>
+    </form>
+</section>
+{% endblock %}

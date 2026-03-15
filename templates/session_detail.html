@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ session.session_date }} · Poker Portal{% endblock %}
+{% block content %}
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Session detail</p>
+        <h1>{{ session.session_date | pretty_date }}</h1>
+        <p class="muted-text">Current totals are derived from the append-only event log for this date.</p>
+    </div>
+</section>
+
+<section class="grid two-col session-layout">
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Results</p>
+                <h2>Player totals</h2>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Buy-in</th>
+                        <th>Cash-out</th>
+                        <th>Net</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in session.entries %}
+                    <tr>
+                        <td><a href="{{ url_for('player_detail', player_name=entry.player_name) }}">{{ entry.player_name }}</a></td>
+                        <td>{{ entry.buy_in_cents | money }}</td>
+                        <td>{{ entry.cash_out_cents | money }}</td>
+                        <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">{{ entry.net_cents | money }}</td>
+                        <td>
+                            {% if entry.notes %}
+                                <ul class="note-list">
+                                    {% for note in entry.notes %}
+                                        <li>{{ note }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Audit trail</p>
+                <h2>Raw ledger events</h2>
+            </div>
+        </div>
+        <div class="event-feed">
+            {% for event in raw_events | reverse %}
+            <article class="event-card">
+                <div class="event-card-top">
+                    <strong>{{ event.player_name }}</strong>
+                    <span class="pill">{{ event.event_type }}</span>
+                </div>
+                <p class="event-amount">{{ event.amount_cents | money }}</p>
+                {% if event.note %}
+                    <p class="muted-text small">{{ event.note }}</p>
+                {% endif %}
+                <p class="tiny-text">{{ event.created_at }} · by {{ event.actor }}</p>
+            </article>
+            {% else %}
+            <p class="muted-text">No raw events recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
