@@ -2,10 +2,21 @@
 {% block title %}{{ session.session_date }} · Poker Portal{% endblock %}
 {% block content %}
 <section class="hero-card compact">
-    <div>
-        <p class="eyebrow">Session detail</p>
-        <h1>{{ session.session_date | pretty_date }}</h1>
-        <p class="muted-text">Current totals are derived from the event log for this date.</p>
+    <div style="display: flex; justify-content: space-between;">
+        <div>
+            <p class="eyebrow">Session detail</p>
+            <h1>{{ session.session_date | pretty_date }}</h1>
+            <p class="muted-text">Current totals are derived from the event log for this date.</p>
+        </div>
+
+        <div style="align-content: center;">
+            {% if prev_session %}
+                <a class="secondary-button" href="{{ url_for('session_detail', session_date=prev_session.session_date) }}">Previous Session</a>
+            {% endif %}
+            {% if next_session %}
+                <a class="secondary-button" href="{{ url_for('session_detail', session_date=next_session.session_date) }}">Next Session</a>
+            {% endif %}
+        </div>
     </div>
 </section>
 

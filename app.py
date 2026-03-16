@@ -126,9 +126,25 @@ def session_detail(session_date: str) -> str:
         flash("That session was not found.", "error")
         return redirect(url_for("sessions"))
 
+    # sessions are in reverse order
+    idx = sessions.index(target_session)
+    next_session_idx = idx - 1
+    prev_session_idx = idx + 1
+
+    next_session = None
+    prev_session = None
+
+    if next_session_idx >= 0:
+        next_session = sessions[next_session_idx]
+
+    if prev_session_idx < len(sessions):
+        prev_session = sessions[prev_session_idx]
+
     return render_template(
         "session_detail.html",
         session=target_session,
+        next_session=next_session,
+        prev_session=prev_session,
         raw_events=session_events(events, session_date),
     )
 
@@ -217,7 +233,7 @@ def admin_dashboard() -> str:
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
     recent_sessions = sessions[:6]
-    recent_events = list(reversed(events[-20:]))
+    recent_events = list(reversed(events[-10:]))
     return render_template(
         "admin_dashboard.html",
         recent_sessions=recent_sessions,
