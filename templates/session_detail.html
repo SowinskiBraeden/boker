@@ -35,6 +35,9 @@
                         <th>Player</th>
                         <th>Buy-in</th>
                         <th>Cash-out</th>
+                        <th>Paid</th>
+                        <th>Remaining</th>
+                        <th>Status</th>
                         <th>Net</th>
                         <th>Notes</th>
                     </tr>
@@ -45,7 +48,18 @@
                         <td><a href="{{ url_for('player_detail', player_name=entry.player_name) }}">{{ entry.player_name }}</a></td>
                         <td>{{ entry.buy_in_cents | money }}</td>
                         <td>{{ entry.cash_out_cents | money }}</td>
-                        <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">{{ entry.net_cents | money }}</td>
+                        <td>{{ entry.paid_cents | money }}</td>
+                        <td class="{{ 'positive' if entry.payout_remaining_cents == 0 else 'negative' if entry.payout_remaining_cents > 0 else '' }}">
+                            {{ entry.payout_remaining_cents | money }}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ entry.payout_status }}">
+                                {{ entry.payout_status }}
+                            </span>
+                        </td>
+                        <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
+                            {{ entry.net_cents | money }}
+                        </td>
                         <td>
                             {% if entry.notes %}
                                 <ul class="note-list">
@@ -76,7 +90,7 @@
             <article class="event-card">
                 <div class="event-card-top">
                     <strong>{{ event.player_name }}</strong>
-                    <span class="pill">{{ event.event_type }}</span>
+                    <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
                 </div>
                 <p class="event-amount">{{ event.amount_cents | money }}</p>
                 {% if event.note %}

@@ -30,7 +30,14 @@ class EventRow(TypedDict):
     actor: str
 
 
-VALID_EVENT_TYPES = {"buyin", "cashout", "note", "session_open", "session_close"}
+VALID_EVENT_TYPES = {
+    "buyin",
+    "cashout",
+    "paid",
+    "note",
+    "session_open",
+    "session_close",
+}
 
 
 def ensure_data_file(csv_path: Path) -> None:

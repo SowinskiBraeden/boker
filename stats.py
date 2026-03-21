@@ -30,11 +30,30 @@ class SessionEntry:
     player_name: str
     buy_in_cents: int = 0
     cash_out_cents: int = 0
+    paid_cents: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
     def net_cents(self) -> int:
         return self.cash_out_cents - self.buy_in_cents
+
+    @property
+    def payout_due_cents(self) -> int:
+        return max(self.cash_out_cents, 0)
+
+    @property
+    def payout_remaining_cents(self) -> int:
+        return max(self.payout_due_cents - self.paid_cents, 0)
+
+    @property
+    def payout_status(self) -> str:
+        if self.payout_due_cents <= 0:
+            return "none"
+        if self.paid_cents <= 0:
+            return "unpaid"
+        if self.payout_remaining_cents <= 0:
+            return "paid"
+        return "partial"
 
 
 @dataclass
@@ -171,6 +190,8 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
             entry.buy_in_cents += event["amount_cents"]
         elif event_type == "cashout":
             entry.cash_out_cents += event["amount_cents"]
+        elif event_type == "paid":
+            entry.paid_cents += event["amount_cents"]
 
         if event["note"]:
             entry.notes.append(event["note"])
