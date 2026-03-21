@@ -76,6 +76,14 @@ class PlayerStats:
     total_cash_out_cents: int
     total_net_cents: int
     roi_pct: float
+    current_win_streak: int
+    current_loss_streak: int
+    longest_win_streak: int
+    longest_loss_streak: int
+    best_session_date: str | None
+    best_session_net_cents: int
+    worst_session_date: str | None
+    worst_session_net_cents: int
     rank_change: int = 0
 
 
@@ -189,6 +197,68 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
     return sessions
 
 
+def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | None]:
+    ordered_entries = sorted(entries, key=lambda entry: entry.session_date)
+
+    longest_win_streak = 0
+    longest_loss_streak = 0
+    current_run_wins = 0
+    current_run_losses = 0
+
+    best_entry: SessionEntry | None = None
+    worst_entry: SessionEntry | None = None
+
+    for entry in ordered_entries:
+        net = entry.net_cents
+
+        if best_entry is None or net > best_entry.net_cents:
+            best_entry = entry
+
+        if worst_entry is None or net < worst_entry.net_cents:
+            worst_entry = entry
+
+        if net > 0:
+            current_run_wins += 1
+            current_run_losses = 0
+        elif net < 0:
+            current_run_losses += 1
+            current_run_wins = 0
+        else:
+            current_run_wins = 0
+            current_run_losses = 0
+
+        longest_win_streak = max(longest_win_streak, current_run_wins)
+        longest_loss_streak = max(longest_loss_streak, current_run_losses)
+
+    current_win_streak = 0
+    current_loss_streak = 0
+
+    for entry in reversed(ordered_entries):
+        net = entry.net_cents
+
+        if net > 0:
+            if current_loss_streak > 0:
+                break
+            current_win_streak += 1
+        elif net < 0:
+            if current_win_streak > 0:
+                break
+            current_loss_streak += 1
+        else:
+            break
+
+    return {
+        "current_win_streak": current_win_streak,
+        "current_loss_streak": current_loss_streak,
+        "longest_win_streak": longest_win_streak,
+        "longest_loss_streak": longest_loss_streak,
+        "best_session_date": best_entry.session_date if best_entry else None,
+        "best_session_net_cents": best_entry.net_cents if best_entry else 0,
+        "worst_session_date": worst_entry.session_date if worst_entry else None,
+        "worst_session_net_cents": worst_entry.net_cents if worst_entry else 0,
+    }
+
+
 def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     player_entries: dict[str, list[SessionEntry]] = defaultdict(list)
     for session in sessions:
@@ -198,6 +268,7 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     leaderboard: list[PlayerStats] = []
     for player_name, entries in player_entries.items():
         nets = [entry.net_cents for entry in entries]
+        run_summary = summarize_player_runs(entries)
         wins = [value for value in nets if value > 0]
         losses = [value for value in nets if value < 0]
         total_buy_in = sum(entry.buy_in_cents for entry in entries)
@@ -232,6 +303,14 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
                 total_cash_out_cents=total_cash_out,
                 total_net_cents=total_net,
                 roi_pct=roi_pct,
+                current_win_streak=run_summary["current_win_streak"],
+                current_loss_streak=run_summary["current_loss_streak"],
+                longest_win_streak=run_summary["longest_win_streak"],
+                longest_loss_streak=run_summary["longest_loss_streak"],
+                best_session_date=run_summary["best_session_date"],
+                best_session_net_cents=run_summary["best_session_net_cents"],
+                worst_session_date=run_summary["worst_session_date"],
+                worst_session_net_cents=run_summary["worst_session_net_cents"],
             )
         )
 
