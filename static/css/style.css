@@ -489,6 +489,31 @@ h2 {
     letter-spacing: -0.06em;
 }
 
+.rank-move {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.rank-up {
+    color: #22c55e;
+}
+
+.rank-down {
+    color: #ef4444;
+}
+
+.rank-flat {
+    color: var(--text-muted);
+}
+
+.inline-filter-form select {
+    min-width: 12rem;
+}
+
 .table-wrap {
     position: relative;
     z-index: 1;

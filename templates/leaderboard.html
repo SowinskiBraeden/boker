@@ -66,6 +66,7 @@
             <thead>
                 <tr>
                     <th><button type="button" class="sort-button" data-sort-key="rank" data-sort-type="number" data-initial-direction="asc">Rank <span class="sort-indicator">↕</span></button></th>
+                    <th><button type="button" class="sort-button" data-sort-key="rankdelta" data-sort-type="number" data-initial-direction="desc">Rank Δ <span class="sort-indicator">↕</span></button></th>
                     <th><button type="button" class="sort-button" data-sort-key="player" data-sort-type="string" data-initial-direction="asc">Player <span class="sort-indicator">↕</span></button></th>
                     <th><button type="button" class="sort-button" data-sort-key="buyins" data-sort-type="number" data-initial-direction="desc">Buy-ins <span class="sort-indicator">↕</span></button></th>
                     <th><button type="button" class="sort-button" data-sort-key="cashouts" data-sort-type="number" data-initial-direction="desc">Cash-outs <span class="sort-indicator">↕</span></button></th>
@@ -81,6 +82,15 @@
                 {% for player in leaderboard %}
                 <tr data-player-row="true" data-original-rank="{{ loop.index }}">
                     <td data-sort-value="{{ loop.index }}" data-rank-cell>#{{ loop.index }}</td>
+                    <td data-sort-value="{{ player.rank_change }}">
+                        {% if player.rank_change > 0 %}
+                            <span class="rank-move rank-up">↑ {{ player.rank_change }}</span>
+                        {% elif player.rank_change < 0 %}
+                            <span class="rank-move rank-down">↓ {{ player.rank_change | abs }}</span>
+                        {% else %}
+                            <span class="rank-move rank-neutral">-</span>
+                        {% endif %}
+                    </td>
                     <td data-sort-value="{{ player.player_name|lower }}"><a href="{{ url_for('player_detail', player_name=player.player_name) }}">{{ player.player_name }}</a></td>
                     <td data-sort-value="{{ player.total_buy_in_cents }}">{{ player.total_buy_in_cents | money }}</td>
                     <td data-sort-value="{{ player.total_cash_out_cents }}">{{ player.total_cash_out_cents | money }}</td>
@@ -93,7 +103,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10">No data yet. Add the first event from the admin page.</td>
+                    <td colspan="11">No data yet. Add the first event from the admin page.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -254,15 +264,16 @@
     const sortButtons = Array.from(document.querySelectorAll('.sort-button'));
     const columnIndexMap = {
         rank: 0,
-        player: 1,
-        buyins: 2,
-        cashouts: 3,
-        net: 4,
-        winpct: 5,
-        roi: 6,
-        avgwin: 7,
-        avgloss: 8,
-        sessions: 9,
+        rankdelta: 1,
+        player: 2,
+        buyins: 3,
+        cashouts: 4,
+        net: 5,
+        winpct: 6,
+        roi: 7,
+        avgwin: 8,
+        avgloss: 9,
+        sessions: 10,
     };
 
     function updateRankCells() {

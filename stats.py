@@ -71,7 +71,23 @@ class PlayerStats:
     total_cash_out_cents: int
     total_net_cents: int
     roi_pct: float
+    rank_change: int = 0
 
+
+def apply_rank_changes(
+    current_board: list[PlayerStats], prev_board: list[PlayerStats]
+) -> list[PlayerStats]:
+    prev_ranks = {p.player_name: i for i, p in enumerate(prev_board, start=1)}
+
+    for i, p in enumerate(current_board, start=1):
+        prev_rank = prev_ranks.get(p.player_name)
+
+        if prev_rank is None:
+            p.rank_change = 0
+        else:
+            p.rank_change = prev_rank - i
+
+    return current_board
 
 
 def cents_to_dollars(cents: int) -> str:
@@ -79,13 +95,11 @@ def cents_to_dollars(cents: int) -> str:
     return f"${value:,.2f}"
 
 
-
 def safe_date_label(session_date: str) -> str:
     try:
         return datetime.strptime(session_date, "%Y-%m-%d").strftime("%b %d, %Y")
     except ValueError:
         return session_date
-
 
 
 def color_for_name(name: str, names: list[str]) -> str:
@@ -96,14 +110,12 @@ def color_for_name(name: str, names: list[str]) -> str:
     return PLAYER_PALETTE[index % len(PLAYER_PALETTE)]
 
 
-
 def net_tone(value_cents: int) -> str:
     if value_cents > 0:
         return "#22c55e"
     if value_cents < 0:
         return "#ef4444"
     return "#f59e0b"
-
 
 
 def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
@@ -141,7 +153,6 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
     return sessions
 
 
-
 def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     player_entries: dict[str, list[SessionEntry]] = defaultdict(list)
     for session in sessions:
@@ -162,7 +173,9 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
         break_even_sessions = sessions_played - winning_sessions - losing_sessions
         win_pct = (winning_sessions / sessions_played * 100) if sessions_played else 0.0
         avg_win = round(sum(wins) / len(wins)) if wins else 0
-        avg_loss = round(sum(abs(value) for value in losses) / len(losses)) if losses else 0
+        avg_loss = (
+            round(sum(abs(value) for value in losses) / len(losses)) if losses else 0
+        )
         biggest_win = max(wins) if wins else 0
         biggest_loss = min(losses) if losses else 0
         roi_pct = (total_net / total_buy_in * 100) if total_buy_in else 0.0
@@ -193,11 +206,14 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     return leaderboard
 
 
-
 def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
     ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
     player_names = sorted(
-        {entry.player_name for session in ordered_sessions for entry in session.entries},
+        {
+            entry.player_name
+            for session in ordered_sessions
+            for entry in session.entries
+        },
         key=str.casefold,
     )
 
@@ -211,7 +227,11 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
 
         for session in ordered_sessions:
             matching_entry = next(
-                (entry for entry in session.entries if entry.player_name == player_name),
+                (
+                    entry
+                    for entry in session.entries
+                    if entry.player_name == player_name
+                ),
                 None,
             )
             if matching_entry is not None:
@@ -241,8 +261,9 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
     return {"labels": labels, "datasets": datasets}
 
 
-
-def player_session_series(sessions: list[SessionSummary], player_name: str) -> dict[str, Any]:
+def player_session_series(
+    sessions: list[SessionSummary], player_name: str
+) -> dict[str, Any]:
     ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
     labels: list[str] = []
     net_values: list[float] = []
@@ -250,7 +271,11 @@ def player_session_series(sessions: list[SessionSummary], player_name: str) -> d
     running_total = 0
 
     all_player_names = sorted(
-        {entry.player_name for session in ordered_sessions for entry in session.entries},
+        {
+            entry.player_name
+            for session in ordered_sessions
+            for entry in session.entries
+        },
         key=str.casefold,
     )
 
@@ -276,10 +301,8 @@ def player_session_series(sessions: list[SessionSummary], player_name: str) -> d
     }
 
 
-
 def session_events(events: list[EventRow], session_date: str) -> list[EventRow]:
     return [event for event in events if event["session_date"] == session_date]
-
 
 
 def unique_player_names(events: list[EventRow]) -> list[str]:
