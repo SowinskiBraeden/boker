@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from stats import (
+    apply_rank_changes,
     build_leaderboard,
     build_session_summaries,
     cents_to_dollars,
@@ -71,22 +72,30 @@ def home() -> str:
 def leaderboard() -> str:
     events = load_events(DATA_PATH)
     all_sessions = build_session_summaries(events)
+    ordered_sessions = sorted(all_sessions, key=lambda s: s.session_date)
+
+    session_dates = [session.session_date for session in ordered_sessions]
     selected_session_date = request.args.get("through_session", "").strip()
-    valid_session_dates = {session.session_date for session in all_sessions}
 
-    if selected_session_date not in valid_session_dates:
-        selected_session_date = ""
+    if session_dates:
+        if selected_session_date in session_dates:
+            cutoff_index = session_dates.index(selected_session_date)
+        else:
+            cutoff_index = len(session_dates) - 1
+            selected_session = session_dates[cutoff_index]
 
-    filtered_sessions = all_sessions
-    if selected_session_date:
-        filtered_sessions = [
-            session
-            for session in all_sessions
-            if session.session_date <= selected_session_date
-        ]
+        filtered_sessions = ordered_sessions[: cutoff_index + 1]
+        previous_sessions = ordered_sessions[:cutoff_index]
+    else:
+        filtered_sessions = []
+        previous_sessions = []
 
     board = build_leaderboard(filtered_sessions)
+    previous_board = build_leaderboard(previous_sessions)
+    board = apply_rank_changes(board, previous_board)
+
     chart_data = cumulative_profit_series(filtered_sessions)
+
     return render_template(
         "leaderboard.html",
         leaderboard=board,
