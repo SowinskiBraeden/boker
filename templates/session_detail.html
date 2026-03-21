@@ -20,9 +20,9 @@
     </div>
 </section>
 
-<section class="grid three-col">
+<section class="grid payout-summary-grid">
     <article class="panel stat-card">
-        <span>Total cash-out due</span>
+        <span>Total payout due</span>
         <strong>{{ session.total_payout_due_cents | money }}</strong>
     </article>
 
@@ -33,8 +33,20 @@
 
     <article class="panel stat-card">
         <span>Total remaining</span>
-        <strong class="{{ 'negative' if session.total_remaining_cents > 0 else '' }}">
+        <strong class="{{ 'negative' if session.total_remaining_cents > 0 else 'positive' }}">
             {{ session.total_remaining_cents | money }}
+        </strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Total fronted</span>
+        <strong>{{ session.total_front_cents | money }}</strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Players still owe</span>
+        <strong class="{{ 'negative' if session.total_player_owes_cents > 0 else '' }}">
+            {{ session.total_player_owes_cents | money }}
         </strong>
     </article>
 </section>
@@ -53,6 +65,7 @@
                 <tr>
                     <th>Player</th>
                     <th>Buy-in</th>
+                    <th>Fronted</th>
                     <th>Cash-out</th>
                     <th>Net</th>
                     <th>Status</th>
@@ -70,6 +83,7 @@
                         </a>
                     </td>
                     <td>{{ entry.buy_in_cents | money }}</td>
+                    <td>{{ entry.front_cents | money }}</td>
                     <td>{{ entry.cash_out_cents | money }}</td>
                     <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
                         {{ entry.net_cents | money }}

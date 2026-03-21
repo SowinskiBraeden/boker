@@ -29,17 +29,26 @@ class SessionEntry:
     session_date: str
     player_name: str
     buy_in_cents: int = 0
+    front_cents: int = 0
     cash_out_cents: int = 0
     paid_cents: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
+    def invested_cents(self) -> int:
+        return self.buy_in_cents + self.front_cents
+
+    @property
     def net_cents(self) -> int:
-        return self.cash_out_cents - self.buy_in_cents
+        return self.cash_out_cents - self.invested_cents
 
     @property
     def payout_due_cents(self) -> int:
-        return max(self.cash_out_cents, 0)
+        return max(self.cash_out_cents - self.front_cents, 0)
+
+    @property
+    def player_owes_cents(self) -> int:
+        return max(self.front_cents - self.cash_out_cents, 0)
 
     @property
     def payout_remaining_cents(self) -> int:
@@ -47,6 +56,8 @@ class SessionEntry:
 
     @property
     def payout_status(self) -> str:
+        if self.player_owes_cents > 0:
+            return "owes"
         if self.payout_due_cents <= 0:
             return "none"
         if self.paid_cents <= 0:
@@ -71,24 +82,36 @@ class SessionSummary:
         return sum(entry.buy_in_cents for entry in self.entries)
 
     @property
+    def total_front_cents(self) -> int:
+        return sum(entry.front_cents for entry in self.entries)
+
+    @property
+    def total_invested_cents(self) -> int:
+        return sum(entry.invested_cents for entry in self.entries)
+
+    @property
     def total_cash_out_cents(self) -> int:
         return sum(entry.cash_out_cents for entry in self.entries)
-
-    @property
-    def total_net_cents(self) -> int:
-        return sum(entry.net_cents for entry in self.entries)
-
-    @property
-    def total_payout_due_cents(self) -> int:
-        return sum(entry.payout_due_cents for entry in self.entries)
 
     @property
     def total_paid_cents(self) -> int:
         return sum(entry.paid_cents for entry in self.entries)
 
     @property
+    def total_payout_due_cents(self) -> int:
+        return sum(entry.payout_due_cents for entry in self.entries)
+
+    @property
+    def total_player_owes_cents(self) -> int:
+        return sum(entry.player_owes_cents for entry in self.entries)
+
+    @property
     def total_remaining_cents(self) -> int:
         return sum(entry.payout_remaining_cents for entry in self.entries)
+
+    @property
+    def total_net_cents(self) -> int:
+        return sum(entry.net_cents for entry in self.entries)
 
 
 @dataclass
@@ -104,6 +127,8 @@ class PlayerStats:
     biggest_win_cents: int
     biggest_loss_cents: int
     total_buy_in_cents: int
+    total_front_cents: int
+    total_invested_cents: int
     total_cash_out_cents: int
     total_net_cents: int
     roi_pct: float
@@ -200,6 +225,8 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
 
         if event_type == "buyin":
             entry.buy_in_cents += event["amount_cents"]
+        elif event_type == "front":
+            entry.front_cents += event["amount_cents"]
         elif event_type == "cashout":
             entry.cash_out_cents += event["amount_cents"]
         elif event_type == "paid":
@@ -304,9 +331,7 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
         run_summary = summarize_player_runs(entries)
         wins = [value for value in nets if value > 0]
         losses = [value for value in nets if value < 0]
-        total_buy_in = sum(entry.buy_in_cents for entry in entries)
-        total_cash_out = sum(entry.cash_out_cents for entry in entries)
-        total_net = total_cash_out - total_buy_in
+
         sessions_played = len(entries)
         winning_sessions = len(wins)
         losing_sessions = len(losses)
@@ -318,7 +343,13 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
         )
         biggest_win = max(wins) if wins else 0
         biggest_loss = min(losses) if losses else 0
-        roi_pct = (total_net / total_buy_in * 100) if total_buy_in else 0.0
+
+        total_buy_in = sum(entry.buy_in_cents for entry in entries)
+        total_front = sum(entry.front_cents for entry in entries)
+        total_invested = sum(entry.invested_cents for entry in entries)
+        total_cash_out = sum(entry.cash_out_cents for entry in entries)
+        total_net = sum(entry.net_cents for entry in entries)
+        roi_pct = (total_net / total_invested * 100) if total_invested else 0.0
 
         leaderboard.append(
             PlayerStats(
@@ -333,6 +364,8 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
                 biggest_win_cents=biggest_win,
                 biggest_loss_cents=biggest_loss,
                 total_buy_in_cents=total_buy_in,
+                total_front_cents=total_front,
+                total_invested_cents=total_invested,
                 total_cash_out_cents=total_cash_out,
                 total_net_cents=total_net,
                 roi_pct=roi_pct,
