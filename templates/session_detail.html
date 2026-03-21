@@ -33,7 +33,7 @@
 
     <article class="panel stat-card">
         <span>Total remaining</span>
-        <strong class="{{ 'negative' if session.total_remaining_cents > 0 else 'positive' }}">
+        <strong class="{{ 'negative' if session.total_remaining_cents > 0 else '' }}">
             {{ session.total_remaining_cents | money }}
         </strong>
     </article>
@@ -54,10 +54,10 @@
                     <th>Player</th>
                     <th>Buy-in</th>
                     <th>Cash-out</th>
+                    <th>Net</th>
+                    <th>Status</th>
                     <th>Paid</th>
                     <th>Remaining</th>
-                    <th>Status</th>
-                    <th>Net</th>
                     <th>Notes</th>
                 </tr>
             </thead>
@@ -71,17 +71,17 @@
                     </td>
                     <td>{{ entry.buy_in_cents | money }}</td>
                     <td>{{ entry.cash_out_cents | money }}</td>
-                    <td>{{ entry.paid_cents | money }}</td>
-                    <td class="{{ 'negative' if entry.payout_remaining_cents > 0 else 'positive' }}">
-                        {{ entry.payout_remaining_cents | money }}
+                    <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
+                        {{ entry.net_cents | money }}
                     </td>
                     <td>
                         <span class="status-badge status-{{ entry.payout_status }}">
                             {{ entry.payout_status }}
                         </span>
                     </td>
-                    <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
-                        {{ entry.net_cents | money }}
+                    <td class="{{ 'positive' if entry.paid_cents > 0 else '' }}">{{ entry.paid_cents | money }}</td>
+                    <td class="{{ 'negative' if entry.payout_remaining_cents > 0 else '' }}">
+                        {{ entry.payout_remaining_cents | money }}
                     </td>
                     <td>
                         {% if entry.notes %}
