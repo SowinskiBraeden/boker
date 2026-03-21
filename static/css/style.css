@@ -755,74 +755,35 @@ td a:hover {
 }
 
 .leaderboard-layout,
+.session-layout,
 .admin-layout {
     align-items: stretch;
 }
 
-.session-layout {
-    align-items: stretch;
-    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+.results-panel-full {
+    display: block;
 }
 
-.results-panel,
-.chart-panel {
+.table-scroll-open {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
+    padding-right: 0;
+}
+
+.chart-row {
+    align-items: stretch;
+}
+
+.chart-panel-compact,
+.session-insights-panel {
     display: flex;
     flex-direction: column;
-    height: 430px;
-    min-height: 430px;
-    max-height: 430px;
 }
 
-.results-panel .table-scroll {
+.chart-panel-compact .chart-frame-compact {
     flex: 1;
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: auto;
-    padding-right: 0.25rem;
-
-    scrollbar-gutter: stable;
-    scrollbar-width: auto;
-    scrollbar-color: rgba(255, 160, 64, 0.88) rgba(255, 255, 255, 0.08);
-}
-
-.results-panel .table-scroll::-webkit-scrollbar {
-    width: 14px;
-    height: 12px;
-}
-
-.results-panel .table-scroll::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 999px;
-}
-
-.results-panel .table-scroll::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-        180deg,
-        rgba(255, 186, 110, 0.95),
-        rgba(255, 136, 48, 0.95)
-    );
-    border-radius: 999px;
-    border: 2px solid rgba(10, 12, 18, 0.9);
-    box-shadow:
-        0 0 0 1px rgba(255, 170, 90, 0.18),
-        0 0 12px rgba(255, 140, 60, 0.18);
-}
-
-.results-panel .table-scroll::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-        180deg,
-        rgba(255, 200, 130, 1),
-        rgba(255, 150, 60, 1)
-    );
-}
-
-.results-panel .table-scroll::-webkit-scrollbar-corner {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.chart-panel .chart-frame {
-    flex: 1;
-    min-height: 0;
+    min-height: 220px;
     height: auto;
 }
 
@@ -838,8 +799,8 @@ td a:hover {
 
 .session-results-table th:last-child,
 .session-results-table td:last-child {
-    min-width: 15rem;
-    width: 18rem;
+    min-width: 18rem;
+    width: 22rem;
     white-space: normal;
 }
 
@@ -849,6 +810,24 @@ td a:hover {
     z-index: 2;
     background: rgba(16, 20, 28, 0.96);
     backdrop-filter: blur(6px);
+}
+
+.detail-grid {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.detail-row:last-child {
+    border-bottom: 0;
 }
 
 .button-row {
