@@ -41,6 +41,11 @@ class SessionEntry:
 class SessionSummary:
     session_date: str
     entries: list[SessionEntry]
+    status: str = "closed"
+
+    @property
+    def is_open(self) -> bool:
+        return self.status == "open"
 
     @property
     def total_buy_in_cents(self) -> int:
@@ -120,35 +125,66 @@ def net_tone(value_cents: int) -> str:
 
 def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
     grouped: dict[tuple[str, str], SessionEntry] = {}
+    by_session: dict[str, list[SessionEntry]] = defaultdict(list)
+    session_status: dict[str, str] = {}
+    session_dates_seen: set[str] = set()
 
     for event in events:
-        key = (event["session_date"], event["player_name"])
+        session_date = event["session_date"]
+        event_type = event["event_type"]
+
+        if not session_date:
+            continue
+
+        session_dates_seen.add(session_date)
+
+        if event_type == "session_open":
+            session_status[session_date] = "open"
+            continue
+
+        if event_type == "session_close":
+            session_status[session_date] = "closed"
+            continue
+
+        player_name = event["player_name"].strip()
+        if not player_name:
+            continue
+
+        key = (session_date, player_name)
         if key not in grouped:
             grouped[key] = SessionEntry(
-                session_date=event["session_date"],
-                player_name=event["player_name"],
+                session_date=session_date,
+                player_name=player_name,
             )
 
         entry = grouped[key]
-        if event["event_type"] == "buyin":
+
+        if event_type == "buyin":
             entry.buy_in_cents += event["amount_cents"]
-        elif event["event_type"] == "cashout":
+        elif event_type == "cashout":
             entry.cash_out_cents += event["amount_cents"]
 
         if event["note"]:
             entry.notes.append(event["note"])
 
-    by_session: dict[str, list[SessionEntry]] = defaultdict(list)
     for entry in grouped.values():
         by_session[entry.session_date].append(entry)
 
-    sessions = [
-        SessionSummary(
-            session_date=session_date,
-            entries=sorted(entries, key=lambda entry: entry.player_name.casefold()),
+    sessions: list[SessionSummary] = []
+    for session_date in session_dates_seen:
+        entries = sorted(
+            by_session.get(session_date, []),
+            key=lambda entry: entry.player_name.casefold(),
         )
-        for session_date, entries in by_session.items()
-    ]
+
+        sessions.append(
+            SessionSummary(
+                session_date=session_date,
+                entries=entries,
+                status=session_status.get(session_date, "closed"),
+            )
+        )
+
     sessions.sort(key=lambda session: session.session_date, reverse=True)
     return sessions
 
@@ -306,4 +342,7 @@ def session_events(events: list[EventRow], session_date: str) -> list[EventRow]:
 
 
 def unique_player_names(events: list[EventRow]) -> list[str]:
-    return sorted({event["player_name"] for event in events}, key=str.casefold)
+    return sorted(
+        {event["player_name"] for event in events if event["player_name"].strip()},
+        key=str.casefold,
+    )

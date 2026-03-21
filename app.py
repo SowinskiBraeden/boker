@@ -204,6 +204,36 @@ def admin_logout() -> str:
     return redirect(url_for("leaderboard"))
 
 
+@app.post("/admin/session-state")
+def admin_session_state() -> str:
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    session_date = request.form.get("session_date", "").strip()
+    state = request.form.get("state", "").strip()
+
+    if not session_date:
+        flash("Session date is required.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if state not in {"open", "closed"}:
+        flash("Invalid session state.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    append_event(
+        DATA_PATH,
+        session_date=session_date,
+        player_name="",
+        event_type="session_open" if state == "open" else "session_close",
+        amount_cents=0,
+        note=f"Session marked {state}.",
+        actor=app.config["ADMIN_USERNAME"],
+    )
+    flash(f"Session marked {state}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin_dashboard() -> str:
     if not is_admin():
@@ -227,6 +257,17 @@ def admin_dashboard() -> str:
             flash("Amount must be a valid number.", "error")
             return redirect(url_for("admin_dashboard"))
 
+        events = load_events(DATA_PATH)
+        sessions = build_session_summaries(events)
+        status_by_date = {session.session_date: session.status for session in sessions}
+
+        if status_by_date.get(session_date, "closed") != "open":
+            flash(
+                "That session is closed. Open it first before adding player events.",
+                "error",
+            )
+            return redirect(url_for("admin_dashboard"))
+
         append_event(
             DATA_PATH,
             session_date=session_date,
@@ -242,10 +283,13 @@ def admin_dashboard() -> str:
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
     recent_sessions = sessions[:6]
-    recent_events = list(reversed(events[-10:]))
+    open_sessions = [session for session in sessions if session.status == "open"]
+    recent_events = list(reversed(events[-20:]))
+
     return render_template(
         "admin_dashboard.html",
         recent_sessions=recent_sessions,
+        open_sessions=open_sessions,
         recent_events=recent_events,
         player_names=unique_player_names(events),
     )

@@ -21,6 +21,7 @@
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Status</th>
                     <th>Players</th>
                     <th>Total Buy-ins</th>
                     <th>Total Cash-outs</th>
@@ -31,6 +32,9 @@
                 {% for session in sessions %}
                 <tr>
                     <td><a href="{{ url_for('session_detail', session_date=session.session_date) }}">{{ session.session_date | pretty_date }}</a></td>
+                    <td><span class="status-badge status-{{ session.status }}">
+                        {{ session.status }}
+                    </span></td>
                     <td>{{ session.entries|length }}</td>
                     <td>{{ session.total_buy_in_cents | money }}</td>
                     <td>{{ session.total_cash_out_cents | money }}</td>
