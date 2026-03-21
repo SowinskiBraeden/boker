@@ -52,101 +52,137 @@
         <button class="primary-button" type="submit">Add event</button>
     </form>
 
-    <form class="panel form-card" method="post" action="{{ url_for('admin_session_state') }}">
-        <p class="eyebrow">Session state</p>
-        <h2>Open or close a session</h2>
+    <section class="grid">
+        <form class="panel form-card" method="post" action="{{ url_for('admin_session_state') }}">
+            <p class="eyebrow">Session state</p>
+            <h2>Open or close a session</h2>
 
-        <label>
-            <span>Session date</span>
-            <input type="date" name="session_date" required>
-        </label>
+            <label>
+                <span>Session date</span>
+                <input type="date" name="session_date" required>
+            </label>
 
-        <div class="button-row">
-            <button class="primary-button" type="submit" name="state" value="open">Open session</button>
-            <button class="secondary-button" type="submit" name="state" value="closed">Close session</button>
-        </div>
-    </form>
+            <div class="button-row">
+                <button class="primary-button" type="submit" name="state" value="open">Open session</button>
+                <button class="secondary-button" type="submit" name="state" value="closed">Close session</button>
+            </div>
+        </form>
 
-    <div class="stack-gap">
-        <section class="panel">
+        <section class="panel form-card">
             <div class="panel-header">
                 <div>
-                    <p class="eyebrow">Recent sessions</p>
-                    <h2>Current totals</h2>
+                    <p class="eyebrow">Tools</p>
+                    <h2>Audit CSV</h2>
                 </div>
             </div>
-            <div class="table-wrap small-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Players</th>
-                            <th>Buy-ins</th>
-                            <th>Cash-outs</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for session in recent_sessions %}
-                        <tr>
-                            <td>
-                                <a href="{{ url_for('session_detail', session_date=session.session_date) }}">
-                                    {{ session.session_date | pretty_date }}
-                                </a>
-                            </td>
-                            <td>{{ session.entries|length }}</td>
-                            <td>{{ session.total_buy_in_cents | money }}</td>
-                            <td>{{ session.total_cash_out_cents | money }}</td>
-                            <td>
-                                <span class="status-badge status-{{ session.status }}">
-                                    {{ session.status }}
-                                </span>
-                            </td>
-                            <td>
-                                <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
-                                    <input type="hidden" name="session_date" value="{{ session.session_date }}">
-                                    {% if session.status == "open" %}
-                                        <button class="table-action-button" type="submit" name="state" value="closed">Close</button>
-                                    {% else %}
-                                        <button class="table-action-button" type="submit" name="state" value="open">Reopen</button>
-                                    {% endif %}
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4">No sessions yet.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
 
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <p class="eyebrow">Recent raw events</p>
-                    <h2>Ledger feed</h2>
-                </div>
-            </div>
-            <div class="event-feed condensed">
-                {% for event in recent_events %}
-                <article class="event-card">
-                    <div class="event-card-top">
-                        <strong>{{ event.player_name }}</strong>
-                        <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
+            <div class="admin-tools-grid">
+                <div class="helper-box">
+                    <p class="muted-text">
+                        Export the current audit trail or import a replacement CSV. Import creates a timestamped backup first.
+                    </p>
+                    <div class="button-row">
+                        <a class="primary-button" href="{{ url_for('admin_export_csv') }}">Export CSV</a>
                     </div>
-                    <p class="event-amount">{{ event.amount_cents | money }}</p>
-                    <p class="muted-text small">{{ event.session_date | pretty_date }}</p>
-                    {% if event.note %}<p class="muted-text small">{{ event.note }}</p>{% endif %}
-                </article>
-                {% else %}
-                <p class="muted-text">No recent events.</p>
-                {% endfor %}
+                </div>
+
+                <form method="post" action="{{ url_for('admin_import_csv') }}" enctype="multipart/form-data" class="helper-box import-form">
+                    <label for="csv_file">
+                        <span>Import replacement CSV</span>
+                    </label>
+                    <input id="csv_file" name="csv_file" type="file" accept=".csv,text/csv" required>
+                    <div class="button-row">
+                        <button
+                            class="secondary-button"
+                            type="submit"
+                            onclick="return confirm('Replace the current audit CSV? A backup will be created first.');"
+                        >
+                            Import CSV
+                        </button>
+                    </div>
+                </form>
             </div>
         </section>
+    </section>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Recent sessions</p>
+            <h2>Current totals</h2>
+        </div>
+    </div>
+    <div class="table-wrap small-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Players</th>
+                    <th>Buy-ins</th>
+                    <th>Cash-outs</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in recent_sessions %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('session_detail', session_date=session.session_date) }}">
+                            {{ session.session_date | pretty_date }}
+                        </a>
+                    </td>
+                    <td>{{ session.entries|length }}</td>
+                    <td>{{ session.total_buy_in_cents | money }}</td>
+                    <td>{{ session.total_cash_out_cents | money }}</td>
+                    <td>
+                        <span class="status-badge status-{{ session.status }}">
+                            {{ session.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
+                            <input type="hidden" name="session_date" value="{{ session.session_date }}">
+                            {% if session.status == "open" %}
+                                <button class="table-action-button" type="submit" name="state" value="closed">Close</button>
+                            {% else %}
+                                <button class="table-action-button" type="submit" name="state" value="open">Reopen</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No sessions yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Recent raw events</p>
+            <h2>Ledger feed</h2>
+        </div>
+    </div>
+    <div class="event-feed condensed">
+        {% for event in recent_events %}
+        <article class="event-card">
+            <div class="event-card-top">
+                <strong>{{ event.player_name }}</strong>
+                <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
+            </div>
+            <p class="event-amount">{{ event.amount_cents | money }}</p>
+            <p class="muted-text small">{{ event.session_date | pretty_date }}</p>
+            {% if event.note %}<p class="muted-text small">{{ event.note }}</p>{% endif %}
+        </article>
+        {% else %}
+        <p class="muted-text">No recent events.</p>
+        {% endfor %}
     </div>
 </section>
 {% endblock %}

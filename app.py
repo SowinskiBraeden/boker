@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import csv
 import os
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 
 from stats import (
     apply_rank_changes,
@@ -236,6 +248,87 @@ def admin_session_state() -> str:
     return redirect(url_for("admin_dashboard"))
 
 
+@app.get("/admin/export")
+def admin_export_csv():
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    export_name = (
+        f"entries_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    )
+
+    return send_file(
+        DATA_PATH,
+        as_attachment=True,
+        download_name=export_name,
+        mimetype="text/csv",
+    )
+
+
+@app.post("/admin/import")
+def admin_import_csv():
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    uploaded_file = request.files.get("csv_file")
+    if uploaded_file is None or uploaded_file.filename == "":
+        flash("Choose a CSV file to import.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if not uploaded_file.filename.lower().endswith(".csv"):
+        flash("Only CSV files are allowed.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    try:
+        uploaded_text = uploaded_file.stream.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        flash("CSV file must be valid UTF-8 text.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    uploaded_lines = uploaded_text.splitlines()
+    if not uploaded_lines:
+        flash("CSV file is empty.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    try:
+        current_header = next(
+            csv.reader(open(DATA_PATH, "r", encoding="utf-8", newline=""))
+        )
+    except Exception:
+        flash("Could not read the current audit CSV header.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    try:
+        uploaded_header = next(csv.reader(uploaded_lines))
+    except Exception:
+        flash("Could not read the uploaded CSV header.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if uploaded_header != current_header:
+        flash("CSV header does not match the current audit format.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    data_dir = os.path.dirname(DATA_PATH)
+    backup_name = (
+        f"entries_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    )
+    backup_path = os.path.join(data_dir, backup_name)
+
+    try:
+        shutil.copy2(DATA_PATH, backup_path)
+
+        with open(DATA_PATH, "w", encoding="utf-8", newline="") as handle:
+            handle.write(uploaded_text)
+
+        flash(f"CSV imported successfully. Backup created: {backup_name}", "success")
+    except Exception:
+        flash("Import failed. Existing CSV was not updated.", "error")
+
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin_dashboard() -> str:
     if not is_admin():
@@ -286,7 +379,7 @@ def admin_dashboard() -> str:
     sessions = build_session_summaries(events)
     recent_sessions = sessions[:6]
     open_sessions = [session for session in sessions if session.status == "open"]
-    recent_events = list(reversed(events[-20:]))
+    recent_events = list(reversed(events[-8:]))
 
     return render_template(
         "admin_dashboard.html",
