@@ -30,7 +30,7 @@ class EventRow(TypedDict):
     actor: str
 
 
-VALID_EVENT_TYPES = {"buyin", "cashout", "note"}
+VALID_EVENT_TYPES = {"buyin", "cashout", "note", "session_open", "session_close"}
 
 
 def ensure_data_file(csv_path: Path) -> None:
@@ -63,7 +63,9 @@ def load_events(csv_path: Path) -> list[EventRow]:
                 )
             )
 
-    events.sort(key=lambda event: (event["session_date"], event["created_at"], event["id"]))
+    events.sort(
+        key=lambda event: (event["session_date"], event["created_at"], event["id"])
+    )
     return events
 
 
