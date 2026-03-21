@@ -39,73 +39,143 @@
     </article>
 </section>
 
-<section class="grid two-col session-layout">
-    <div class="panel results-panel">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Results</p>
-                <h2>Player totals</h2>
-            </div>
-        </div>
-        <div class="table-wrap table-scroll">
-            <table class="data-table session-results-table">
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Buy-in</th>
-                        <th>Cash-out</th>
-                        <th>Paid</th>
-                        <th>Remaining</th>
-                        <th>Status</th>
-                        <th>Net</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in session.entries %}
-                    <tr>
-                        <td><a href="{{ url_for('player_detail', player_name=entry.player_name) }}">{{ entry.player_name }}</a></td>
-                        <td>{{ entry.buy_in_cents | money }}</td>
-                        <td>{{ entry.cash_out_cents | money }}</td>
-                        <td>{{ entry.paid_cents | money }}</td>
-                        <td class="{{ 'negative' if entry.payout_remaining_cents > 0 else 'positive' }}">
-                            {{ entry.payout_remaining_cents | money }}
-                        </td>
-                        <td>
-                            <span class="status-badge status-{{ entry.payout_status }}">
-                                {{ entry.payout_status }}
-                            </span>
-                        </td>
-                        <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
-                            {{ entry.net_cents | money }}
-                        </td>
-                        <td>
-                            {% if entry.notes %}
-                                <ul class="note-list">
-                                    {% for note in entry.notes %}
-                                        <li>{{ note }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<section class="panel results-panel results-panel-full">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Results</p>
+            <h2>Player totals</h2>
         </div>
     </div>
 
-    <div class="panel chart-panel">
+    <div class="table-scroll table-scroll-open">
+        <table class="data-table session-results-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Buy-in</th>
+                    <th>Cash-out</th>
+                    <th>Paid</th>
+                    <th>Remaining</th>
+                    <th>Status</th>
+                    <th>Net</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in session.entries %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('player_detail', player_name=entry.player_name) }}">
+                            {{ entry.player_name }}
+                        </a>
+                    </td>
+                    <td>{{ entry.buy_in_cents | money }}</td>
+                    <td>{{ entry.cash_out_cents | money }}</td>
+                    <td>{{ entry.paid_cents | money }}</td>
+                    <td class="{{ 'negative' if entry.payout_remaining_cents > 0 else 'positive' }}">
+                        {{ entry.payout_remaining_cents | money }}
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ entry.payout_status }}">
+                            {{ entry.payout_status }}
+                        </span>
+                    </td>
+                    <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
+                        {{ entry.net_cents | money }}
+                    </td>
+                    <td>
+                        {% if entry.notes %}
+                            <ul class="note-list">
+                                {% for note in entry.notes %}
+                                    <li>{{ note }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="grid two-col chart-row">
+    <div class="panel chart-panel chart-panel-compact">
         <div class="panel-header">
             <div>
                 <p class="eyebrow">Breakdown</p>
                 <h2>Net by player</h2>
             </div>
         </div>
-        <div class="chart-frame">
+        <div class="chart-frame chart-frame-compact">
             <canvas id="sessionBreakdownChart"></canvas>
+        </div>
+    </div>
+
+    <div class="panel session-insights-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Quick read</p>
+                <h2>Session snapshot</h2>
+            </div>
+        </div>
+
+        {% set winners = session.entries | selectattr('net_cents', 'gt', 0) | list %}
+        {% set losers = session.entries | selectattr('net_cents', 'lt', 0) | list %}
+
+        <div class="detail-grid">
+            <div class="detail-row">
+                <span>Players</span>
+                <strong>{{ session.entries|length }}</strong>
+            </div>
+            <div class="detail-row">
+                <span>Biggest winner</span>
+                <strong>
+                    {% if winners %}
+                        {{ winners | sort(attribute='net_cents', reverse=True) | first | attr('player_name') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+            </div>
+            <div class="detail-row">
+                <span>Best result</span>
+                <strong class="positive">
+                    {% if winners %}
+                        {{ (winners | sort(attribute='net_cents', reverse=True) | first).net_cents | money }}
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </strong>
+            </div>
+            <div class="detail-row">
+                <span>Biggest loser</span>
+                <strong>
+                    {% if losers %}
+                        {{ losers | sort(attribute='net_cents') | first | attr('player_name') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+            </div>
+            <div class="detail-row">
+                <span>Worst result</span>
+                <strong class="negative">
+                    {% if losers %}
+                        {{ (losers | sort(attribute='net_cents') | first).net_cents | money }}
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </strong>
+            </div>
+            <div class="detail-row">
+                <span>Unpaid total</span>
+                <strong class="{{ 'negative' if session.total_remaining_cents > 0 else 'positive' }}">
+                    {{ session.total_remaining_cents | money }}
+                </strong>
+            </div>
         </div>
     </div>
 </section>
