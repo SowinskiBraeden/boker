@@ -92,7 +92,7 @@
                         {% endif %}
                     </td>
                     <td data-sort-value="{{ player.player_name|lower }}"><a href="{{ url_for('player_detail', player_name=player.player_name) }}">{{ player.player_name }}</a></td>
-                    <td data-sort-value="{{ player.total_buy_in_cents }}">{{ player.total_buy_in_cents | money }}</td>
+                    <td data-sort-value="{{ player.total_invested_cents }}">{{ player.total_invested_cents | money }}</td>
                     <td data-sort-value="{{ player.total_cash_out_cents }}">{{ player.total_cash_out_cents | money }}</td>
                     <td data-sort-value="{{ player.total_net_cents }}" class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</td>
                     <td data-sort-value="{{ '%.4f'|format(player.win_pct) }}">{{ "%.1f"|format(player.win_pct) }}%</td>
