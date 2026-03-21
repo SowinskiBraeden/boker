@@ -13,7 +13,9 @@
     <article class="panel stat-card"><span>Total Net</span><strong class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</strong></article>
     <article class="panel stat-card"><span>Win %</span><strong>{{ "%.1f"|format(player.win_pct) }}%</strong></article>
     <article class="panel stat-card"><span>ROI</span><strong>{{ "%.1f"|format(player.roi_pct) }}%</strong></article>
-    <article class="panel stat-card"><span>Buy-ins</span><strong>{{ player.total_buy_in_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Total invested</span><strong>{{ player.total_invested_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Paid Buy-ins</span><strong>{{ player.total_buy_in_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Fronted</span><strong>{{ player.total_front_cents | money }}</strong></article>
     <article class="panel stat-card"><span>Cash-outs</span><strong>{{ player.total_cash_out_cents | money }}</strong></article>
     <article class="panel stat-card"><span>Sessions</span><strong>{{ player.sessions_played }}</strong></article>
     <article class="panel stat-card">
@@ -29,8 +31,8 @@
         </strong>
     </article>
 
-    <article class="panel stat-card"><span>Longest win streak</span><strong>{{ player.longest_win_streak }}</strong></article>
-    <article class="panel stat-card"><span>Longest loss streak</span><strong>{{ player.longest_loss_streak }}</strong></article>
+    <!--<article class="panel stat-card"><span>Longest win streak</span><strong>{{ player.longest_win_streak }}</strong></article>
+    <article class="panel stat-card"><span>Longest loss streak</span><strong>{{ player.longest_loss_streak }}</strong></article>-->
 </section>
 
 <section class="grid one-col">
