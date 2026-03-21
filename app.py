@@ -14,6 +14,7 @@ from stats import (
     cumulative_profit_series,
     player_session_series,
     safe_date_label,
+    session_breakdown_series,
     session_events,
     unique_player_names,
 )
@@ -155,6 +156,7 @@ def session_detail(session_date: str) -> str:
         next_session=next_session,
         prev_session=prev_session,
         raw_events=session_events(events, session_date),
+        chart_data=session_breakdown_series(target_session),
     )
 
 

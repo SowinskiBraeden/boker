@@ -78,6 +78,18 @@ class SessionSummary:
     def total_net_cents(self) -> int:
         return sum(entry.net_cents for entry in self.entries)
 
+    @property
+    def total_payout_due_cents(self) -> int:
+        return sum(entry.payout_due_cents for entry in self.entries)
+
+    @property
+    def total_paid_cents(self) -> int:
+        return sum(entry.paid_cents for entry in self.entries)
+
+    @property
+    def total_remaining_cents(self) -> int:
+        return sum(entry.payout_remaining_cents for entry in self.entries)
+
 
 @dataclass
 class PlayerStats:
@@ -434,6 +446,20 @@ def player_session_series(
         "net_values": net_values,
         "net_colors": [net_tone(round(value * 100)) for value in net_values],
         "cumulative_values": cumulative_values,
+    }
+
+
+def session_breakdown_series(session: SessionSummary) -> dict[str, Any]:
+    ordered_entries = sorted(
+        session.entries,
+        key=lambda entry: (entry.net_cents, entry.player_name.casefold()),
+        reverse=True,
+    )
+
+    return {
+        "labels": [entry.player_name for entry in ordered_entries],
+        "net_values": [round(entry.net_cents / 100, 2) for entry in ordered_entries],
+        "net_colors": [net_tone(entry.net_cents) for entry in ordered_entries],
     }
 
 
