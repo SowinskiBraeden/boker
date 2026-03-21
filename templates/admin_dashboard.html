@@ -34,6 +34,7 @@
             <select name="event_type" required>
                 <option value="buyin">Buy-in</option>
                 <option value="cashout">Cash-out</option>
+                <option value="paid">Paid out</option>
                 <option value="note">Note only</option>
             </select>
         </label>
@@ -45,7 +46,7 @@
 
         <label>
             <span>Note</span>
-            <textarea name="note" rows="4" placeholder="Rebuy, correction, settled chips later, etc."></textarea>
+            <textarea name="note" rows="4" placeholder="Rebuy, correction, partial payout, e-transfer sent, cash paid, etc."></textarea>
         </label>
 
         <button class="primary-button" type="submit">Add event</button>
@@ -135,7 +136,7 @@
                 <article class="event-card">
                     <div class="event-card-top">
                         <strong>{{ event.player_name }}</strong>
-                        <span class="pill">{{ event.event_type }}</span>
+                        <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
                     </div>
                     <p class="event-amount">{{ event.amount_cents | money }}</p>
                     <p class="muted-text small">{{ event.session_date | pretty_date }}</p>
