@@ -16,9 +16,24 @@
     <article class="panel stat-card"><span>Buy-ins</span><strong>{{ player.total_buy_in_cents | money }}</strong></article>
     <article class="panel stat-card"><span>Cash-outs</span><strong>{{ player.total_cash_out_cents | money }}</strong></article>
     <article class="panel stat-card"><span>Sessions</span><strong>{{ player.sessions_played }}</strong></article>
+    <article class="panel stat-card">
+        <span>Current Streak</span>
+        <strong>
+            {% if player.current_win_streak > 0 %}
+                W{{ player.current_win_streak }}
+            {% elif player.current_loss_streak > 0 %}
+                L{{ player.current_loss_streak }}
+            {% else %}
+                -
+            {% endif %}
+        </strong>
+    </article>
+
+    <article class="panel stat-card"><span>Longest win streak</span><strong>{{ player.longest_win_streak }}</strong></article>
+    <article class="panel stat-card"><span>Longest loss streak</span><strong>{{ player.longest_loss_streak }}</strong></article>
 </section>
 
-<section class="grid two-col">
+<section class="grid one-col">
     <div class="panel chart-panel">
         <div class="panel-header">
             <div>
@@ -30,6 +45,9 @@
             <canvas id="playerCumulativeChart"></canvas>
         </div>
     </div>
+</section>
+
+<section class="grid two-col">
     <div class="panel chart-panel">
         <div class="panel-header">
             <div>
@@ -39,6 +57,17 @@
         </div>
         <div class="chart-frame">
             <canvas id="playerSessionChart"></canvas>
+        </div>
+    </div>
+    <div class="panel chart-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Breakdown</p>
+                <h2>Result mix</h2>
+            </div>
+        </div>
+        <div class="chart-frame chart-frame-small">
+            <canvas id="playerBreakdownChart"></canvas>
         </div>
     </div>
 </section>
@@ -60,6 +89,28 @@
                 <tr><th>Average Loss</th><td>{{ player.avg_loss_cents | money }}</td></tr>
                 <tr><th>Biggest Win</th><td>{{ player.biggest_win_cents | money }}</td></tr>
                 <tr><th>Biggest Loss</th><td>{{ player.biggest_loss_cents | money }}</td></tr>
+                <tr><th>Current Win Streak</th><td>{{ player.current_win_streak }}</td></tr>
+                <tr><th>Current Loss Streak</th><td>{{ player.current_loss_streak }}</td></tr>
+                <tr><th>Longest Win Streak</th><td>{{ player.longest_win_streak }}</td></tr>
+                <tr><th>Longest Loss Streak</th><td>{{ player.longest_loss_streak }}</td></tr>
+                <tr>
+                    <th>Best Session</th>
+                    <td>
+                        {{ player.best_session_net_cents | money }}
+                        {% if player.best_session_date %}
+                            <span class="muted-text small">on {{ player.best_session_date | pretty_date }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Worst Session</th>
+                    <td>
+                        {{ player.worst_session_net_cents | money }}
+                        {% if player.worst_session_date %}
+                            <span class="muted-text small">on {{ player.worst_session_date | pretty_date }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -135,6 +186,47 @@
                 }]
             },
             options: sharedScaleOptions,
+        });
+    }
+</script>
+
+<script>
+    const breakdownCtx = document.getElementById('playerBreakdownChart');
+    if (breakdownCtx) {
+        new Chart(breakdownCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Wins', 'Losses', 'Break-even'],
+                datasets: [{
+                    data: [
+                        {{ player.winning_sessions }},
+                        {{ player.losing_sessions }},
+                        {{ player.break_even_sessions }}
+                    ],
+                    backgroundColor: [
+                        '#59d98e',
+                        '#f06c72',
+                        '#e4bf65'
+                    ],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: textMuted,
+                            usePointStyle: true,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 18,
+                        },
+                    },
+                },
+            },
         });
     }
 </script>

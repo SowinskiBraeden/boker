@@ -828,6 +828,10 @@ td a:hover {
     background: rgba(255, 255, 255, 0.07);
 }
 
+.chart-frame-small {
+    min-height: 260px;
+}
+
 @media (max-width: 980px) {
     .site-shell {
         width: min(100% - 24px, 100%);
