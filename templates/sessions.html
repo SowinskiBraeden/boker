@@ -31,7 +31,7 @@
             <tbody>
                 {% for session in sessions %}
                 <tr>
-                    <td><a href="{{ url_for('session_detail', session_date=session.session_date) }}">{{ session.session_date | pretty_date }}</a></td>
+                    <td><a href="{{ url_for('session_detail', session_id=session.session_id) }}">{{ session_label(session) }}</a></td>
                     <td><span class="status-badge status-{{ session.status }}">
                         {{ session.status }}
                     </span></td>

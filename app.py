@@ -28,6 +28,7 @@ from stats import (
     safe_date_label,
     session_breakdown_series,
     session_events,
+    session_label,
     unique_player_names,
 )
 from storage import append_event, ensure_data_file, load_events
@@ -50,6 +51,22 @@ def load_local_env(env_path: Path) -> None:
         key = key.strip()
         value = value.strip().strip('"').strip("'")
         os.environ.setdefault(key, value)
+
+
+def next_session_id(sessions, session_date: str) -> str:
+    matching = [session for session in sessions if session.session_date == session_date]
+
+    highest = 0
+    for s in matching:
+        if s.session_id == session_date:
+            highest = max(highest, 1)
+            continue
+
+        suffix = s.session_id.replace(f"{session_date}-", "")
+        if suffix.isdigit():
+            highest = max(highest, int(suffix))
+
+    return f"{session_date}-{highest + 1:02d}"
 
 
 load_local_env(ENV_PATH)
@@ -126,21 +143,26 @@ def leaderboard() -> str:
 
 
 @app.get("/sessions")
-def sessions() -> str:
+def sessions():
     events = load_events(DATA_PATH)
-    session_summaries = build_session_summaries(events)
-    return render_template("sessions.html", sessions=session_summaries)
+    sessions = build_session_summaries(events)
+
+    return render_template(
+        "sessions.html",
+        sessions=sessions,
+        session_label=session_label,
+    )
 
 
-@app.get("/sessions/<session_date>")
-def session_detail(session_date: str) -> str:
+@app.get("/sessions/<session_id>")
+def session_detail(session_id: str) -> str:
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
     target_session = next(
         (
             session_summary
             for session_summary in sessions
-            if session_summary.session_date == session_date
+            if session_summary.session_id == session_id
         ),
         None,
     )
@@ -148,27 +170,33 @@ def session_detail(session_date: str) -> str:
         flash("That session was not found.", "error")
         return redirect(url_for("sessions"))
 
-    # sessions are in reverse order
-    idx = sessions.index(target_session)
-    next_session_idx = idx - 1
-    prev_session_idx = idx + 1
+    target_index = next(
+        (
+            index
+            for index, session in enumerate(sessions)
+            if session.session_id == session_id
+        ),
+        None,
+    )
 
-    next_session = None
-    prev_session = None
+    if target_index is None:
+        flash("That session was not found.", "error")
+        return redirect(url_for("sessions"))
 
-    if next_session_idx >= 0:
-        next_session = sessions[next_session_idx]
-
-    if prev_session_idx < len(sessions):
-        prev_session = sessions[prev_session_idx]
+    target_session = sessions[target_index]
+    prev_session = (
+        sessions[target_index + 1] if target_index < len(sessions) - 1 else None
+    )
+    next_session = sessions[target_index - 1] if target_index > 0 else None
 
     return render_template(
         "session_detail.html",
         session=target_session,
         next_session=next_session,
         prev_session=prev_session,
-        raw_events=session_events(events, session_date),
+        raw_events=session_events(events, session_id),
         chart_data=session_breakdown_series(target_session),
+        session_label=session_label,
     )
 
 
@@ -224,11 +252,16 @@ def admin_session_state() -> str:
         flash("Admin login required.", "error")
         return redirect(url_for("admin_login"))
 
-    session_date = request.form.get("session_date", "").strip()
+    session_id = request.form.get("session_id", "").strip()
     state = request.form.get("state", "").strip()
 
-    if not session_date:
-        flash("Session date is required.", "error")
+    events = load_events(DATA_PATH)
+    sessions = build_session_summaries(events)
+    by_id = {session.session_id: session for session in sessions}
+    target = by_id.get(session_id)
+
+    if target is None:
+        flash("Session not found.", "error")
         return redirect(url_for("admin_dashboard"))
 
     if state not in {"open", "closed"}:
@@ -237,13 +270,15 @@ def admin_session_state() -> str:
 
     append_event(
         DATA_PATH,
-        session_date=session_date,
+        session_id=target.session_id,
+        session_date=target.session_date,
+        amount_cents=0,
         player_name="",
         event_type="session_open" if state == "open" else "session_close",
-        amount_cents=0,
         note=f"Session marked {state}.",
         actor=app.config["ADMIN_USERNAME"],
     )
+
     flash(f"Session marked {state}.", "success")
     return redirect(url_for("admin_dashboard"))
 
@@ -329,64 +364,97 @@ def admin_import_csv():
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin", methods=["GET", "POST"])
-def admin_dashboard() -> str:
+@app.post("/admin/open-session")
+def admin_open_session() -> str:
     if not is_admin():
         flash("Admin login required.", "error")
         return redirect(url_for("admin_login"))
 
+    session_date = request.form.get("session_date", "").strip()
+    if not session_date:
+        flash("Session date is required.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    events = load_events(DATA_PATH)
+    sessions = build_session_summaries(events)
+    session_id = next_session_id(sessions, session_date)
+
+    append_event(
+        DATA_PATH,
+        session_id=session_id,
+        session_date=session_date,
+        amount_cents=0,
+        player_name="",
+        event_type="session_open",
+        note="Session opened.",
+        actor=app.config["ADMIN_USERNAME"],
+    )
+
+    flash(f"Opened session {session_id}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_dashboard():
+    if not is_admin():
+        return redirect(url_for("admin_login"))
+
     if request.method == "POST":
-        session_date = request.form.get("session_date", "").strip()
+        session_id = request.form.get("session_id", "").strip()
         player_name = request.form.get("player_name", "").strip()
         event_type = request.form.get("event_type", "").strip()
-        amount_raw = request.form.get("amount", "0").strip()
         note = request.form.get("note", "").strip()
 
-        if not session_date or not player_name or not event_type:
-            flash("Session date, player name, and event type are required.", "error")
-            return redirect(url_for("admin_dashboard"))
-
+        amount_raw = request.form.get("amount", "0").strip()
         try:
-            amount_cents = 0 if event_type == "note" else round(float(amount_raw) * 100)
+            amount_cents = int(round(float(amount_raw) * 100))
         except ValueError:
-            flash("Amount must be a valid number.", "error")
+            flash("Amount must be a number.", "error")
             return redirect(url_for("admin_dashboard"))
 
         events = load_events(DATA_PATH)
         sessions = build_session_summaries(events)
-        status_by_date = {session.session_date: session.status for session in sessions}
+        by_id = {session.session_id: session for session in sessions}
+        target = by_id.get(session_id)
 
-        if status_by_date.get(session_date, "closed") != "open":
+        if target is None:
+            flash("Select a valid open session.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+        if target.status != "open":
             flash(
-                "That session is closed. Open it first before adding player events.",
+                "That session is closed. Reopen it first if you need to add events.",
                 "error",
             )
             return redirect(url_for("admin_dashboard"))
 
         append_event(
             DATA_PATH,
-            session_date=session_date,
+            session_id=target.session_id,
+            session_date=target.session_date,
             player_name=player_name,
             event_type=event_type,
             amount_cents=amount_cents,
             note=note,
             actor=app.config["ADMIN_USERNAME"],
         )
-        flash("Event added to the ledger.", "success")
+
+        flash("Event added.", "success")
         return redirect(url_for("admin_dashboard"))
 
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
-    recent_sessions = sessions[:6]
     open_sessions = [session for session in sessions if session.status == "open"]
-    recent_events = list(reversed(events[-8:]))
+    recent_sessions = sessions[:8]
+    recent_events = list(reversed(events[-20:]))
 
     return render_template(
         "admin_dashboard.html",
-        recent_sessions=recent_sessions,
         open_sessions=open_sessions,
+        recent_sessions=recent_sessions,
         recent_events=recent_events,
         player_names=unique_player_names(events),
+        session_label=session_label,
     )
 
 

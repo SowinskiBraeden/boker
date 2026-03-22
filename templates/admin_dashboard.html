@@ -15,8 +15,15 @@
         <h2>Add to the ledger</h2>
 
         <label>
-            <span>Session date</span>
-            <input type="date" name="session_date" required>
+            <span>Open session</span>
+            <select name="session_id" required>
+                <option value="">Select session</option>
+                {% for session in open_sessions %}
+                <option value="{{ session.session_id }}">
+                    {{ session_label(session) }}
+                </option>
+                {% endfor %}
+            </select>
         </label>
 
         <label>
@@ -34,8 +41,10 @@
             <select name="event_type" required>
                 <option value="buyin">Buy-in</option>
                 <option value="front">Front</option>
+                <option value="rollover_in">Rollover in</option>
                 <option value="cashout">Cash-out</option>
                 <option value="paid">Paid out</option>
+                <option value="rollover_out">Rollover out</option>
                 <option value="note">Note only</option>
             </select>
         </label>
@@ -54,9 +63,9 @@
     </form>
 
     <section class="grid">
-        <form class="panel form-card" method="post" action="{{ url_for('admin_session_state') }}">
+        <form class="panel form-card" method="post" action="{{ url_for('admin_open_session') }}">
             <p class="eyebrow">Session state</p>
-            <h2>Open or close a session</h2>
+            <h2>Open a new session</h2>
 
             <label>
                 <span>Session date</span>
@@ -64,8 +73,7 @@
             </label>
 
             <div class="button-row">
-                <button class="primary-button" type="submit" name="state" value="open">Open session</button>
-                <button class="secondary-button" type="submit" name="state" value="closed">Close session</button>
+                <button class="primary-button" type="submit">Open session</button>
             </div>
         </form>
 
@@ -130,8 +138,8 @@
                 {% for session in recent_sessions %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('session_detail', session_date=session.session_date) }}">
-                            {{ session.session_date | pretty_date }}
+                        <a href="{{ url_for('session_detail', session_id=session.session_id) }}">
+                            {{ session_label(session) }}
                         </a>
                     </td>
                     <td>{{ session.entries|length }}</td>
@@ -144,7 +152,7 @@
                     </td>
                     <td>
                         <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
-                            <input type="hidden" name="session_date" value="{{ session.session_date }}">
+                            <input type="hidden" name="session_id" value="{{ session.session_id }}">
                             {% if session.status == "open" %}
                                 <button class="table-action-button" type="submit" name="state" value="closed">Close</button>
                             {% else %}

@@ -5,16 +5,21 @@
     <div style="display: flex; justify-content: space-between;">
         <div>
             <p class="eyebrow">Session detail</p>
-            <h1>{{ session.session_date | pretty_date }}</h1>
+            <h1>{{ session_label(session) }}</h1>
             <p class="muted-text">Current totals are derived from the event log for this date.</p>
         </div>
 
-        <div style="align-content: center;">
+        <div style="align-self: center;">
             {% if prev_session %}
-                <a class="secondary-button" href="{{ url_for('session_detail', session_date=prev_session.session_date) }}">Previous Session</a>
+                <a class="secondary-button" href="{{ url_for('session_detail', session_id=prev_session.session_id) }}">
+                    Previous Session
+                </a>
             {% endif %}
+
             {% if next_session %}
-                <a class="secondary-button" href="{{ url_for('session_detail', session_date=next_session.session_date) }}">Next Session</a>
+                <a class="secondary-button" href="{{ url_for('session_detail', session_id=next_session.session_id) }}">
+                    Next Session
+                </a>
             {% endif %}
         </div>
     </div>
@@ -22,8 +27,13 @@
 
 <section class="grid payout-summary-grid">
     <article class="panel stat-card">
-        <span>Total payout due</span>
-        <strong>{{ session.total_payout_due_cents | money }}</strong>
+        <span>Gross payout</span>
+        <strong>{{ session.total_gross_payout_cents | money }}</strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Total rolled out</span>
+        <strong>{{ session.total_rollover_out_cents | money }}</strong>
     </article>
 
     <article class="panel stat-card">
@@ -32,15 +42,10 @@
     </article>
 
     <article class="panel stat-card">
-        <span>Total remaining</span>
-        <strong class="{{ 'negative' if session.total_remaining_cents > 0 else 'positive' }}">
-            {{ session.total_remaining_cents | money }}
+        <span>Still owed</span>
+        <strong class="{{ 'negative' if session.total_current_due_cents > 0 else 'positive' }}">
+            {{ session.total_current_due_cents | money }}
         </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Total fronted</span>
-        <strong>{{ session.total_front_cents | money }}</strong>
     </article>
 
     <article class="panel stat-card">
@@ -51,11 +56,21 @@
     </article>
 </section>
 
+
 <section class="panel results-panel results-panel-full">
     <div class="panel-header">
         <div>
             <p class="eyebrow">Results</p>
             <h2>Player totals</h2>
+        </div>
+
+        <div class="table-toolbar">
+            <button type="button" class="secondary-button table-view-toggle is-active" data-view="compact">
+                Compact
+            </button>
+            <button type="button" class="secondary-button table-view-toggle" data-view="full">
+                Full details
+            </button>
         </div>
     </div>
 
@@ -64,13 +79,16 @@
             <thead>
                 <tr>
                     <th>Player</th>
-                    <th>Buy-in</th>
-                    <th>Fronted</th>
-                    <th>Cash-out</th>
+                    <th>In</th>
+                    <th class="detail-col">Fronted</th>
+                    <th class="detail-col">Rolled in</th>
+                    <th>Out</th>
                     <th>Net</th>
+                    <th class="detail-col">Gross due</th>
+                    <th class="detail-col">Paid</th>
+                    <th class="detail-col">Rolled out</th>
+                    <th>Still owed</th>
                     <th>Status</th>
-                    <th>Paid</th>
-                    <th>Remaining</th>
                     <th>Notes</th>
                 </tr>
             </thead>
@@ -82,21 +100,41 @@
                             {{ entry.player_name }}
                         </a>
                     </td>
-                    <td>{{ entry.buy_in_cents | money }}</td>
-                    <td>{{ entry.front_cents | money }}</td>
+
+                    <td>{{ entry.invested_cents | money }}</td>
+                    <td class="detail-col">{{ entry.front_cents | money }}</td>
+                    <td class="detail-col">{{ entry.rollover_in_cents | money }}</td>
                     <td>{{ entry.cash_out_cents | money }}</td>
+
                     <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
                         {{ entry.net_cents | money }}
                     </td>
+
+                    <td class="detail-col">
+                        {% if entry.player_owes_cents > 0 %}
+                            —
+                        {% else %}
+                            {{ entry.gross_payout_cents | money }}
+                        {% endif %}
+                    </td>
+
+                    <td class="detail-col">{{ entry.paid_cents | money }}</td>
+                    <td class="detail-col">{{ entry.rollover_out_cents | money }}</td>
+
+                    <td class="{% if entry.player_owes_cents > 0 %}negative{% elif entry.current_due_cents > 0 %}negative{% else %}positive{% endif %}">
+                        {% if entry.player_owes_cents > 0 %}
+                            Owes {{ entry.player_owes_cents | money }}
+                        {% else %}
+                            {{ entry.current_due_cents | money }}
+                        {% endif %}
+                    </td>
+
                     <td>
                         <span class="status-badge status-{{ entry.payout_status }}">
                             {{ entry.payout_status }}
                         </span>
                     </td>
-                    <td class="{{ 'positive' if entry.paid_cents > 0 else '' }}">{{ entry.paid_cents | money }}</td>
-                    <td class="{{ 'negative' if entry.payout_remaining_cents > 0 else '' }}">
-                        {{ entry.payout_remaining_cents | money }}
-                    </td>
+
                     <td>
                         {% if entry.notes %}
                             <ul class="note-list">
@@ -267,6 +305,30 @@
                     },
                 },
             },
+        });
+    }
+</script>
+
+<script>
+    const sessionTable = document.querySelector('.session-results-table');
+    const viewButtons = document.querySelectorAll('.table-view-toggle');
+
+    if (sessionTable && viewButtons.length) {
+        sessionTable.classList.add('compact');
+
+        viewButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const view = button.dataset.view;
+
+                viewButtons.forEach((btn) => btn.classList.remove('is-active'));
+                button.classList.add('is-active');
+
+                if (view === 'full') {
+                    sessionTable.classList.remove('compact');
+                } else {
+                    sessionTable.classList.add('compact');
+                }
+            });
         });
     }
 </script>

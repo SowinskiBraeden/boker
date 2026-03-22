@@ -26,17 +26,20 @@ PLAYER_PALETTE = [
 
 @dataclass
 class SessionEntry:
+    session_id: str
     session_date: str
     player_name: str
     buy_in_cents: int = 0
     front_cents: int = 0
     cash_out_cents: int = 0
     paid_cents: int = 0
+    rollover_in_cents: int = 0
+    rollover_out_cents: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
     def invested_cents(self) -> int:
-        return self.buy_in_cents + self.front_cents
+        return self.buy_in_cents + self.front_cents + self.rollover_in_cents
 
     @property
     def net_cents(self) -> int:
@@ -47,31 +50,45 @@ class SessionEntry:
         return max(self.cash_out_cents - self.front_cents, 0)
 
     @property
-    def player_owes_cents(self) -> int:
-        return max(self.front_cents - self.cash_out_cents, 0)
+    def payout_remaining_cents(self) -> int:
+        return max(self.payout_due_cents - self.paid_cents - self.rollover_out_cents, 0)
 
     @property
-    def payout_remaining_cents(self) -> int:
-        return max(self.payout_due_cents - self.paid_cents, 0)
+    def gross_payout_cents(self) -> int:
+        return max(self.cash_out_cents - self.front_cents, 0)
+
+    @property
+    def settled_cents(self) -> int:
+        return self.paid_cents + self.rollover_out_cents
+
+    @property
+    def current_due_cents(self) -> int:
+        return max(self.gross_payout_cents - self.settled_cents, 0)
+
+    @property
+    def player_owes_cents(self) -> int:
+        return max(self.front_cents - self.cash_out_cents, 0)
 
     @property
     def payout_status(self) -> str:
         if self.player_owes_cents > 0:
             return "owes"
-        if self.payout_due_cents <= 0:
+        if self.gross_payout_cents <= 0:
             return "none"
-        if self.paid_cents <= 0:
-            return "unpaid"
-        if self.payout_remaining_cents <= 0:
+        if self.current_due_cents <= 0:
             return "paid"
+        if self.settled_cents <= 0:
+            return "unpaid"
         return "partial"
 
 
 @dataclass
 class SessionSummary:
+    session_id: str
     session_date: str
     entries: list[SessionEntry]
     status: str = "closed"
+    opened_at: str = ""
 
     @property
     def is_open(self) -> bool:
@@ -86,6 +103,10 @@ class SessionSummary:
         return sum(entry.front_cents for entry in self.entries)
 
     @property
+    def total_rollover_in_cents(self) -> int:
+        return sum(entry.rollover_in_cents for entry in self.entries)
+
+    @property
     def total_invested_cents(self) -> int:
         return sum(entry.invested_cents for entry in self.entries)
 
@@ -94,16 +115,8 @@ class SessionSummary:
         return sum(entry.cash_out_cents for entry in self.entries)
 
     @property
-    def total_paid_cents(self) -> int:
-        return sum(entry.paid_cents for entry in self.entries)
-
-    @property
     def total_payout_due_cents(self) -> int:
         return sum(entry.payout_due_cents for entry in self.entries)
-
-    @property
-    def total_player_owes_cents(self) -> int:
-        return sum(entry.player_owes_cents for entry in self.entries)
 
     @property
     def total_remaining_cents(self) -> int:
@@ -112,6 +125,26 @@ class SessionSummary:
     @property
     def total_net_cents(self) -> int:
         return sum(entry.net_cents for entry in self.entries)
+
+    @property
+    def total_gross_payout_cents(self) -> int:
+        return sum(entry.gross_payout_cents for entry in self.entries)
+
+    @property
+    def total_paid_cents(self) -> int:
+        return sum(entry.paid_cents for entry in self.entries)
+
+    @property
+    def total_rollover_out_cents(self) -> int:
+        return sum(entry.rollover_out_cents for entry in self.entries)
+
+    @property
+    def total_current_due_cents(self) -> int:
+        return sum(entry.current_due_cents for entry in self.entries)
+
+    @property
+    def total_player_owes_cents(self) -> int:
+        return sum(entry.player_owes_cents for entry in self.entries)
 
 
 @dataclass
@@ -128,8 +161,11 @@ class PlayerStats:
     biggest_loss_cents: int
     total_buy_in_cents: int
     total_front_cents: int
+    total_rollover_in_cents: int
     total_invested_cents: int
     total_cash_out_cents: int
+    total_paid_cents: int
+    total_rollover_out_cents: int
     total_net_cents: int
     roi_pct: float
     current_win_streak: int
@@ -164,11 +200,21 @@ def cents_to_dollars(cents: int) -> str:
     return f"${value:,.2f}"
 
 
-def safe_date_label(session_date: str) -> str:
+def safe_date_label(raw_date: str) -> str:
     try:
-        return datetime.strptime(session_date, "%Y-%m-%d").strftime("%b %d, %Y")
+        return datetime.strptime(raw_date, "%Y-%m-%d").strftime("%b %d, %Y")
     except ValueError:
-        return session_date
+        return raw_date
+
+
+def session_label(session: SessionSummary) -> str:
+    if session.session_id == session.session_date:
+        return safe_date_label(session.session_date)
+
+    suffix = session.session_id.replace(f"{session.session_date}-", "")
+    if suffix.isdigit():
+        return f"{safe_date_label(session.session_date)} · S{int(suffix)}"
+    return f"{safe_date_label(session.session_date)} · {suffix}"
 
 
 def color_for_name(name: str, names: list[str]) -> str:
@@ -191,32 +237,36 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
     grouped: dict[tuple[str, str], SessionEntry] = {}
     by_session: dict[str, list[SessionEntry]] = defaultdict(list)
     session_status: dict[str, str] = {}
-    session_dates_seen: set[str] = set()
+    session_dates: dict[str, str] = {}
+    session_opened_at: dict[str, str] = {}
 
     for event in events:
-        session_date = event["session_date"]
-        event_type = event["event_type"]
+        session_id = event["session_id"].strip() or event["session_date"].strip()
+        session_date = event["session_date"].strip()
+        event_type = event["event_type"].strip()
 
-        if not session_date:
+        if not session_id or not session_date:
             continue
 
-        session_dates_seen.add(session_date)
+        session_dates[session_id] = session_date
+        session_opened_at.setdefault(session_id, event["created_at"])
 
         if event_type == "session_open":
-            session_status[session_date] = "open"
+            session_status[session_id] = "open"
             continue
 
         if event_type == "session_close":
-            session_status[session_date] = "closed"
+            session_status[session_id] = "closed"
             continue
 
         player_name = event["player_name"].strip()
         if not player_name:
             continue
 
-        key = (session_date, player_name)
+        key = (session_id, player_name)
         if key not in grouped:
             grouped[key] = SessionEntry(
+                session_id=session_id,
                 session_date=session_date,
                 player_name=player_name,
             )
@@ -227,33 +277,46 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
             entry.buy_in_cents += event["amount_cents"]
         elif event_type == "front":
             entry.front_cents += event["amount_cents"]
+        elif event_type == "rollover_in":
+            entry.rollover_in_cents += event["amount_cents"]
         elif event_type == "cashout":
             entry.cash_out_cents += event["amount_cents"]
         elif event_type == "paid":
             entry.paid_cents += event["amount_cents"]
+        elif event_type == "rollover_out":
+            entry.rollover_out_cents += event["amount_cents"]
 
         if event["note"]:
             entry.notes.append(event["note"])
 
     for entry in grouped.values():
-        by_session[entry.session_date].append(entry)
+        by_session[entry.session_id].append(entry)
 
     sessions: list[SessionSummary] = []
-    for session_date in session_dates_seen:
+    for session_id, session_date in session_dates.items():
         entries = sorted(
-            by_session.get(session_date, []),
+            by_session.get(session_id, []),
             key=lambda entry: entry.player_name.casefold(),
         )
 
         sessions.append(
             SessionSummary(
+                session_id=session_id,
                 session_date=session_date,
                 entries=entries,
-                status=session_status.get(session_date, "closed"),
+                status=session_status.get(session_id, "closed"),
+                opened_at=session_opened_at.get(session_id, ""),
             )
         )
 
-    sessions.sort(key=lambda session: session.session_date, reverse=True)
+    sessions.sort(
+        key=lambda session: (
+            session.session_date,
+            session.opened_at,
+            session.session_id,
+        ),
+        reverse=True,
+    )
     return sessions
 
 
@@ -346,8 +409,11 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
 
         total_buy_in = sum(entry.buy_in_cents for entry in entries)
         total_front = sum(entry.front_cents for entry in entries)
+        total_rollover_in = sum(entry.rollover_in_cents for entry in entries)
         total_invested = sum(entry.invested_cents for entry in entries)
         total_cash_out = sum(entry.cash_out_cents for entry in entries)
+        total_paid = sum(entry.paid_cents for entry in entries)
+        total_rollover_out = sum(entry.rollover_out_cents for entry in entries)
         total_net = sum(entry.net_cents for entry in entries)
         roi_pct = (total_net / total_invested * 100) if total_invested else 0.0
 
@@ -365,8 +431,11 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
                 biggest_loss_cents=biggest_loss,
                 total_buy_in_cents=total_buy_in,
                 total_front_cents=total_front,
+                total_rollover_in_cents=total_rollover_in,
                 total_invested_cents=total_invested,
                 total_cash_out_cents=total_cash_out,
+                total_paid_cents=total_paid,
+                total_rollover_out_cents=total_rollover_out,
                 total_net_cents=total_net,
                 roi_pct=roi_pct,
                 current_win_streak=run_summary["current_win_streak"],
@@ -496,8 +565,8 @@ def session_breakdown_series(session: SessionSummary) -> dict[str, Any]:
     }
 
 
-def session_events(events: list[EventRow], session_date: str) -> list[EventRow]:
-    return [event for event in events if event["session_date"] == session_date]
+def session_events(events: list[EventRow], session_id: str) -> list[EventRow]:
+    return [event for event in events if event["session_id"] == session_id]
 
 
 def unique_player_names(events: list[EventRow]) -> list[str]:
