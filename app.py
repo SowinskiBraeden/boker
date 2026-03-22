@@ -448,6 +448,20 @@ def admin_dashboard():
     recent_sessions = sessions[:8]
     recent_events = list(reversed(events[-20:]))
 
+    admin_totals = {
+        "cash_in_cents": sum(session.total_cash_in_cents for session in sessions),
+        "paid_out_cents": sum(session.total_paid_out_cents for session in sessions),
+        "still_owed_cents": sum(
+            session.total_current_due_cents for session in sessions
+        ),
+        "players_owe_cents": sum(
+            session.total_player_owes_cents for session in sessions
+        ),
+        "open_balance_cents": sum(
+            session.total_open_balance_cents for session in sessions
+        ),
+    }
+
     return render_template(
         "admin_dashboard.html",
         open_sessions=open_sessions,
@@ -455,6 +469,7 @@ def admin_dashboard():
         recent_events=recent_events,
         player_names=unique_player_names(events),
         session_label=session_label,
+        admin_totals=admin_totals,
     )
 
 
