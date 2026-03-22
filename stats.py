@@ -146,6 +146,18 @@ class SessionSummary:
     def total_player_owes_cents(self) -> int:
         return sum(entry.player_owes_cents for entry in self.entries)
 
+    @property
+    def total_cash_in_cents(self) -> int:
+        return sum(entry.buy_in_cents for entry in self.entries)
+
+    @property
+    def total_paid_out_cents(self) -> int:
+        return sum(entry.paid_cents for entry in self.entries)
+
+    @property
+    def total_open_balance_cents(self) -> int:
+        return self.total_current_due_cents - self.total_player_owes_cents
+
 
 @dataclass
 class PlayerStats:

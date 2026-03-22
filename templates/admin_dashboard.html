@@ -115,6 +115,39 @@
     </section>
 </section>
 
+<section class="grid admin-cash-grid">
+    <article class="panel stat-card">
+        <span>Cash in</span>
+        <strong>{{ admin_totals.cash_in_cents | money }}</strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Paid out</span>
+        <strong>{{ admin_totals.paid_out_cents | money }}</strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Still owed</span>
+        <strong class="{{ 'negative' if admin_totals.still_owed_cents > 0 else 'positive' }}">
+            {{ admin_totals.still_owed_cents | money }}
+        </strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Players owe</span>
+        <strong class="{{ 'negative' if admin_totals.players_owe_cents > 0 else '' }}">
+            {{ admin_totals.players_owe_cents | money }}
+        </strong>
+    </article>
+
+    <article class="panel stat-card">
+        <span>Open balance</span>
+        <strong class="{% if admin_totals.open_balance_cents > 0 %}negative{% elif admin_totals.open_balance_cents < 0 %}positive{% endif %}">
+            {{ admin_totals.open_balance_cents | money }}
+        </strong>
+    </article>
+</section>
+
 <section class="panel">
     <div class="panel-header">
         <div>
@@ -126,10 +159,13 @@
         <table>
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th>Session</th>
                     <th>Players</th>
-                    <th>Buy-ins</th>
-                    <th>Cash-outs</th>
+                    <th>Cash in</th>
+                    <th>Paid out</th>
+                    <th>Still owed</th>
+                    <th>Players owe</th>
+                    <th>Open balance</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -143,8 +179,17 @@
                         </a>
                     </td>
                     <td>{{ session.entries|length }}</td>
-                    <td>{{ session.total_buy_in_cents | money }}</td>
-                    <td>{{ session.total_cash_out_cents | money }}</td>
+                    <td>{{ session.total_cash_in_cents | money }}</td>
+                    <td>{{ session.total_paid_out_cents | money }}</td>
+                    <td class="{{ 'negative' if session.total_current_due_cents > 0 else 'positive' }}">
+                        {{ session.total_current_due_cents | money }}
+                    </td>
+                    <td class="{{ 'negative' if session.total_player_owes_cents > 0 else '' }}">
+                        {{ session.total_player_owes_cents | money }}
+                    </td>
+                    <td class="{% if session.total_open_balance_cents > 0 %}negative{% elif session.total_open_balance_cents < 0 %}positive{% endif %}">
+                        {{ session.total_open_balance_cents | money }}
+                    </td>
                     <td>
                         <span class="status-badge status-{{ session.status }}">
                             {{ session.status }}
