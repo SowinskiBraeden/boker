@@ -212,6 +212,38 @@ def cents_to_dollars(cents: int) -> str:
     return f"${value:,.2f}"
 
 
+def session_sort_key(session: SessionSummary) -> tuple[str, int, str]:
+    session_id = session.session_id.strip()
+
+    if session_id == session.session_date:
+        return (session.session_date, 1, session_id)
+
+    suffix = session_id.replace(f"{session.session_date}-", "")
+    if suffix.isdigit():
+        return (session.session_date, int(suffix), session_id)
+
+    if suffix.lower().startswith("s") and suffix[1:].isdigit():
+        return (session.session_date, int(suffix[1:]), session_id)
+
+    return (session.session_date, 9999, session_id)
+
+
+def session_chart_label(session: SessionSummary) -> str:
+    session_id = session.session_id.strip()
+
+    if session_id == session.session_date:
+        return safe_date_label(session.session_date)
+
+    suffix = session_id.replace(f"{session.session_date}-", "")
+    if suffix.isdigit():
+        return f"{safe_date_label(session.session_date)} · S{int(suffix)}"
+
+    if suffix.lower().startswith("s") and suffix[1:].isdigit():
+        return f"{safe_date_label(session.session_date)} · S{int(suffix[1:])}"
+
+    return f"{safe_date_label(session.session_date)} · {suffix}"
+
+
 def safe_date_label(raw_date: str) -> str:
     try:
         return datetime.strptime(raw_date, "%Y-%m-%d").strftime("%b %d, %Y")
@@ -468,9 +500,10 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     return leaderboard
 
 
-def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
-    ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
-    player_names = sorted(
+def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, object]:
+    ordered_sessions = sorted(sessions, key=session_sort_key)
+
+    all_players = sorted(
         {
             entry.player_name
             for session in ordered_sessions
@@ -479,13 +512,13 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
         key=str.casefold,
     )
 
-    labels = [safe_date_label(session.session_date) for session in ordered_sessions]
+    labels = [session_chart_label(session) for session in ordered_sessions]
     datasets = []
 
-    for player_name in player_names:
-        series: list[float | None] = []
+    for player_name in all_players:
         running_total = 0
-        has_started = False
+        seen_player = False
+        data: list[float | None] = []
 
         for session in ordered_sessions:
             matching_entry = next(
@@ -496,37 +529,32 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, Any]:
                 ),
                 None,
             )
-            if matching_entry is not None:
-                has_started = True
-                running_total += matching_entry.net_cents
-                series.append(round(running_total / 100, 2))
-            elif has_started:
-                series.append(round(running_total / 100, 2))
-            else:
-                series.append(None)
+
+            if matching_entry is None:
+                data.append(running_total / 100 if seen_player else None)
+                continue
+
+            seen_player = True
+            running_total += matching_entry.net_cents
+            data.append(round(running_total / 100, 2))
 
         datasets.append(
             {
                 "label": player_name,
-                "data": series,
-                "borderColor": color_for_name(player_name, player_names),
-                "backgroundColor": color_for_name(player_name, player_names),
-                "pointRadius": 3,
-                "pointHoverRadius": 5,
-                "pointHitRadius": 10,
-                "borderWidth": 2.5,
-                "tension": 0.22,
-                "spanGaps": False,
+                "data": data,
             }
         )
 
-    return {"labels": labels, "datasets": datasets}
+    return {
+        "labels": labels,
+        "datasets": datasets,
+    }
 
 
 def player_session_series(
     sessions: list[SessionSummary], player_name: str
 ) -> dict[str, Any]:
-    ordered_sessions = sorted(sessions, key=lambda session: session.session_date)
+    ordered_sessions = sorted(sessions, key=session_sort_key)
     labels: list[str] = []
     net_values: list[float] = []
     cumulative_values: list[float] = []
@@ -549,7 +577,7 @@ def player_session_series(
         if matching_entry is None:
             continue
 
-        labels.append(safe_date_label(session.session_date))
+        labels.append(session_chart_label(session))
         net_values.append(round(matching_entry.net_cents / 100, 2))
         running_total += matching_entry.net_cents
         cumulative_values.append(round(running_total / 100, 2))
