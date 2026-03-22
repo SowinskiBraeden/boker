@@ -10,6 +10,7 @@ from typing import TypedDict
 CSV_HEADERS = [
     "id",
     "created_at",
+    "session_id",
     "session_date",
     "player_name",
     "event_type",
@@ -22,6 +23,7 @@ CSV_HEADERS = [
 class EventRow(TypedDict):
     id: str
     created_at: str
+    session_id: str
     session_date: str
     player_name: str
     event_type: str
@@ -32,9 +34,11 @@ class EventRow(TypedDict):
 
 VALID_EVENT_TYPES = {
     "buyin",
-    "cashout",
     "front",
+    "cashout",
     "paid",
+    "rollover_in",
+    "rollover_out",
     "note",
     "session_open",
     "session_close",
@@ -62,6 +66,7 @@ def load_events(csv_path: Path) -> list[EventRow]:
                 EventRow(
                     id=row["id"],
                     created_at=row["created_at"],
+                    session_id=row["session_id"],
                     session_date=row["session_date"],
                     player_name=row["player_name"],
                     event_type=row["event_type"],
@@ -79,6 +84,7 @@ def load_events(csv_path: Path) -> list[EventRow]:
 
 def append_event(
     csv_path: Path,
+    session_id: str,
     session_date: str,
     player_name: str,
     event_type: str,
@@ -98,6 +104,7 @@ def append_event(
     event = EventRow(
         id=str(uuid.uuid4()),
         created_at=datetime.now(timezone.utc).isoformat(),
+        session_id=session_id.strip(),
         session_date=session_date.strip(),
         player_name=player_name.strip(),
         event_type=normalized_type,
