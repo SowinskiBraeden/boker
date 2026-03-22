@@ -139,6 +139,7 @@ def leaderboard() -> str:
             if selected_session_date
             else "Latest session"
         ),
+        session_label=session_label,
     )
 
 
