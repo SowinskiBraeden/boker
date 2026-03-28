@@ -104,15 +104,15 @@ def leaderboard() -> str:
     all_sessions = build_session_summaries(events)
     ordered_sessions = sorted(all_sessions, key=lambda s: s.session_date)
 
-    session_dates = [session.session_date for session in ordered_sessions]
-    selected_session_date = request.args.get("through_session", "").strip()
+    session_ids = [session.session_id for session in ordered_sessions]
+    selected_session_id = request.args.get("through_session", "").strip()
 
-    if session_dates:
-        if selected_session_date in session_dates:
-            cutoff_index = session_dates.index(selected_session_date)
+    if session_ids:
+        if selected_session_id in session_ids:
+            cutoff_index = session_ids.index(selected_session_id)
         else:
-            cutoff_index = len(session_dates) - 1
-            selected_session = session_dates[cutoff_index]
+            cutoff_index = len(session_ids) - 1
+            selected_session = session_ids[cutoff_index]
 
         filtered_sessions = ordered_sessions[: cutoff_index + 1]
         previous_sessions = ordered_sessions[:cutoff_index]
@@ -133,10 +133,10 @@ def leaderboard() -> str:
         total_session_count=len(all_sessions),
         chart_data=chart_data,
         available_sessions=all_sessions,
-        selected_session_date=selected_session_date,
+        selected_session_date=selected_session_id,
         selected_session_label=(
-            safe_date_label(selected_session_date)
-            if selected_session_date
+            safe_date_label(selected_session_id)
+            if selected_session_id
             else "Latest session"
         ),
         session_label=session_label,
