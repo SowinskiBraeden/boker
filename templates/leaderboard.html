@@ -49,7 +49,7 @@
             <form method="get" class="session-filter-form">
                 <label for="through_session" class="session-filter-label">Through session</label>
                 <select id="through_session" name="through_session" class="session-filter-select" onchange="this.form.submit()">
-                    <option value="" {% if not selected_session_date %}selected{% endif %}>Latest session</option>
+                    <option value="" {% if not selected_session_id %}selected{% endif %}>Latest session</option>
                     {% for session in available_sessions %}
                     <option value="{{ session.session_id }}" {% if selected_session_id == session.session_id %}selected{% endif %}>{{ session_label(session) }}</option>
                     {% endfor %}
