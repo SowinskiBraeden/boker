@@ -17,6 +17,7 @@
                 <h2>Cumulative profit over time</h2>
             </div>
             <div class="panel-actions">
+                <button class="ghost-button compact-button" type="button" id="resetLeaderboardZoom" hidden>Reset zoom</button>
                 <button class="secondary-button" type="button" id="expandLeaderboardChart">Expand chart</button>
             </div>
         </div>
@@ -137,7 +138,70 @@
     const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
     const lineColor = rootStyles.getPropertyValue('--line').trim();
 
-    function buildLeaderboardChartConfig(chartData) {
+    function mainLeaderboardChartData(chartData) {
+        const repeatedPlayerDatasets = chartData.datasets.filter((dataset) => {
+            return Number(dataset.sessions_played || 0) > 1;
+        });
+        const visibleDatasets = repeatedPlayerDatasets.length > 0
+            ? repeatedPlayerDatasets
+            : chartData.datasets;
+
+        return {
+            labels: [...chartData.labels],
+            datasets: visibleDatasets.map((dataset) => ({
+                ...dataset,
+                data: [...dataset.data],
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                borderWidth: 2.5,
+                tension: 0.28,
+            })),
+        };
+    }
+
+    function moneyTickLabel(value) {
+        const numericValue = Number(value);
+        const absoluteValue = Math.abs(numericValue);
+        const formattedValue = Number.isInteger(absoluteValue)
+            ? absoluteValue.toFixed(0)
+            : absoluteValue.toFixed(2);
+
+        return `${numericValue < 0 ? '-' : ''}$${formattedValue}`;
+    }
+
+    function chartYScaleOptions(chartData, compact) {
+        const values = chartData.datasets
+            .flatMap((dataset) => dataset.data)
+            .filter((value) => value !== null && value !== undefined)
+            .map(Number);
+
+        if (values.length === 0) {
+            return {};
+        }
+
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        const maxAbsValue = Math.max(Math.abs(minValue), Math.abs(maxValue));
+        const stepSize = maxAbsValue <= 75 ? 25 : undefined;
+
+        return {
+            suggestedMin: minValue < 0 ? minValue * 1.12 : 0,
+            suggestedMax: maxValue > 0 ? maxValue * 1.12 : 0,
+            ticks: {
+                color: textMuted,
+                maxTicksLimit: compact ? 8 : 10,
+                stepSize,
+                callback(value) {
+                    return moneyTickLabel(value);
+                },
+            },
+            grid: { color: lineColor },
+        };
+    }
+
+    function buildLeaderboardChartConfig(chartData, options = {}) {
+        const compact = options.compact === true;
+
         return {
             type: 'line',
             data: chartData,
@@ -145,15 +209,26 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { mode: 'nearest', intersect: false },
+                elements: {
+                    point: {
+                        radius: compact ? 0 : 2,
+                        hoverRadius: 5,
+                    },
+                    line: {
+                        borderWidth: compact ? 2.5 : 2,
+                        tension: 0.28,
+                    },
+                },
                 plugins: {
                     legend: {
+                        display: true,
                         position: 'bottom',
                         labels: {
                             color: textMuted,
                             usePointStyle: true,
-                            boxWidth: 10,
-                            boxHeight: 10,
-                            padding: 18,
+                            boxWidth: compact ? 8 : 10,
+                            boxHeight: compact ? 8 : 10,
+                            padding: compact ? 12 : 18,
                         },
                     },
                     tooltip: {
@@ -170,27 +245,186 @@
                 },
                 scales: {
                     x: {
-                        ticks: { color: textMuted, maxRotation: 0 },
-                        grid: { color: lineColor },
-                    },
-                    y: {
                         ticks: {
                             color: textMuted,
-                            callback(value) {
-                                return `$${value}`;
-                            },
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: compact ? 6 : 10,
                         },
-                        grid: { color: lineColor },
+                        grid: {
+                            color: lineColor,
+                            display: !compact,
+                        },
                     },
+                    y: chartYScaleOptions(chartData, compact),
                 },
             },
         };
     }
 
+    const zoomSelectionPlugin = {
+        id: 'zoomSelection',
+        beforeDraw(chart) {
+            const drag = chart.$zoomDrag;
+            if (!drag || !drag.active || drag.startX === drag.endX) {
+                return;
+            }
+
+            const { ctx, chartArea } = chart;
+            const left = Math.max(chartArea.left, Math.min(drag.startX, drag.endX));
+            const right = Math.min(chartArea.right, Math.max(drag.startX, drag.endX));
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(229, 139, 58, 0.14)';
+            ctx.strokeStyle = 'rgba(229, 139, 58, 0.74)';
+            ctx.lineWidth = 1;
+            ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
+            ctx.strokeRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
+            ctx.restore();
+        },
+    };
+
+    Chart.register(zoomSelectionPlugin);
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function enableDragZoom(chart, resetButton) {
+        if (!chart || !chart.canvas || !resetButton) {
+            return;
+        }
+
+        const canvas = chart.canvas;
+        const minDragDistance = 14;
+        let draggedToZoom = false;
+
+        function pointerX(event) {
+            const rect = canvas.getBoundingClientRect();
+            return event.clientX - rect.left;
+        }
+
+        function eventInChartArea(event) {
+            const x = pointerX(event);
+            const y = event.clientY - canvas.getBoundingClientRect().top;
+            const area = chart.chartArea;
+            return x >= area.left && x <= area.right && y >= area.top && y <= area.bottom;
+        }
+
+        canvas.addEventListener('pointerdown', (event) => {
+            if (!eventInChartArea(event)) {
+                return;
+            }
+
+            canvas.setPointerCapture(event.pointerId);
+            const x = pointerX(event);
+            chart.$zoomDrag = { active: true, startX: x, endX: x };
+            chart.update('none');
+        });
+
+        canvas.addEventListener('pointermove', (event) => {
+            if (!chart.$zoomDrag?.active) {
+                return;
+            }
+
+            chart.$zoomDrag.endX = pointerX(event);
+            chart.draw();
+        });
+
+        canvas.addEventListener('pointerup', (event) => {
+            const drag = chart.$zoomDrag;
+            if (!drag?.active) {
+                return;
+            }
+
+            drag.active = false;
+            const distance = Math.abs(drag.endX - drag.startX);
+            if (distance < minDragDistance) {
+                chart.draw();
+                return;
+            }
+
+            draggedToZoom = true;
+            const area = chart.chartArea;
+            const startPixel = clamp(Math.min(drag.startX, drag.endX), area.left, area.right);
+            const endPixel = clamp(Math.max(drag.startX, drag.endX), area.left, area.right);
+            const xScale = chart.scales.x;
+            const minIndex = clamp(Math.floor(xScale.getValueForPixel(startPixel)), 0, chart.data.labels.length - 1);
+            const maxIndex = clamp(Math.ceil(xScale.getValueForPixel(endPixel)), 0, chart.data.labels.length - 1);
+
+            if (maxIndex <= minIndex) {
+                chart.draw();
+                return;
+            }
+
+            xScale.options.min = minIndex;
+            xScale.options.max = maxIndex;
+            resetButton.hidden = false;
+            chart.update();
+        });
+
+        canvas.addEventListener('click', (event) => {
+            if (!draggedToZoom) {
+                return;
+            }
+
+            event.stopPropagation();
+            event.preventDefault();
+            draggedToZoom = false;
+        });
+
+        canvas.addEventListener('pointercancel', () => {
+            if (chart.$zoomDrag) {
+                chart.$zoomDrag.active = false;
+                chart.draw();
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            delete chart.options.scales.x.min;
+            delete chart.options.scales.x.max;
+            resetButton.hidden = true;
+            chart.update();
+        });
+    }
+
+    function suppressLegendClickExpansion(chart) {
+        if (!chart?.canvas) {
+            return;
+        }
+
+        chart.canvas.addEventListener('click', (event) => {
+            const legend = chart.legend;
+            if (!legend || !legend.legendHitBoxes) {
+                return;
+            }
+
+            const rect = chart.canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const clickedLegendItem = legend.legendHitBoxes.some((box) => {
+                return x >= box.left
+                    && x <= box.left + box.width
+                    && y >= box.top
+                    && y <= box.top + box.height;
+            });
+
+            if (clickedLegendItem) {
+                event.stopPropagation();
+            }
+        });
+    }
+
     const leaderboardCtx = document.getElementById('leaderboardChart');
+    const resetZoomButton = document.getElementById('resetLeaderboardZoom');
     let leaderboardChart = null;
     if (leaderboardCtx && leaderboardChartData.labels.length > 0) {
-        leaderboardChart = new Chart(leaderboardCtx, buildLeaderboardChartConfig(leaderboardChartData));
+        leaderboardChart = new Chart(
+            leaderboardCtx,
+            buildLeaderboardChartConfig(mainLeaderboardChartData(leaderboardChartData), { compact: true })
+        );
+        enableDragZoom(leaderboardChart, resetZoomButton);
+        suppressLegendClickExpansion(leaderboardChart);
     }
 
     const chartModal = document.getElementById('chartModal');

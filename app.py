@@ -29,6 +29,7 @@ from stats import (
     session_breakdown_series,
     session_events,
     session_label,
+    session_sort_key,
     unique_player_names,
 )
 from storage import append_event, ensure_data_file, load_events
@@ -102,7 +103,7 @@ def home() -> str:
 def leaderboard() -> str:
     events = load_events(DATA_PATH)
     all_sessions = build_session_summaries(events)
-    ordered_sessions = sorted(all_sessions, key=lambda s: s.session_date)
+    ordered_sessions = sorted(all_sessions, key=session_sort_key)
 
     session_ids = [session.session_id for session in ordered_sessions]
     selected_session_id = request.args.get("through_session", "").strip()
@@ -111,6 +112,7 @@ def leaderboard() -> str:
     if session_ids:
         if selected_session_id in session_ids:
             cutoff_index = session_ids.index(selected_session_id)
+            label = session_label(ordered_sessions[cutoff_index])
         else:
             cutoff_index = len(session_ids) - 1
             selected_session = ordered_sessions[cutoff_index]
@@ -137,6 +139,11 @@ def leaderboard() -> str:
         available_sessions=all_sessions,
         selected_session_id=selected_session_id,
         selected_session_label=(label if selected_session_id else "Latest session"),
+        selected_session_date=(
+            ordered_sessions[cutoff_index].session_date
+            if selected_session_id and session_ids
+            else ""
+        ),
         session_label=session_label,
     )
 
