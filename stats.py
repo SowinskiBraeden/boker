@@ -212,20 +212,21 @@ def cents_to_dollars(cents: int) -> str:
     return f"${value:,.2f}"
 
 
-def session_sort_key(session: SessionSummary) -> tuple[str, int, str]:
+def session_sort_key(session: SessionSummary) -> tuple[str, int, str, str]:
     session_id = session.session_id.strip()
+    session_date = session.session_date.strip()
 
-    if session_id == session.session_date:
-        return (session.session_date, 1, session_id)
+    if session_id == session_date:
+        return (session_date, 1, session.opened_at, session_id)
 
-    suffix = session_id.replace(f"{session.session_date}-", "")
+    suffix = session_id.replace(f"{session_date}-", "")
     if suffix.isdigit():
-        return (session.session_date, int(suffix), session_id)
+        return (session_date, int(suffix), session.opened_at, session_id)
 
     if suffix.lower().startswith("s") and suffix[1:].isdigit():
-        return (session.session_date, int(suffix[1:]), session_id)
+        return (session_date, int(suffix[1:]), session.opened_at, session_id)
 
-    return (session.session_date, 9999, session_id)
+    return (session_date, 9999, session.opened_at, session_id)
 
 
 def session_chart_label(session: SessionSummary) -> str:
@@ -518,6 +519,7 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, object
     for player_name in all_players:
         running_total = 0
         seen_player = False
+        sessions_played = 0
         data: list[float | None] = []
 
         for session in ordered_sessions:
@@ -535,6 +537,7 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, object
                 continue
 
             seen_player = True
+            sessions_played += 1
             running_total += matching_entry.net_cents
             data.append(round(running_total / 100, 2))
 
@@ -542,6 +545,7 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, object
             {
                 "label": player_name,
                 "data": data,
+                "sessions_played": sessions_played,
             }
         )
 

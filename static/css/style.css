@@ -318,6 +318,10 @@ h2 {
     grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
 }
 
+.leaderboard-layout {
+    grid-template-columns: minmax(0, 2.3fr) minmax(280px, 0.7fr);
+}
+
 .three-col {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -415,7 +419,7 @@ h2 {
 }
 
 .chart-panel-large {
-    min-height: 540px;
+    min-height: 600px;
 }
 
 .chart-frame,
@@ -425,7 +429,7 @@ h2 {
 }
 
 .chart-panel-large .chart-frame {
-    min-height: 450px;
+    min-height: 510px;
 }
 
 .chart-frame-interactive {
