@@ -12,7 +12,7 @@ The idea is pretty simple: public pages for stats and session history, plus a sm
 - admin login for recording events
 - open / closed session tracking
 - payout tracking with `paid` events
-- front debt write-offs with `front_writeoff` events
+- front debt collections and write-offs with `front_collected` / `front_writeoff` events
 - session and player charts
 - CSV import / export from the admin page
 - append-only `entries.csv` ledger instead of overwriting old rows
@@ -38,6 +38,7 @@ Current event types:
 
 - `buyin`
 - `front`
+- `front_collected`
 - `front_writeoff`
 - `cashout`
 - `paid`
@@ -52,6 +53,7 @@ A few examples:
 - another `buyin` for a rebuy
 - another `cashout` if chip counts are corrected later
 - a `paid` event when someone is actually settled up
+- a `front_collected` event when a front is repaid outside poker
 - a `front_writeoff` event when a front will not be collected
 - a `note` event for bookkeeping context
 - `session_open` / `session_close` to mark whether a game night is still live

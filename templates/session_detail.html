@@ -94,6 +94,7 @@
                     <th class="detail-col">Gross due</th>
                     <th class="detail-col">Paid</th>
                     <th class="detail-col">Rolled out</th>
+                    <th class="detail-col">Collected</th>
                     <th class="detail-col">Written off</th>
                     <th>Still owed</th>
                     <th>Status</th>
@@ -128,13 +129,16 @@
 
                     <td class="detail-col">{{ entry.paid_cents | money }}</td>
                     <td class="detail-col">{{ entry.rollover_out_cents | money }}</td>
+                    <td class="detail-col">{{ entry.front_collected_applied_cents | money }}</td>
                     <td class="detail-col">{{ entry.front_writeoff_applied_cents | money }}</td>
 
-                    <td class="{% if entry.player_owes_cents > 0 %}negative{% elif entry.front_writeoff_applied_cents > 0 %}negative{% elif entry.current_due_cents > 0 %}negative{% else %}positive{% endif %}">
+                    <td class="{% if entry.player_owes_cents > 0 %}negative{% elif entry.front_writeoff_applied_cents > 0 %}negative{% elif entry.front_collected_applied_cents > 0 %}positive{% elif entry.current_due_cents > 0 %}negative{% else %}positive{% endif %}">
                         {% if entry.player_owes_cents > 0 %}
                             Owes {{ entry.player_owes_cents | money }}
                         {% elif entry.front_writeoff_applied_cents > 0 %}
                             Written off {{ entry.front_writeoff_applied_cents | money }}
+                        {% elif entry.front_collected_applied_cents > 0 %}
+                            Collected {{ entry.front_collected_applied_cents | money }}
                         {% else %}
                             {{ entry.current_due_cents | money }}
                         {% endif %}

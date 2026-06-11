@@ -113,9 +113,58 @@
             </div>
         </section>
 
-        <form class="panel form-card" method="post" action="{{ url_for('admin_write_off_front') }}">
+    </section>
+</section>
+
+<section class="panel debt-panel">
+    <div class="panel-header">
+        <div>
             <p class="eyebrow">Front debt</p>
-            <h2>Write off debt</h2>
+            <h2>Debt resolution</h2>
+        </div>
+        <div class="debt-summary">
+            <span>Open {{ admin_totals.players_owe_cents | money }}</span>
+            <span>Collected {{ admin_totals.collected_cents | money }}</span>
+            <span>Written off {{ admin_totals.written_off_cents | money }}</span>
+        </div>
+    </div>
+
+    {% if debt_entries %}
+    <div class="debt-action-grid">
+        <form class="form-card compact-form" method="post" action="{{ url_for('admin_collect_front') }}">
+            <h3>Collect debt</h3>
+
+            <label>
+                <span>Outstanding debt</span>
+                <select name="debt_key" required>
+                    <option value="">Select debt</option>
+                    {% for item in debt_entries %}
+                        {% set session = item.session %}
+                        {% set entry = item.entry %}
+                        <option value="{{ session.session_id }}||{{ entry.player_name }}">
+                            {{ entry.player_name }} · {{ session_label(session) }} · owes {{ entry.player_owes_cents | money }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                <span>Amount collected</span>
+                <input type="number" step="0.01" name="amount" placeholder="5.00" required>
+            </label>
+
+            <label>
+                <span>Note</span>
+                <textarea name="note" rows="3" placeholder="E-transfer received, cash collected, etc."></textarea>
+            </label>
+
+            <div class="button-row">
+                <button class="primary-button" type="submit">Mark collected</button>
+            </div>
+        </form>
+
+        <form class="form-card compact-form" method="post" action="{{ url_for('admin_write_off_front') }}">
+            <h3>Write off debt</h3>
 
             <label>
                 <span>Outstanding debt</span>
@@ -145,7 +194,10 @@
                 <button class="secondary-button" type="submit">Write off front</button>
             </div>
         </form>
-    </section>
+    </div>
+    {% else %}
+    <p class="muted-text">No outstanding front debt.</p>
+    {% endif %}
 </section>
 
 <section class="grid admin-cash-grid">
@@ -205,6 +257,7 @@
                     <th>Paid out</th>
                     <th>Still owed</th>
                     <th>Players owe</th>
+                    <th>Collected</th>
                     <th>Written off</th>
                     <th>Open balance</th>
                     <th>Status</th>
@@ -227,6 +280,9 @@
                     </td>
                     <td class="{{ 'negative' if session.total_player_owes_cents > 0 else '' }}">
                         {{ session.total_player_owes_cents | money }}
+                    </td>
+                    <td class="{{ 'positive' if session.total_front_collected_cents > 0 else '' }}">
+                        {{ session.total_front_collected_cents | money }}
                     </td>
                     <td class="{{ 'negative' if session.total_front_writeoff_cents > 0 else '' }}">
                         {{ session.total_front_writeoff_cents | money }}
@@ -252,7 +308,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10">No sessions yet.</td>
+                    <td colspan="11">No sessions yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
