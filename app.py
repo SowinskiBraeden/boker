@@ -370,6 +370,74 @@ def admin_import_csv():
     return redirect(url_for("admin_dashboard"))
 
 
+@app.post("/admin/write-off-front")
+def admin_write_off_front() -> str:
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    debt_key = request.form.get("debt_key", "").strip()
+    note = request.form.get("note", "").strip()
+    amount_raw = request.form.get("amount", "0").strip()
+
+    try:
+        amount_cents = int(round(float(amount_raw) * 100))
+    except ValueError:
+        flash("Amount must be a number.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if amount_cents <= 0:
+        flash("Write-off amount must be greater than zero.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    try:
+        session_id, player_name = debt_key.split("||", 1)
+    except ValueError:
+        flash("Select a valid player debt.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    events = load_events(DATA_PATH)
+    sessions = build_session_summaries(events)
+    target = next(
+        (session for session in sessions if session.session_id == session_id),
+        None,
+    )
+
+    if target is None:
+        flash("Session not found.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    entry = next(
+        (entry for entry in target.entries if entry.player_name == player_name),
+        None,
+    )
+
+    if entry is None or entry.player_owes_cents <= 0:
+        flash("That player does not have an outstanding front debt.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if amount_cents > entry.player_owes_cents:
+        flash(
+            f"Write-off cannot exceed {cents_to_dollars(entry.player_owes_cents)}.",
+            "error",
+        )
+        return redirect(url_for("admin_dashboard"))
+
+    append_event(
+        DATA_PATH,
+        session_id=target.session_id,
+        session_date=target.session_date,
+        player_name=entry.player_name,
+        event_type="front_writeoff",
+        amount_cents=amount_cents,
+        note=note or "Front debt written off.",
+        actor=app.config["ADMIN_USERNAME"],
+    )
+
+    flash("Front debt written off.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.post("/admin/open-session")
 def admin_open_session() -> str:
     if not is_admin():
@@ -453,6 +521,12 @@ def admin_dashboard():
     open_sessions = [session for session in sessions if session.status == "open"]
     recent_sessions = sessions[:8]
     recent_events = list(reversed(events[-20:]))
+    debt_entries = [
+        {"session": session, "entry": entry}
+        for session in sessions
+        for entry in session.entries
+        if entry.player_owes_cents > 0
+    ]
 
     admin_totals = {
         "cash_in_cents": sum(session.total_cash_in_cents for session in sessions),
@@ -462,6 +536,9 @@ def admin_dashboard():
         ),
         "players_owe_cents": sum(
             session.total_player_owes_cents for session in sessions
+        ),
+        "written_off_cents": sum(
+            session.total_front_writeoff_cents for session in sessions
         ),
         "open_balance_cents": sum(
             session.total_open_balance_cents for session in sessions
@@ -473,6 +550,7 @@ def admin_dashboard():
         open_sessions=open_sessions,
         recent_sessions=recent_sessions,
         recent_events=recent_events,
+        debt_entries=debt_entries,
         player_names=unique_player_names(events),
         session_label=session_label,
         admin_totals=admin_totals,
