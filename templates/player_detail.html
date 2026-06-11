@@ -9,33 +9,13 @@
     </div>
 </section>
 
-<section class="grid three-col">
+<section class="grid three-col profile-summary-grid">
     <article class="panel stat-card"><span>Total Net</span><strong class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Win %</span><strong>{{ "%.1f"|format(player.win_pct) }}%</strong></article>
-    <article class="panel stat-card"><span>ROI</span><strong>{{ "%.1f"|format(player.roi_pct) }}%</strong></article>
     <article class="panel stat-card"><span>Total invested</span><strong>{{ player.total_invested_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Paid Buy-in</span><strong>{{ player.total_buy_in_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Fronted</span><strong>{{ player.total_front_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Current debt</span><strong class="{{ 'negative' if player.current_player_owes_cents > 0 else '' }}">{{ player.current_player_owes_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Written off</span><strong class="{{ 'negative' if player.total_front_writeoff_cents > 0 else '' }}">{{ player.total_front_writeoff_cents | money }}</strong></article>
-    <!--<article class="panel stat-card"><span>Rolled in</span><strong>{{ player.total_rollover_in_cents | money }}</strong></article>-->
     <article class="panel stat-card"><span>Cash-outs</span><strong>{{ player.total_cash_out_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Current debt</span><strong class="{{ 'negative' if player.current_player_owes_cents > 0 else '' }}">{{ player.current_player_owes_cents | money }}</strong></article>
+    <article class="panel stat-card"><span>Win %</span><strong>{{ "%.1f"|format(player.win_pct) }}%</strong></article>
     <article class="panel stat-card"><span>Sessions</span><strong>{{ player.sessions_played }}</strong></article>
-    <article class="panel stat-card">
-        <span>Current Streak</span>
-        <strong>
-            {% if player.current_win_streak > 0 %}
-                W{{ player.current_win_streak }}
-            {% elif player.current_loss_streak > 0 %}
-                L{{ player.current_loss_streak }}
-            {% else %}
-                -
-            {% endif %}
-        </strong>
-    </article>
-
-    <!--<article class="panel stat-card"><span>Longest win streak</span><strong>{{ player.longest_win_streak }}</strong></article>
-    <article class="panel stat-card"><span>Longest loss streak</span><strong>{{ player.longest_loss_streak }}</strong></article>-->
 </section>
 
 <section class="grid one-col">
@@ -87,12 +67,18 @@
     <div class="table-wrap">
         <table>
             <tbody>
+                <tr><th>Total Net</th><td>{{ player.total_net_cents | money }}</td></tr>
+                <tr><th>Win %</th><td>{{ "%.1f"|format(player.win_pct) }}%</td></tr>
+                <tr><th>ROI</th><td>{{ "%.1f"|format(player.roi_pct) }}%</td></tr>
+                <tr><th>Sessions</th><td>{{ player.sessions_played }}</td></tr>
                 <tr><th>Paid Buy-ins</th><td>{{ player.total_buy_in_cents | money }}</td></tr>
                 <tr><th>Fronted</th><td>{{ player.total_front_cents | money }}</td></tr>
+                <tr><th>Debt Collected</th><td>{{ player.total_front_collected_cents | money }}</td></tr>
                 <tr><th>Current Debt</th><td>{{ player.current_player_owes_cents | money }}</td></tr>
                 <tr><th>Written Off</th><td>{{ player.total_front_writeoff_cents | money }}</td></tr>
                 <tr><th>Rolled In</th><td>{{ player.total_rollover_in_cents | money }}</td></tr>
                 <tr><th>Total Invested</th><td>{{ player.total_invested_cents | money }}</td></tr>
+                <tr><th>Cash-outs</th><td>{{ player.total_cash_out_cents | money }}</td></tr>
                 <tr><th>Rolled Out</th><td>{{ player.total_rollover_out_cents | money }}</td></tr>
                 <tr><th>Winning Sessions</th><td>{{ player.winning_sessions }}</td></tr>
                 <tr><th>Losing Sessions</th><td>{{ player.losing_sessions }}</td></tr>

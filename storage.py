@@ -35,6 +35,7 @@ class EventRow(TypedDict):
 VALID_EVENT_TYPES = {
     "buyin",
     "front",
+    "front_collected",
     "front_writeoff",
     "cashout",
     "paid",
