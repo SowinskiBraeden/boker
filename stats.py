@@ -31,6 +31,7 @@ class SessionEntry:
     player_name: str
     buy_in_cents: int = 0
     front_cents: int = 0
+    front_writeoff_cents: int = 0
     cash_out_cents: int = 0
     paid_cents: int = 0
     rollover_in_cents: int = 0
@@ -67,12 +68,30 @@ class SessionEntry:
 
     @property
     def player_owes_cents(self) -> int:
+        return max(self.raw_player_owes_cents - self.front_writeoff_applied_cents, 0)
+
+    @property
+    def raw_player_owes_cents(self) -> int:
+        return self.front_shortfall_cents + self.overpaid_front_cents
+
+    @property
+    def front_shortfall_cents(self) -> int:
         return max(self.front_cents - self.cash_out_cents, 0)
+
+    @property
+    def overpaid_front_cents(self) -> int:
+        return max(self.settled_cents - self.gross_payout_cents, 0)
+
+    @property
+    def front_writeoff_applied_cents(self) -> int:
+        return min(self.front_writeoff_cents, self.raw_player_owes_cents)
 
     @property
     def payout_status(self) -> str:
         if self.player_owes_cents > 0:
             return "owes"
+        if self.front_writeoff_applied_cents > 0:
+            return "written_off"
         if self.gross_payout_cents <= 0:
             return "none"
         if self.current_due_cents <= 0:
@@ -147,6 +166,10 @@ class SessionSummary:
         return sum(entry.player_owes_cents for entry in self.entries)
 
     @property
+    def total_front_writeoff_cents(self) -> int:
+        return sum(entry.front_writeoff_applied_cents for entry in self.entries)
+
+    @property
     def total_cash_in_cents(self) -> int:
         return sum(entry.buy_in_cents for entry in self.entries)
 
@@ -173,6 +196,8 @@ class PlayerStats:
     biggest_loss_cents: int
     total_buy_in_cents: int
     total_front_cents: int
+    total_front_writeoff_cents: int
+    current_player_owes_cents: int
     total_rollover_in_cents: int
     total_invested_cents: int
     total_cash_out_cents: int
@@ -322,6 +347,8 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
             entry.buy_in_cents += event["amount_cents"]
         elif event_type == "front":
             entry.front_cents += event["amount_cents"]
+        elif event_type == "front_writeoff":
+            entry.front_writeoff_cents += event["amount_cents"]
         elif event_type == "rollover_in":
             entry.rollover_in_cents += event["amount_cents"]
         elif event_type == "cashout":
@@ -454,6 +481,10 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
 
         total_buy_in = sum(entry.buy_in_cents for entry in entries)
         total_front = sum(entry.front_cents for entry in entries)
+        total_front_writeoff = sum(
+            entry.front_writeoff_applied_cents for entry in entries
+        )
+        current_player_owes = sum(entry.player_owes_cents for entry in entries)
         total_rollover_in = sum(entry.rollover_in_cents for entry in entries)
         total_invested = sum(entry.invested_cents for entry in entries)
         total_cash_out = sum(entry.cash_out_cents for entry in entries)
@@ -476,6 +507,8 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
                 biggest_loss_cents=biggest_loss,
                 total_buy_in_cents=total_buy_in,
                 total_front_cents=total_front,
+                total_front_writeoff_cents=total_front_writeoff,
+                current_player_owes_cents=current_player_owes,
                 total_rollover_in_cents=total_rollover_in,
                 total_invested_cents=total_invested,
                 total_cash_out_cents=total_cash_out,

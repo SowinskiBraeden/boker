@@ -35,6 +35,7 @@ class EventRow(TypedDict):
 VALID_EVENT_TYPES = {
     "buyin",
     "front",
+    "front_writeoff",
     "cashout",
     "paid",
     "rollover_in",
@@ -98,7 +99,7 @@ def append_event(
     if normalized_type not in VALID_EVENT_TYPES:
         raise ValueError(f"Unsupported event type: {event_type}")
 
-    if normalized_type == {"note", "session_open", "session_close"}:
+    if normalized_type in {"note", "session_open", "session_close"}:
         amount_cents = 0
 
     event = EventRow(
