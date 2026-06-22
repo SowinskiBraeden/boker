@@ -39,8 +39,12 @@ VALID_EVENT_TYPES = {
     "front_writeoff",
     "cashout",
     "paid",
+    "paid_out",
     "rollover_in",
+    "payout_carry_in",
     "rollover_out",
+    "debt_repayment",
+    "writeoff",
     "note",
     "session_open",
     "session_close",
@@ -120,3 +124,15 @@ def append_event(
         writer.writerow(event)
 
     return event
+
+
+def write_events(csv_path: Path, events: list[EventRow]) -> None:
+    ensure_data_file(csv_path)
+
+    tmp_path = csv_path.with_suffix(f"{csv_path.suffix}.tmp")
+    with tmp_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=CSV_HEADERS)
+        writer.writeheader()
+        writer.writerows(events)
+
+    tmp_path.replace(csv_path)

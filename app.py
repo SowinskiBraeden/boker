@@ -31,7 +31,14 @@ from stats import (
     session_sort_key,
     unique_player_names,
 )
-from storage import CSV_HEADERS, append_event, ensure_data_file, load_events
+from storage import (
+    CSV_HEADERS,
+    EventRow,
+    append_event,
+    ensure_data_file,
+    load_events,
+    write_events,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
@@ -40,13 +47,15 @@ ENV_PATH = BASE_DIR / ".env"
 ELIGIBLE_MIN_SESSIONS = 3
 ADMIN_EVENT_TYPES = [
     ("buyin", "Buy-in", "var(--accent)"),
-    ("front", "Fronted", "var(--warn)"),
+    ("front", "Front", "var(--warn)"),
     ("rollover_in", "Rollover-in", "var(--rolled)"),
-    ("cashout", "Cash-out", "var(--rank-2)"),
-    ("paid", "Paid-out", "var(--pos)"),
+    ("payout_carry_in", "Payout carry-in", "var(--rolled)"),
+    ("cashout", "Cashout result", "var(--rank-2)"),
+    ("paid_out", "Paid out cash", "var(--pos)"),
     ("rollover_out", "Rollover-out", "var(--rolled)"),
     ("note", "Note", "var(--muted)"),
 ]
+SESSION_MARKER_TYPES = {"session_open", "session_close"}
 
 
 def load_local_env(env_path: Path) -> None:
@@ -78,6 +87,54 @@ def next_session_id(sessions, session_date: str) -> str:
             highest = max(highest, int(suffix))
 
     return f"{session_date}-{highest + 1:02d}"
+
+
+def prunable_empty_session_ids(events: list[EventRow], sessions) -> set[str]:
+    empty_session_ids = {
+        session.session_id for session in sessions if len(session.entries) == 0
+    }
+    session_events: dict[str, list[EventRow]] = {}
+
+    for event in events:
+        session_id = event["session_id"].strip() or event["session_date"].strip()
+        if session_id in empty_session_ids:
+            session_events.setdefault(session_id, []).append(event)
+
+    return {
+        session_id
+        for session_id, rows in session_events.items()
+        if rows
+        and all(
+            row["event_type"] in SESSION_MARKER_TYPES
+            and not row["player_name"].strip()
+            and row["amount_cents"] == 0
+            for row in rows
+        )
+    }
+
+
+def pending_payout_carry_items(sessions) -> list[dict[str, object]]:
+    carried_out: dict[str, int] = {}
+    carried_in: dict[str, int] = {}
+
+    for session_summary in sessions:
+        for entry in session_summary.entries:
+            carried_out[entry.player_name] = (
+                carried_out.get(entry.player_name, 0) + entry.rollover_out_cents
+            )
+            carried_in[entry.player_name] = (
+                carried_in.get(entry.player_name, 0)
+                + entry.rollover_in_cents
+                + entry.payout_carry_in_cents
+            )
+
+    items = []
+    for player_name, amount_out in carried_out.items():
+        pending_cents = amount_out - carried_in.get(player_name, 0)
+        if pending_cents > 0:
+            items.append({"player_name": player_name, "amount_cents": pending_cents})
+
+    return sorted(items, key=lambda item: str(item["player_name"]).casefold())
 
 
 load_local_env(ENV_PATH)
@@ -219,33 +276,24 @@ def session_detail(session_id: str) -> str:
         flash("That session was not found.", "error")
         return redirect(url_for("sessions"))
 
-    target_index = next(
-        (
-            index
-            for index, session in enumerate(sessions)
-            if session.session_id == session_id
-        ),
-        None,
-    )
-
-    if target_index is None:
-        flash("That session was not found.", "error")
-        return redirect(url_for("sessions"))
-
-    target_session = sessions[target_index]
     chronological_sessions = sorted(sessions, key=session_sort_key)
-    session_number = next(
-        (
-            index
-            for index, session in enumerate(chronological_sessions, start=1)
-            if session.session_id == session_id
-        ),
-        1,
+    chronological_index = next(
+        index
+        for index, session in enumerate(chronological_sessions)
+        if session.session_id == session_id
     )
+    target_session = chronological_sessions[chronological_index]
+    session_number = chronological_index + 1
     prev_session = (
-        sessions[target_index + 1] if target_index < len(sessions) - 1 else None
+        chronological_sessions[chronological_index - 1]
+        if chronological_index > 0
+        else None
     )
-    next_session = sessions[target_index - 1] if target_index > 0 else None
+    next_session = (
+        chronological_sessions[chronological_index + 1]
+        if chronological_index < len(chronological_sessions) - 1
+        else None
+    )
 
     return render_template(
         "session_detail.html",
@@ -478,7 +526,7 @@ def admin_write_off_front() -> str:
     )
 
     if entry is None or entry.player_owes_cents <= 0:
-        flash("That player does not have an outstanding front debt.", "error")
+        flash("That player does not have an outstanding debt.", "error")
         return redirect(url_for("admin_dashboard"))
 
     if amount_cents > entry.player_owes_cents:
@@ -493,13 +541,13 @@ def admin_write_off_front() -> str:
         session_id=target.session_id,
         session_date=target.session_date,
         player_name=entry.player_name,
-        event_type="front_writeoff",
+        event_type="writeoff",
         amount_cents=amount_cents,
-        note=note or "Front debt written off.",
+        note=note or "Debt written off.",
         actor=app.config["ADMIN_USERNAME"],
     )
 
-    flash("Front debt written off.", "success")
+    flash("Debt written off.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -546,7 +594,7 @@ def admin_collect_front() -> str:
     )
 
     if entry is None or entry.player_owes_cents <= 0:
-        flash("That player does not have an outstanding front debt.", "error")
+        flash("That player does not have an outstanding debt.", "error")
         return redirect(url_for("admin_dashboard"))
 
     if amount_cents > entry.player_owes_cents:
@@ -561,13 +609,13 @@ def admin_collect_front() -> str:
         session_id=target.session_id,
         session_date=target.session_date,
         player_name=entry.player_name,
-        event_type="front_collected",
+        event_type="debt_repayment",
         amount_cents=amount_cents,
-        note=note or "Front debt collected.",
+        note=note or "Debt repayment collected.",
         actor=app.config["ADMIN_USERNAME"],
     )
 
-    flash("Front debt collected.", "success")
+    flash("Debt repayment collected.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -598,6 +646,86 @@ def admin_open_session() -> str:
     )
 
     flash(f"Opened session {session_id}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/prune-empty-sessions")
+def admin_prune_empty_sessions() -> str:
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    events = load_events(DATA_PATH)
+    sessions = build_session_summaries(events)
+    prunable_session_ids = prunable_empty_session_ids(events, sessions)
+
+    if not prunable_session_ids:
+        flash("No empty marker-only sessions to prune.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    pruned_events = [
+        event
+        for event in events
+        if (event["session_id"].strip() or event["session_date"].strip())
+        not in prunable_session_ids
+    ]
+    write_events(DATA_PATH, pruned_events)
+
+    flash(
+        f"Pruned {len(prunable_session_ids)} empty session"
+        f"{'s' if len(prunable_session_ids) != 1 else ''}.",
+        "success",
+    )
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/apply-payout-carry-in")
+def admin_apply_payout_carry_in() -> str:
+    if not is_admin():
+        flash("Admin login required.", "error")
+        return redirect(url_for("admin_login"))
+
+    session_id = request.form.get("session_id", "").strip()
+    player_name = request.form.get("player_name", "").strip()
+
+    events = load_events(DATA_PATH)
+    sessions = build_session_summaries(events)
+    by_id = {session.session_id: session for session in sessions}
+    target = by_id.get(session_id)
+
+    if target is None or target.status != "open":
+        flash("Select a valid open session.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    if not any(entry.player_name == player_name for entry in target.entries):
+        flash("Add that player to the open session before applying carry-in.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    pending_by_player = {
+        str(item["player_name"]): int(item["amount_cents"])
+        for item in pending_payout_carry_items(sessions)
+    }
+    amount_cents = pending_by_player.get(player_name, 0)
+
+    if amount_cents <= 0:
+        flash("No pending payout carry-in found for that player.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    append_event(
+        DATA_PATH,
+        session_id=target.session_id,
+        session_date=target.session_date,
+        player_name=player_name,
+        event_type="payout_carry_in",
+        amount_cents=amount_cents,
+        note="Payout carry-in from prior carry-out.",
+        actor=app.config["ADMIN_USERNAME"],
+    )
+
+    flash(
+        f"Applied {cents_to_dollars(amount_cents)} payout carry-in for {player_name}.",
+        "success",
+    )
     return redirect(url_for("admin_dashboard"))
 
 
@@ -658,8 +786,18 @@ def admin_dashboard():
 
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
+    empty_session_count = len(prunable_empty_session_ids(events, sessions))
+    pending_carry_items = pending_payout_carry_items(sessions)
+    pending_carry_total_cents = sum(
+        int(item["amount_cents"]) for item in pending_carry_items
+    )
     open_sessions = [session for session in sessions if session.status == "open"]
     live_session = open_sessions[0] if open_sessions else None
+    live_session_player_names = (
+        {entry.player_name for entry in live_session.entries}
+        if live_session is not None
+        else set()
+    )
     live_session_no = ""
     live_unresolved_count = 0
     if live_session is not None:
@@ -670,7 +808,7 @@ def admin_dashboard():
             if entry.current_due_cents > 0 or entry.player_owes_cents > 0
         )
 
-    recent_sessions = sessions[:8]
+    recent_sessions = sessions
     recent_events = list(reversed(events[-20:]))
     event_type_colors = {value: color for value, _label, color in ADMIN_EVENT_TYPES}
     event_type_labels = {value: label for value, label, _color in ADMIN_EVENT_TYPES}
@@ -689,29 +827,34 @@ def admin_dashboard():
         if entry.player_owes_cents > 0
     ]
 
+    cash_in_cents = sum(session.total_banker_cash_in_cents for session in sessions)
+    cash_out_cents = sum(session.total_banker_cash_out_cents for session in sessions)
+    house_owes_players_cents = (
+        sum(session.total_current_due_to_player_cents for session in sessions)
+        + pending_carry_total_cents
+    )
+    players_owe_house_cents = sum(
+        session.total_current_due_to_house_cents for session in sessions
+    )
     admin_totals = {
-        "cash_in_cents": sum(session.total_cash_in_cents for session in sessions),
-        "cash_out_cents": sum(session.total_paid_out_cents for session in sessions),
-        "house_owes_players_cents": sum(
-            session.total_current_due_to_player_cents for session in sessions
-        ),
-        "players_owe_house_cents": sum(
-            session.total_current_due_to_house_cents for session in sessions
-        ),
+        "cash_in_cents": cash_in_cents,
+        "cash_out_cents": cash_out_cents,
+        "house_owes_players_cents": house_owes_players_cents,
+        "players_owe_house_cents": players_owe_house_cents,
+        "pending_carry_cents": pending_carry_total_cents,
         "collected_cents": sum(
-            session.total_front_collected_cents for session in sessions
+            session.total_debt_repayment_cents for session in sessions
         ),
         "written_off_cents": sum(
-            session.total_front_writeoff_cents for session in sessions
+            session.total_writeoff_cents for session in sessions
         ),
-        "net_book_position_cents": sum(
-            session.total_net_book_position_cents for session in sessions
+        "net_book_position_cents": (
+            cash_in_cents
+            - cash_out_cents
+            + players_owe_house_cents
+            - house_owes_players_cents
         ),
     }
-    admin_totals["paid_out_cents"] = admin_totals["cash_out_cents"]
-    admin_totals["still_owed_cents"] = admin_totals["house_owes_players_cents"]
-    admin_totals["players_owe_cents"] = admin_totals["players_owe_house_cents"]
-    admin_totals["open_balance_cents"] = admin_totals["net_book_position_cents"]
 
     return render_template(
         "admin_dashboard.html",
@@ -720,8 +863,10 @@ def admin_dashboard():
         recent_events=recent_events,
         debt_entries=debt_entries,
         live_session=live_session,
+        live_session_player_names=live_session_player_names,
         live_session_no=live_session_no,
         live_unresolved_count=live_unresolved_count,
+        pending_carry_items=pending_carry_items,
         player_names=unique_player_names(events),
         append_form=append_form,
         event_types=ADMIN_EVENT_TYPES,
@@ -730,6 +875,7 @@ def admin_dashboard():
         admin_today=datetime.now().date().isoformat(),
         session_label=session_label,
         admin_totals=admin_totals,
+        empty_session_count=empty_session_count,
     )
 
 

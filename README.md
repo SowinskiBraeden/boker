@@ -2,7 +2,7 @@
 
 A small Flask app I put together for tracking our low-stakes hold'em nights without having to keep a spreadsheet open all the time.
 
-The idea is pretty simple: public pages for stats and session history, plus a small admin area for recording buy-ins, cash-outs, paid amounts, and notes. The data sits in a CSV audit log, so everything is append-only and easy to follow later.
+The idea is pretty simple: public pages for stats and session history, plus a small admin area for recording buy-ins, gross cashout results, actual paid-out cash, and notes. The data sits in a CSV audit log, so everything is append-only and easy to follow later.
 
 ## What it does
 
@@ -11,8 +11,8 @@ The idea is pretty simple: public pages for stats and session history, plus a sm
 - per-player stat pages
 - admin login for recording events
 - open / closed session tracking
-- payout tracking with `paid` events
-- front debt collections and write-offs with `front_collected` / `front_writeoff` events
+- actual cash payout tracking with `paid_out` events
+- debt repayments and write-offs with `debt_repayment` / `writeoff` events
 - session and player charts
 - CSV import / export from the admin page
 - append-only `entries.csv` ledger instead of overwriting old rows
@@ -38,11 +38,12 @@ Current event types:
 
 - `buyin`
 - `front`
-- `front_collected`
-- `front_writeoff`
+- `debt_repayment`
+- `writeoff`
 - `cashout`
-- `paid`
+- `paid_out`
 - `rollover_in`
+- `payout_carry_in`
 - `rollover_out`
 - `note`
 - `session_open`
@@ -52,9 +53,9 @@ A few examples:
 
 - another `buyin` for a rebuy
 - another `cashout` if chip counts are corrected later
-- a `paid` event when someone is actually settled up
-- a `front_collected` event when a front is repaid outside poker
-- a `front_writeoff` event when a front will not be collected
+- a `paid_out` event when someone is actually settled up
+- a `debt_repayment` event when a front is repaid outside poker
+- a `writeoff` event when a front will not be collected
 - a `note` event for bookkeeping context
 - `session_open` / `session_close` to mark whether a game night is still live
 
@@ -62,11 +63,16 @@ Accounting in the app keeps poker results separate from banker cashflow:
 
 - poker investment is `buyin + front + rollover_in`
 - poker net is `cashout - poker investment`
-- real cash in is `buyin + front_collected`
-- real cash out is `paid`
+- real cash in is `buyin + debt_repayment`
+- real cash out is `paid_out`
 - `rollover_out` settles the source session without counting as cash out
 - `rollover_in` enters play in the destination session without counting as cash in
-- `front_writeoff` resolves a receivable without counting as cash in
+- `payout_carry_in` records prior-session value carried into a later payout; it increases the destination payout due without counting as poker investment or cash in
+- `writeoff` resolves a receivable without counting as cash in
+
+Older ledgers may still contain `paid`, `front_collected`, or `front_writeoff`.
+The app reads those historical names as aliases for `paid_out`,
+`debt_repayment`, and `writeoff`.
 
 It is still just a small side project, but I wanted the event model to stay clean enough that the numbers are easy to trust and the history is easy to read back through.
 
