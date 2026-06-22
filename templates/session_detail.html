@@ -1,164 +1,146 @@
 {% extends "base.html" %}
-{% block title %}{{ session.session_date }} · Poker Portal{% endblock %}
+{% block title %}{{ session_label(session) }} · boker.club{% endblock %}
+{% block page_class %}page--session{% endblock %}
 {% block content %}
-<section class="hero-card compact">
-    <div style="display: flex; justify-content: space-between;">
-        <div>
-            <p class="eyebrow">Session detail</p>
-            <h1>{{ session_label(session) }}</h1>
-            <p class="muted-text">Current totals are derived from the event log for this date.</p>
+
+<div class="breadcrumb">
+    <a href="{{ url_for('sessions') }}">Sessions</a>
+    <span class="breadcrumb__sep">/</span>
+    <span>{{ session_label(session) }}</span>
+    <span style="flex:1"></span>
+    {% if prev_session %}
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('session_detail', session_id=prev_session.session_id) }}">← Prev</a>
+    {% endif %}
+    {% if next_session %}
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('session_detail', session_id=next_session.session_id) }}">Next →</a>
+    {% endif %}
+</div>
+
+<div class="hero" style="padding-top:0;">
+    <p class="hero__kicker session-number">
+        Session #{{ "%03d"|format(session_number) }}
+    </p>
+    <h1 class="hero__title">{{ session_label(session) }}</h1>
+    <p class="hero__sub">{{ session.entries|length }} player{{ 's' if session.entries|length != 1 else '' }} · <span class="status-badge status-{{ session.status }}">{{ session.status }}</span></p>
+</div>
+
+<!-- Recon cards -->
+<div class="recon-grid" style="margin-bottom:20px;">
+    <div class="panel">
+        <div class="recon-card-head">
+            <span class="kicker kicker--dot kicker--dot-accent">Cash flow</span>
         </div>
-
-        <div style="align-self: center;">
-            {% if prev_session %}
-                <a class="secondary-button" href="{{ url_for('session_detail', session_id=prev_session.session_id) }}">
-                    Previous Session
-                </a>
-            {% endif %}
-
-            {% if next_session %}
-                <a class="secondary-button" href="{{ url_for('session_detail', session_id=next_session.session_id) }}">
-                    Next Session
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<section class="grid payout-summary-grid">
-    <article class="panel stat-card">
-        <span>Gross payout</span>
-        <strong>{{ session.total_gross_payout_cents | money }}</strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Total rolled out</span>
-        <strong>{{ session.total_rollover_out_cents | money }}</strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Total paid</span>
-        <strong class="positive">{{ session.total_paid_cents | money }}</strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Still owed</span>
-        <strong class="{{ 'negative' if session.total_current_due_cents > 0 else 'positive' }}">
-            {{ session.total_current_due_cents | money }}
-        </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Players still owe</span>
-        <strong class="{{ 'negative' if session.total_player_owes_cents > 0 else '' }}">
-            {{ session.total_player_owes_cents | money }}
-        </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Written off</span>
-        <strong class="{{ 'negative' if session.total_front_writeoff_cents > 0 else '' }}">
-            {{ session.total_front_writeoff_cents | money }}
-        </strong>
-    </article>
-</section>
-
-
-<section class="panel results-panel results-panel-full">
-    <div class="panel-header">
-        <div>
-            <p class="eyebrow">Results</p>
-            <h2>Player totals</h2>
-        </div>
-
-        <div class="table-toolbar">
-            <button type="button" class="secondary-button table-view-toggle is-active" data-view="compact">
-                Compact
-            </button>
-            <button type="button" class="secondary-button table-view-toggle" data-view="full">
-                Full details
-            </button>
+        <div class="recon-metric-grid">
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Cash in</span>
+                <div class="recon-val recon-val--num">{{ session.total_cash_in_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Gross payout</span>
+                <div class="recon-val recon-val--num">{{ session.total_gross_payout_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Cash paid out</span>
+                <div class="recon-val recon-val--pos">{{ session.total_paid_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Rolled out</span>
+                <div class="recon-val" style="color:var(--rolled)">{{ session.total_rollover_out_cents | money }}</div>
+            </div>
         </div>
     </div>
+    <div class="panel">
+        <div class="recon-card-head">
+            <span class="kicker kicker--dot kicker--dot-warn">Open items</span>
+        </div>
+        <div class="recon-metric-grid">
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">House owes</span>
+                <div class="recon-val {{ 'recon-val--neg' if session.total_current_due_to_player_cents > 0 else 'recon-val--pos' }}">
+                    {{ session.total_current_due_to_player_cents | money }}
+                </div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Players owe house</span>
+                <div class="recon-val {{ 'recon-val--warn' if session.total_current_due_to_house_cents > 0 else '' }}">
+                    {{ session.total_current_due_to_house_cents | money }}
+                </div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Debt repaid</span>
+                <div class="recon-val" style="color:var(--pos)">{{ session.total_front_collected_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Written off</span>
+                <div class="recon-val" style="color:var(--neg)">{{ session.total_front_writeoff_cents | money }}</div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <div class="table-scroll table-scroll-open">
-        <table class="data-table session-results-table">
+<!-- Player totals table -->
+<div class="panel" style="margin-bottom:20px;">
+    <div class="panel__head">
+        <div>
+            <span class="kicker" style="margin:0;">Results</span>
+            <h2 class="panel__title">Player totals</h2>
+        </div>
+        <div class="segmented" id="viewToggle">
+            <button class="seg is-on" data-view="compact">Compact</button>
+            <button class="seg" data-view="full">Full ledger</button>
+        </div>
+    </div>
+    <div class="tbl-scroll">
+        <table class="tbl tbl--session" id="sessionTable">
             <thead>
                 <tr>
-                    <th>Player</th>
-                    <th>In</th>
-                    <th class="detail-col">Fronted</th>
-                    <th class="detail-col">Rolled in</th>
-                    <th>Out</th>
+                    <th class="col-player">Player</th>
+                    <th>Invested</th>
+                    <th>Cash-out</th>
                     <th>Net</th>
-                    <th class="detail-col">Gross due</th>
-                    <th class="detail-col">Paid</th>
-                    <th class="detail-col">Rolled out</th>
-                    <th class="detail-col">Collected</th>
-                    <th class="detail-col">Written off</th>
-                    <th>Still owed</th>
+                    <th>Cash paid</th>
+                    <th>Settlement</th>
                     <th>Status</th>
-                    <th>Notes</th>
+                    <th class="col-acct">Fronted</th>
+                    <th class="col-acct">Rolled in</th>
+                    <th class="col-acct">Gross payout</th>
+                    <th class="col-acct">Rolled out</th>
+                    <th class="col-acct">Notes</th>
                 </tr>
             </thead>
             <tbody>
                 {% for entry in session.entries %}
-                <tr>
-                    <td>
-                        <a href="{{ url_for('player_detail', player_name=entry.player_name) }}">
-                            {{ entry.player_name }}
-                        </a>
+                <tr onclick="window.location='{{ url_for('player_detail', player_name=entry.player_name) }}'">
+                    <td class="col-player">
+                        <a href="{{ url_for('player_detail', player_name=entry.player_name) }}">{{ entry.player_name }}</a>
                     </td>
-
                     <td>{{ entry.invested_cents | money }}</td>
-                    <td class="detail-col">{{ entry.front_cents | money }}</td>
-                    <td class="detail-col">{{ entry.rollover_in_cents | money }}</td>
                     <td>{{ entry.cash_out_cents | money }}</td>
-
-                    <td class="{{ 'positive' if entry.net_cents > 0 else 'negative' if entry.net_cents < 0 else '' }}">
-                        {{ entry.net_cents | money }}
+                    <td class="num-net {{ 'num-pos' if entry.net_cents > 0 else 'num-neg' if entry.net_cents < 0 else 'num-muted' }}">
+                        {{ '+' if entry.net_cents > 0 else '' }}{{ entry.net_cents | money }}
                     </td>
-
-                    <td class="detail-col">
-                        {% if entry.raw_player_owes_cents > 0 %}
-                            —
+                    <td style="color:var(--pos)">{{ entry.paid_cents | money }}</td>
+                    <td class="{{ 'num-neg' if entry.current_due_to_player_cents > 0 else '' }}">
+                        {% if entry.current_due_to_house_cents > 0 %}
+                            <span style="color:var(--owes)">owes {{ entry.current_due_to_house_cents | money }}</span>
                         {% else %}
-                            {{ entry.gross_payout_cents | money }}
+                            {{ entry.current_due_to_player_cents | money }}
                         {% endif %}
                     </td>
-
-                    <td class="detail-col">{{ entry.paid_cents | money }}</td>
-                    <td class="detail-col">{{ entry.rollover_out_cents | money }}</td>
-                    <td class="detail-col">{{ entry.front_collected_applied_cents | money }}</td>
-                    <td class="detail-col">{{ entry.front_writeoff_applied_cents | money }}</td>
-
-                    <td class="{% if entry.player_owes_cents > 0 %}negative{% elif entry.front_writeoff_applied_cents > 0 %}negative{% elif entry.front_collected_applied_cents > 0 %}positive{% elif entry.current_due_cents > 0 %}negative{% else %}positive{% endif %}">
-                        {% if entry.player_owes_cents > 0 %}
-                            Owes {{ entry.player_owes_cents | money }}
-                        {% elif entry.front_writeoff_applied_cents > 0 %}
-                            Written off {{ entry.front_writeoff_applied_cents | money }}
-                        {% elif entry.front_collected_applied_cents > 0 %}
-                            Collected {{ entry.front_collected_applied_cents | money }}
-                        {% else %}
-                            {{ entry.current_due_cents | money }}
-                        {% endif %}
-                    </td>
-
                     <td>
-                        <span class="status-badge status-{{ entry.payout_status }}">
-                            {{ entry.payout_status }}
-                        </span>
+                        <span class="badge badge--{{ entry.payout_status }}">{{ entry.payout_status }}</span>
                     </td>
-
-                    <td>
+                    <td class="col-acct" style="color:var(--warn)">{{ entry.front_cents | money }}</td>
+                    <td class="col-acct" style="color:var(--rolled)">{{ entry.rollover_in_cents | money }}</td>
+                    <td class="col-acct">
+                        {% if entry.player_owes_gross_cents > 0 %}—{% else %}{{ entry.gross_payout_cents | money }}{% endif %}
+                    </td>
+                    <td class="col-acct" style="color:var(--rolled)">{{ entry.rollover_out_cents | money }}</td>
+                    <td class="col-acct" style="text-align:left;font-family:var(--font-ui);">
                         {% if entry.notes %}
-                            <ul class="note-list">
-                                {% for note in entry.notes %}
-                                    <li>{{ note }}</li>
-                                {% endfor %}
-                            </ul>
+                            <ul class="note-list">{% for n in entry.notes %}<li>{{ n }}</li>{% endfor %}</ul>
                         {% else %}
-                            —
+                            <span style="color:var(--faintest-2)">—</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -166,185 +148,134 @@
             </tbody>
         </table>
     </div>
-</section>
+</div>
 
-<section class="grid two-col chart-row">
-    <div class="panel chart-panel chart-panel-compact">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Breakdown</p>
-                <h2>Net by player</h2>
+<!-- Bottom row: net bars + snapshot + audit feed -->
+<div class="split" style="align-items:stretch;">
+    <div class="panel col-main">
+        <div class="panel__head">
+            <span class="kicker" style="margin:0;">Breakdown</span>
+            <h2 class="panel__title">Net by player</h2>
+        </div>
+        <div class="chart-wrap">
+            <div class="session-net-bars" id="sessionBreakdownChart" aria-label="Net by player"></div>
             </div>
-        </div>
-        <div class="chart-frame chart-frame-compact">
-            <canvas id="sessionBreakdownChart"></canvas>
-        </div>
     </div>
 
-    <div class="panel session-insights-panel">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Quick read</p>
-                <h2>Session snapshot</h2>
-            </div>
+    <div class="panel col-side" style="display:flex;flex-direction:column;">
+        <div class="panel__head">
+            <span class="kicker" style="margin:0;">Quick read</span>
+            <h2 class="panel__title">Session snapshot</h2>
         </div>
-
         {% set winners = session.entries | selectattr('net_cents', 'gt', 0) | list %}
-        {% set losers = session.entries | selectattr('net_cents', 'lt', 0) | list %}
-
-        <div class="detail-grid">
-            <div class="detail-row">
-                <span>Players</span>
-                <strong>{{ session.entries|length }}</strong>
+        {% set losers  = session.entries | selectattr('net_cents', 'lt', 0) | list %}
+        <div class="snapshot-grid" style="flex:1;">
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Biggest winner</span>
+                <div class="snapshot-val" style="color:var(--pos)">
+                    {% if winners %}{{ (winners | sort(attribute='net_cents', reverse=True) | first).net_cents | money }}{% else %}—{% endif %}
+                </div>
+                {% if winners %}<div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ winners | sort(attribute='net_cents', reverse=True) | first | attr('player_name') }}</div>{% endif %}
             </div>
-            <div class="detail-row">
-                <span>Biggest winner</span>
-                <strong>
-                    {% if winners %}
-                        {{ winners | sort(attribute='net_cents', reverse=True) | first | attr('player_name') }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </strong>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Biggest loser</span>
+                <div class="snapshot-val" style="color:var(--neg)">
+                    {% if losers %}{{ (losers | sort(attribute='net_cents') | first).net_cents | money }}{% else %}—{% endif %}
+                </div>
+                {% if losers %}<div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ losers | sort(attribute='net_cents') | first | attr('player_name') }}</div>{% endif %}
             </div>
-            <div class="detail-row">
-                <span>Best result</span>
-                <strong class="positive">
-                    {% if winners %}
-                        {{ (winners | sort(attribute='net_cents', reverse=True) | first).net_cents | money }}
-                    {% else %}
-                        $0.00
-                    {% endif %}
-                </strong>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Total cash-out</span>
+                <div class="snapshot-val">{{ session.total_cash_out_cents | money }}</div>
             </div>
-            <div class="detail-row">
-                <span>Biggest loser</span>
-                <strong>
-                    {% if losers %}
-                        {{ losers | sort(attribute='net_cents') | first | attr('player_name') }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </strong>
-            </div>
-            <div class="detail-row">
-                <span>Worst result</span>
-                <strong class="negative">
-                    {% if losers %}
-                        {{ (losers | sort(attribute='net_cents') | first).net_cents | money }}
-                    {% else %}
-                        $0.00
-                    {% endif %}
-                </strong>
-            </div>
-            <div class="detail-row">
-                <span>Unpaid total</span>
-                <strong class="{{ 'negative' if session.total_remaining_cents > 0 else 'positive' }}">
-                    {{ session.total_remaining_cents | money }}
-                </strong>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Open items</span>
+                <div class="snapshot-val {{ 'recon-val--neg' if (session.total_current_due_to_player_cents + session.total_current_due_to_house_cents) > 0 else '' }}">
+                    {{ (session.total_current_due_to_player_cents + session.total_current_due_to_house_cents) | money }}
+                </div>
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<section class="panel">
-    <div class="panel-header">
+<!-- Audit feed -->
+<div class="panel" style="margin-top:20px;">
+    <div class="panel__head">
         <div>
-            <p class="eyebrow">Audit trail</p>
-            <h2>Raw ledger events</h2>
+            <span class="kicker" style="margin:0;">Audit trail</span>
+            <h2 class="panel__title">Raw ledger events</h2>
         </div>
+        <span class="badge badge--closed" style="font-size:9.5px;letter-spacing:.08em;">append-only</span>
     </div>
-    <div class="event-feed">
+    <div class="event-feed feed feed--inline" style="max-height:none;">
         {% for event in raw_events | reverse %}
-        <article class="event-card">
+        <div class="event-card event-card--inline">
             <div class="event-card-top">
                 <strong>{{ event.player_name or "Session" }}</strong>
-                <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
+                <span class="pill pill-{{ event.event_type }}">{{ event.event_type | replace('_', ' ') }}</span>
+                {% if event.note %}<span class="event-note">{{ event.note }}</span>{% endif %}
             </div>
             <p class="event-amount">{{ event.amount_cents | money }}</p>
-            {% if event.note %}
-                <p class="muted-text small">{{ event.note }}</p>
-            {% endif %}
-            <p class="tiny-text">{{ event.created_at }} · by {{ event.actor }}</p>
-        </article>
+            <p class="tiny-text" style="white-space:nowrap;">{{ event.created_at }}</p>
+        </div>
         {% else %}
-        <p class="muted-text">No raw events recorded.</p>
+        <p class="muted-text" style="padding:20px;">No events recorded.</p>
         {% endfor %}
     </div>
-</section>
+</div>
 
 <script>
-    const sessionChartData = {{ chart_data | tojson }};
-    const rootStyles = getComputedStyle(document.documentElement);
-    const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
-    const lineColor = rootStyles.getPropertyValue('--line').trim();
+const sessionChartData = {{ chart_data | tojson }};
 
-    const sessionBreakdownCtx = document.getElementById('sessionBreakdownChart');
-    if (sessionBreakdownCtx) {
-        new Chart(sessionBreakdownCtx, {
-            type: 'bar',
-            data: {
-                labels: sessionChartData.labels,
-                datasets: [{
-                    label: 'Session Net',
-                    data: sessionChartData.net_values,
-                    backgroundColor: sessionChartData.net_colors,
-                    borderColor: sessionChartData.net_colors,
-                    borderRadius: 8,
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: textMuted,
-                            usePointStyle: true,
-                            boxWidth: 10,
-                            boxHeight: 10,
-                            padding: 18,
-                        },
-                    },
-                },
-                scales: {
-                    x: {
-                        ticks: { color: textMuted, maxRotation: 0 },
-                        grid: { color: lineColor },
-                    },
-                    y: {
-                        ticks: { color: textMuted },
-                        grid: { color: lineColor },
-                    },
-                },
-            },
-        });
-    }
-</script>
+const breakdownCtx = document.getElementById('sessionBreakdownChart');
+if (breakdownCtx) {
+    const values = sessionChartData.net_values || [];
+    const labels = sessionChartData.labels || [];
+    const colors = sessionChartData.net_colors || [];
+    const maxAbs = Math.max(...values.map(value => Math.abs(value)), 1);
+    const moneyFormatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    });
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    }[char]));
 
-<script>
-    const sessionTable = document.querySelector('.session-results-table');
-    const viewButtons = document.querySelectorAll('.table-view-toggle');
+    breakdownCtx.innerHTML = labels.map((label, index) => {
+        const value = Number(values[index] || 0);
+        const width = Math.min(Math.abs(value) / maxAbs * 50, 50);
+        const sideClass = value < 0 ? 'session-net-bars__bar--neg' : 'session-net-bars__bar--pos';
+        const amount = `${value > 0 ? '+' : ''}${moneyFormatter.format(value)}`;
+        const color = colors[index] || (value < 0 ? '#e0758a' : value > 0 ? '#6fc093' : '#84828e');
 
-    if (sessionTable && viewButtons.length) {
-        sessionTable.classList.add('compact');
+        return `
+            <div class="session-net-bars__row">
+                <div class="session-net-bars__name">${escapeHtml(label)}</div>
+                <div class="session-net-bars__track">
+                    <span class="session-net-bars__bar ${sideClass}" style="width:${width}%;background:${color};"></span>
+                </div>
+                <div class="session-net-bars__amount">${amount}</div>
+            </div>
+        `;
+    }).join('');
+}
 
-        viewButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                const view = button.dataset.view;
-
-                viewButtons.forEach((btn) => btn.classList.remove('is-active'));
-                button.classList.add('is-active');
-
-                if (view === 'full') {
-                    sessionTable.classList.remove('compact');
-                } else {
-                    sessionTable.classList.add('compact');
-                }
-            });
-        });
-    }
+// Compact / Full toggle
+const sessionTable = document.getElementById('sessionTable');
+document.querySelectorAll('#viewToggle .seg').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#viewToggle .seg').forEach(b => b.classList.remove('is-on'));
+        btn.classList.add('is-on');
+        if (btn.dataset.view === 'full') {
+            sessionTable.classList.add('is-full');
+        } else {
+            sessionTable.classList.remove('is-full');
+        }
+    });
+});
 </script>
 {% endblock %}

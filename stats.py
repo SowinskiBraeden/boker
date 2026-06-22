@@ -6,22 +6,26 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from markupsafe import Markup
+
 from storage import EventRow
 
 PLAYER_PALETTE = [
+    "#9b8cf0",  # --line-1 violet
+    "#6fc093",  # --line-2 green
+    "#e0b15c",  # --line-3 gold
+    "#cf6f86",  # --line-4 pink
+    "#8f93c2",  # --line-5 lavender
+    "#7cb9e0",
     "#f4a261",
-    "#2a9d8f",
-    "#8d99ae",
-    "#e76f51",
-    "#7c6cf2",
+    "#a78bb0",
+    "#5cb8a0",
+    "#e58f3a",
     "#84cc16",
-    "#f59e0b",
-    "#10b981",
-    "#ef4444",
     "#06b6d4",
-    "#a855f7",
-    "#eab308",
 ]
+
+BREAK_EVEN_TOLERANCE_CENTS = 100
 
 
 @dataclass
@@ -41,6 +45,8 @@ class SessionEntry:
 
     @property
     def invested_cents(self) -> int:
+        # Poker performance: everything that entered play, including house fronts
+        # and prior unpaid winnings rolled into this session.
         return self.buy_in_cents + self.front_cents + self.rollover_in_cents
 
     @property
@@ -48,69 +54,104 @@ class SessionEntry:
         return self.cash_out_cents - self.invested_cents
 
     @property
-    def payout_due_cents(self) -> int:
-        return max(self.cash_out_cents - self.front_cents, 0)
-
-    @property
-    def payout_remaining_cents(self) -> int:
-        return max(self.payout_due_cents - self.paid_cents - self.rollover_out_cents, 0)
-
-    @property
     def gross_payout_cents(self) -> int:
+        # Settlement: cashout is a gross chip count/result, not proof that cash
+        # was paid. Fronts are recovered from the cashout before the player has
+        # a claim against the house.
         return max(self.cash_out_cents - self.front_cents, 0)
 
     @property
-    def settled_cents(self) -> int:
-        return self.paid_cents + self.rollover_out_cents
-
-    @property
-    def current_due_cents(self) -> int:
-        return max(self.gross_payout_cents - self.settled_cents, 0)
-
-    @property
-    def player_owes_cents(self) -> int:
-        return max(self.raw_player_owes_cents - self.front_resolved_cents, 0)
-
-    @property
-    def raw_player_owes_cents(self) -> int:
-        return self.front_shortfall_cents + self.overpaid_front_cents
-
-    @property
-    def front_shortfall_cents(self) -> int:
+    def player_owes_gross_cents(self) -> int:
         return max(self.front_cents - self.cash_out_cents, 0)
 
     @property
+    def settled_to_player_cents(self) -> int:
+        # Rollover-out resolves the source session's payable even though it is
+        # not real cash out. The destination session records it as rollover-in.
+        return self.paid_cents + self.rollover_out_cents
+
+    @property
+    def current_due_to_player_cents(self) -> int:
+        return max(self.gross_payout_cents - self.settled_to_player_cents, 0)
+
+    @property
+    def settled_to_house_cents(self) -> int:
+        # Front collections are real cash in. Writeoffs are not cash, but they
+        # do resolve the receivable.
+        return self.front_collected_cents + self.front_writeoff_cents
+
+    @property
+    def current_due_to_house_cents(self) -> int:
+        return max(self.player_owes_gross_cents - self.settled_to_house_cents, 0)
+
+    @property
+    def real_cash_in_cents(self) -> int:
+        return self.buy_in_cents + self.front_collected_cents
+
+    @property
+    def real_cash_out_cents(self) -> int:
+        return self.paid_cents
+
+    @property
+    def payout_due_cents(self) -> int:
+        return self.gross_payout_cents
+
+    @property
+    def payout_remaining_cents(self) -> int:
+        return self.current_due_to_player_cents
+
+    @property
+    def settled_cents(self) -> int:
+        return self.settled_to_player_cents
+
+    @property
+    def current_due_cents(self) -> int:
+        return self.current_due_to_player_cents
+
+    @property
+    def player_owes_cents(self) -> int:
+        return self.current_due_to_house_cents
+
+    @property
+    def raw_player_owes_cents(self) -> int:
+        return self.player_owes_gross_cents
+
+    @property
+    def front_shortfall_cents(self) -> int:
+        return self.player_owes_gross_cents
+
+    @property
     def overpaid_front_cents(self) -> int:
-        return max(self.settled_cents - self.gross_payout_cents, 0)
+        return 0
 
     @property
     def front_writeoff_applied_cents(self) -> int:
         return min(
             self.front_writeoff_cents,
-            max(self.raw_player_owes_cents - self.front_collected_applied_cents, 0),
+            max(self.player_owes_gross_cents - self.front_collected_applied_cents, 0),
         )
 
     @property
     def front_collected_applied_cents(self) -> int:
-        return min(self.front_collected_cents, self.raw_player_owes_cents)
+        return min(self.front_collected_cents, self.player_owes_gross_cents)
 
     @property
     def front_resolved_cents(self) -> int:
-        return self.front_collected_applied_cents + self.front_writeoff_applied_cents
+        return min(self.settled_to_house_cents, self.player_owes_gross_cents)
 
     @property
     def payout_status(self) -> str:
-        if self.player_owes_cents > 0:
+        if self.current_due_to_house_cents > 0:
             return "owes"
-        if self.front_writeoff_applied_cents > 0:
+        if self.front_writeoff_cents > 0:
             return "written_off"
-        if self.front_collected_applied_cents > 0:
+        if self.front_collected_cents > 0:
             return "collected"
         if self.gross_payout_cents <= 0:
             return "none"
-        if self.current_due_cents <= 0:
+        if self.current_due_to_player_cents <= 0:
             return "paid"
-        if self.settled_cents <= 0:
+        if self.settled_to_player_cents <= 0:
             return "unpaid"
         return "partial"
 
@@ -149,11 +190,11 @@ class SessionSummary:
 
     @property
     def total_payout_due_cents(self) -> int:
-        return sum(entry.payout_due_cents for entry in self.entries)
+        return self.total_gross_payout_cents
 
     @property
     def total_remaining_cents(self) -> int:
-        return sum(entry.payout_remaining_cents for entry in self.entries)
+        return self.total_current_due_to_player_cents
 
     @property
     def total_net_cents(self) -> int:
@@ -172,32 +213,63 @@ class SessionSummary:
         return sum(entry.rollover_out_cents for entry in self.entries)
 
     @property
-    def total_current_due_cents(self) -> int:
-        return sum(entry.current_due_cents for entry in self.entries)
+    def total_settled_to_player_cents(self) -> int:
+        return sum(entry.settled_to_player_cents for entry in self.entries)
 
     @property
-    def total_player_owes_cents(self) -> int:
-        return sum(entry.player_owes_cents for entry in self.entries)
+    def total_current_due_to_player_cents(self) -> int:
+        return sum(entry.current_due_to_player_cents for entry in self.entries)
+
+    @property
+    def total_player_owes_gross_cents(self) -> int:
+        return sum(entry.player_owes_gross_cents for entry in self.entries)
+
+    @property
+    def total_settled_to_house_cents(self) -> int:
+        return sum(entry.settled_to_house_cents for entry in self.entries)
+
+    @property
+    def total_current_due_to_house_cents(self) -> int:
+        return sum(entry.current_due_to_house_cents for entry in self.entries)
 
     @property
     def total_front_writeoff_cents(self) -> int:
-        return sum(entry.front_writeoff_applied_cents for entry in self.entries)
+        return sum(entry.front_writeoff_cents for entry in self.entries)
 
     @property
     def total_front_collected_cents(self) -> int:
-        return sum(entry.front_collected_applied_cents for entry in self.entries)
+        return sum(entry.front_collected_cents for entry in self.entries)
 
     @property
     def total_cash_in_cents(self) -> int:
-        return sum(entry.buy_in_cents for entry in self.entries)
+        return sum(entry.real_cash_in_cents for entry in self.entries)
 
     @property
     def total_paid_out_cents(self) -> int:
-        return sum(entry.paid_cents for entry in self.entries)
+        return sum(entry.real_cash_out_cents for entry in self.entries)
+
+    @property
+    def total_current_due_cents(self) -> int:
+        return self.total_current_due_to_player_cents
+
+    @property
+    def total_player_owes_cents(self) -> int:
+        return self.total_current_due_to_house_cents
 
     @property
     def total_open_balance_cents(self) -> int:
-        return self.total_current_due_cents - self.total_player_owes_cents
+        return self.total_current_due_to_player_cents - self.total_current_due_to_house_cents
+
+    @property
+    def total_net_book_position_cents(self) -> int:
+        # Banker view: cash currently held, plus collectible receivables, minus
+        # unpaid player claims. Rollover-outs reduce payables but are not cash.
+        return (
+            self.total_cash_in_cents
+            - self.total_paid_out_cents
+            + self.total_current_due_to_house_cents
+            - self.total_current_due_to_player_cents
+        )
 
 
 @dataclass
@@ -251,9 +323,9 @@ def apply_rank_changes(
     return current_board
 
 
-def cents_to_dollars(cents: int) -> str:
+def cents_to_dollars(cents: int) -> Markup:
     value = cents / 100
-    return f"${value:,.2f}"
+    return Markup(f'<span class="currency-symbol">$</span>{value:,.2f}')
 
 
 def session_sort_key(session: SessionSummary) -> tuple[str, int, str, str]:
@@ -314,12 +386,22 @@ def color_for_name(name: str, names: list[str]) -> str:
     return PLAYER_PALETTE[index % len(PLAYER_PALETTE)]
 
 
+def net_result_bucket(value_cents: int) -> str:
+    if value_cents > BREAK_EVEN_TOLERANCE_CENTS:
+        return "win"
+    if value_cents < -BREAK_EVEN_TOLERANCE_CENTS:
+        return "loss"
+    return "even"
+
+
 def net_tone(value_cents: int) -> str:
-    if value_cents > 0:
-        return "#22c55e"
-    if value_cents < 0:
-        return "#ef4444"
-    return "#f59e0b"
+    bucket = net_result_bucket(value_cents)
+
+    if bucket == "win":
+        return "#6fc093"  # --pos
+    if bucket == "loss":
+        return "#e0758a"  # --neg
+    return "#84828e"      # --muted-2
 
 
 def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
@@ -426,6 +508,7 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
 
     for entry in ordered_entries:
         net = entry.net_cents
+        bucket = net_result_bucket(net)
 
         if best_entry is None or net > best_entry.net_cents:
             best_entry = entry
@@ -433,10 +516,10 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
         if worst_entry is None or net < worst_entry.net_cents:
             worst_entry = entry
 
-        if net > 0:
+        if bucket == "win":
             current_run_wins += 1
             current_run_losses = 0
-        elif net < 0:
+        elif bucket == "loss":
             current_run_losses += 1
             current_run_wins = 0
         else:
@@ -450,13 +533,13 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
     current_loss_streak = 0
 
     for entry in reversed(ordered_entries):
-        net = entry.net_cents
+        bucket = net_result_bucket(entry.net_cents)
 
-        if net > 0:
+        if bucket == "win":
             if current_loss_streak > 0:
                 break
             current_win_streak += 1
-        elif net < 0:
+        elif bucket == "loss":
             if current_win_streak > 0:
                 break
             current_loss_streak += 1
@@ -485,8 +568,8 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     for player_name, entries in player_entries.items():
         nets = [entry.net_cents for entry in entries]
         run_summary = summarize_player_runs(entries)
-        wins = [value for value in nets if value > 0]
-        losses = [value for value in nets if value < 0]
+        wins = [value for value in nets if net_result_bucket(value) == "win"]
+        losses = [value for value in nets if net_result_bucket(value) == "loss"]
 
         sessions_played = len(entries)
         winning_sessions = len(wins)
@@ -502,12 +585,8 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
 
         total_buy_in = sum(entry.buy_in_cents for entry in entries)
         total_front = sum(entry.front_cents for entry in entries)
-        total_front_collected = sum(
-            entry.front_collected_applied_cents for entry in entries
-        )
-        total_front_writeoff = sum(
-            entry.front_writeoff_applied_cents for entry in entries
-        )
+        total_front_collected = sum(entry.front_collected_cents for entry in entries)
+        total_front_writeoff = sum(entry.front_writeoff_cents for entry in entries)
         current_player_owes = sum(entry.player_owes_cents for entry in entries)
         total_rollover_in = sum(entry.rollover_in_cents for entry in entries)
         total_invested = sum(entry.invested_cents for entry in entries)

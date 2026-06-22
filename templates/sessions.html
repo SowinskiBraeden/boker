@@ -1,52 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Sessions · Poker Portal{% endblock %}
+{% block title %}Sessions · boker.club{% endblock %}
 {% block content %}
-<section class="hero-card compact">
-    <div>
-        <p class="eyebrow">Session history</p>
-        <h1>Sessions</h1>
-        <p class="muted-text">Browse every recorded game night, inspect the table totals, and drill into each player result.</p>
-    </div>
-</section>
 
-<section class="panel">
-    <div class="panel-header">
+<div class="hero">
+    <p class="hero__kicker">Session history</p>
+    <h1 class="hero__title">Sessions</h1>
+    <p class="hero__sub">Browse every recorded game night and inspect table totals.</p>
+</div>
+
+<div class="panel">
+    <div class="panel__head">
         <div>
-            <p class="eyebrow">Archive</p>
-            <h2>All sessions by date</h2>
+            <span class="kicker" style="margin:0;">Archive</span>
+            <h2 class="panel__title">All sessions</h2>
         </div>
     </div>
-    <div class="table-wrap">
-        <table>
+    <div class="tbl-scroll">
+        <table class="tbl" style="min-width:600px;">
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th class="col-left">Date</th>
                     <th>Status</th>
                     <th>Players</th>
-                    <th>Total Buy-ins</th>
-                    <th>Total Cash-outs</th>
-                    <th>Table Net</th>
+                    <th>Invested</th>
+                    <th>Cash out</th>
+                    <th>Table net</th>
                 </tr>
             </thead>
             <tbody>
-                {% for session in sessions %}
-                <tr>
-                    <td><a href="{{ url_for('session_detail', session_id=session.session_id) }}">{{ session_label(session) }}</a></td>
-                    <td><span class="status-badge status-{{ session.status }}">
-                        {{ session.status }}
-                    </span></td>
-                    <td>{{ session.entries|length }}</td>
-                    <td>{{ session.total_buy_in_cents | money }}</td>
-                    <td>{{ session.total_cash_out_cents | money }}</td>
-                    <td class="{{ 'positive' if session.total_net_cents > 0 else 'negative' if session.total_net_cents < 0 else '' }}">{{ session.total_net_cents | money }}</td>
+                {% for s in sessions %}
+                <tr onclick="window.location='{{ url_for('session_detail', session_id=s.session_id) }}'">
+                    <td class="col-left">
+                        <a href="{{ url_for('session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a>
+                    </td>
+                    <td><span class="badge badge--{{ s.status }}">{{ s.status }}</span></td>
+                    <td>{{ s.entries|length }}</td>
+                    <td>{{ s.total_invested_cents | money }}</td>
+                    <td>{{ s.total_cash_out_cents | money }}</td>
+                    <td class="{{ 'num-pos' if s.total_net_cents > 0 else 'num-neg' if s.total_net_cents < 0 else '' }}">
+                        {{ s.total_net_cents | money }}
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5">No sessions yet.</td>
+                    <td colspan="6" style="text-align:left;padding:28px;color:var(--muted);">No sessions yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</section>
+</div>
+
 {% endblock %}

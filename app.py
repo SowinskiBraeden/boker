@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import csv
 import os
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,11 +31,22 @@ from stats import (
     session_sort_key,
     unique_player_names,
 )
-from storage import append_event, ensure_data_file, load_events
+from storage import CSV_HEADERS, append_event, ensure_data_file, load_events
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 ENV_PATH = BASE_DIR / ".env"
+
+ELIGIBLE_MIN_SESSIONS = 3
+ADMIN_EVENT_TYPES = [
+    ("buyin", "Buy-in", "var(--accent)"),
+    ("front", "Fronted", "var(--warn)"),
+    ("rollover_in", "Rollover-in", "var(--rolled)"),
+    ("cashout", "Cash-out", "var(--rank-2)"),
+    ("paid", "Paid-out", "var(--pos)"),
+    ("rollover_out", "Rollover-out", "var(--rolled)"),
+    ("note", "Note", "var(--muted)"),
+]
 
 
 def load_local_env(env_path: Path) -> None:
@@ -105,18 +115,20 @@ def leaderboard() -> str:
     all_sessions = build_session_summaries(events)
     ordered_sessions = sorted(all_sessions, key=session_sort_key)
 
-    session_ids = [session.session_id for session in ordered_sessions]
+    session_ids = [s.session_id for s in ordered_sessions]
     selected_session_id = request.args.get("through_session", "").strip()
+    mode = request.args.get("mode", "eligible").strip()
+    if mode not in ("eligible", "all", "recent"):
+        mode = "eligible"
     label = ""
+    cutoff_index = len(session_ids) - 1
 
     if session_ids:
         if selected_session_id in session_ids:
             cutoff_index = session_ids.index(selected_session_id)
             label = session_label(ordered_sessions[cutoff_index])
         else:
-            cutoff_index = len(session_ids) - 1
-            selected_session = ordered_sessions[cutoff_index]
-            label = session_label(selected_session)
+            label = session_label(ordered_sessions[cutoff_index])
 
         filtered_sessions = ordered_sessions[: cutoff_index + 1]
         previous_sessions = ordered_sessions[:cutoff_index]
@@ -124,17 +136,48 @@ def leaderboard() -> str:
         filtered_sessions = []
         previous_sessions = []
 
+    # Build full board (all filtered sessions) for rank changes and counts
     board = build_leaderboard(filtered_sessions)
     previous_board = build_leaderboard(previous_sessions)
     board = apply_rank_changes(board, previous_board)
 
+    # Segmented-control counts
+    eligible_count = sum(1 for p in board if p.sessions_played >= ELIGIBLE_MIN_SESSIONS)
+    all_count = len(board)
+    recent_sessions_slice = filtered_sessions[-5:]
+    recent_count = len({
+        entry.player_name
+        for s in recent_sessions_slice
+        for entry in s.entries
+    })
+
+    # Mode-specific boards
+    if mode == "recent":
+        mode_board = build_leaderboard(recent_sessions_slice)
+        main_board = mode_board
+        provisional_board = []
+    elif mode == "eligible":
+        main_board = [p for p in board if p.sessions_played >= ELIGIBLE_MIN_SESSIONS]
+        provisional_board = [p for p in board if p.sessions_played < ELIGIBLE_MIN_SESSIONS]
+    else:
+        main_board = board
+        provisional_board = []
+
     chart_data = cumulative_profit_series(filtered_sessions)
+    cash_paid_out_cents = sum(session.total_paid_out_cents for session in all_sessions)
 
     return render_template(
         "leaderboard.html",
-        leaderboard=board,
+        main_board=main_board,
+        provisional_board=provisional_board,
+        mode=mode,
+        eligible_count=eligible_count,
+        all_count=all_count,
+        recent_count=recent_count,
+        eligible_min_sessions=ELIGIBLE_MIN_SESSIONS,
         session_count=len(filtered_sessions),
         total_session_count=len(all_sessions),
+        cash_paid_out_cents=cash_paid_out_cents,
         chart_data=chart_data,
         available_sessions=all_sessions,
         selected_session_id=selected_session_id,
@@ -190,6 +233,15 @@ def session_detail(session_id: str) -> str:
         return redirect(url_for("sessions"))
 
     target_session = sessions[target_index]
+    chronological_sessions = sorted(sessions, key=session_sort_key)
+    session_number = next(
+        (
+            index
+            for index, session in enumerate(chronological_sessions, start=1)
+            if session.session_id == session_id
+        ),
+        1,
+    )
     prev_session = (
         sessions[target_index + 1] if target_index < len(sessions) - 1 else None
     )
@@ -200,6 +252,7 @@ def session_detail(session_id: str) -> str:
         session=target_session,
         next_session=next_session,
         prev_session=prev_session,
+        session_number=session_number,
         raw_events=session_events(events, session_id),
         chart_data=session_breakdown_series(target_session),
         session_label=session_label,
@@ -218,10 +271,19 @@ def player_detail(player_name: str) -> str:
         flash("That player was not found.", "error")
         return redirect(url_for("leaderboard"))
 
+    player_rank = next(
+        (
+            index
+            for index, ranked_player in enumerate(board, start=1)
+            if ranked_player.player_name == player_name
+        ),
+        None,
+    )
     chart_data = player_session_series(sessions, player_name)
     return render_template(
         "player_detail.html",
         player=player_stats,
+        player_rank=player_rank,
         chart_data=chart_data,
     )
 
@@ -290,6 +352,7 @@ def admin_session_state() -> str:
 
 
 @app.get("/admin/export")
+@app.get("/admin/export.csv")
 def admin_export_csv():
     if not is_admin():
         flash("Admin login required.", "error")
@@ -334,36 +397,38 @@ def admin_import_csv():
         return redirect(url_for("admin_dashboard"))
 
     try:
-        current_header = next(
-            csv.reader(open(DATA_PATH, "r", encoding="utf-8", newline=""))
-        )
-    except Exception:
-        flash("Could not read the current audit CSV header.", "error")
-        return redirect(url_for("admin_dashboard"))
-
-    try:
         uploaded_header = next(csv.reader(uploaded_lines))
     except Exception:
         flash("Could not read the uploaded CSV header.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    if uploaded_header != current_header:
+    if uploaded_header != CSV_HEADERS:
         flash("CSV header does not match the current audit format.", "error")
         return redirect(url_for("admin_dashboard"))
 
-    data_dir = os.path.dirname(DATA_PATH)
-    backup_name = (
-        f"entries_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
-    )
-    backup_path = os.path.join(data_dir, backup_name)
-
     try:
-        shutil.copy2(DATA_PATH, backup_path)
+        existing_ids = {event["id"] for event in load_events(DATA_PATH)}
+        reader = csv.DictReader(uploaded_lines)
+        new_rows = []
+        skipped_count = 0
+        for row in reader:
+            event_id = row.get("id", "")
+            if not event_id or event_id in existing_ids:
+                skipped_count += 1
+                continue
 
-        with open(DATA_PATH, "w", encoding="utf-8", newline="") as handle:
-            handle.write(uploaded_text)
+            new_rows.append({header: row.get(header, "") for header in CSV_HEADERS})
+            existing_ids.add(event_id)
 
-        flash(f"CSV imported successfully. Backup created: {backup_name}", "success")
+        if new_rows:
+            with open(DATA_PATH, "a", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=CSV_HEADERS)
+                writer.writerows(new_rows)
+
+        flash(
+            f"Imported {len(new_rows)} new events, skipped {skipped_count} duplicates.",
+            "success",
+        )
     except Exception:
         flash("Import failed. Existing CSV was not updated.", "error")
 
@@ -582,13 +647,41 @@ def admin_dashboard():
         )
 
         flash("Event added.", "success")
-        return redirect(url_for("admin_dashboard"))
+        return redirect(
+            url_for(
+                "admin_dashboard",
+                session_id=session_id,
+                player_name=player_name,
+                event_type=event_type,
+            )
+        )
 
     events = load_events(DATA_PATH)
     sessions = build_session_summaries(events)
     open_sessions = [session for session in sessions if session.status == "open"]
+    live_session = open_sessions[0] if open_sessions else None
+    live_session_no = ""
+    live_unresolved_count = 0
+    if live_session is not None:
+        live_session_no = f"#{len(sessions):03d}"
+        live_unresolved_count = sum(
+            1
+            for entry in live_session.entries
+            if entry.current_due_cents > 0 or entry.player_owes_cents > 0
+        )
+
     recent_sessions = sessions[:8]
     recent_events = list(reversed(events[-20:]))
+    event_type_colors = {value: color for value, _label, color in ADMIN_EVENT_TYPES}
+    event_type_labels = {value: label for value, label, _color in ADMIN_EVENT_TYPES}
+    selected_event_type = request.args.get("event_type", "buyin").strip()
+    if selected_event_type not in event_type_colors:
+        selected_event_type = "buyin"
+    append_form = {
+        "session_id": request.args.get("session_id", "").strip(),
+        "player_name": request.args.get("player_name", "").strip(),
+        "event_type": selected_event_type,
+    }
     debt_entries = [
         {"session": session, "entry": entry}
         for session in sessions
@@ -598,12 +691,12 @@ def admin_dashboard():
 
     admin_totals = {
         "cash_in_cents": sum(session.total_cash_in_cents for session in sessions),
-        "paid_out_cents": sum(session.total_paid_out_cents for session in sessions),
-        "still_owed_cents": sum(
-            session.total_current_due_cents for session in sessions
+        "cash_out_cents": sum(session.total_paid_out_cents for session in sessions),
+        "house_owes_players_cents": sum(
+            session.total_current_due_to_player_cents for session in sessions
         ),
-        "players_owe_cents": sum(
-            session.total_player_owes_cents for session in sessions
+        "players_owe_house_cents": sum(
+            session.total_current_due_to_house_cents for session in sessions
         ),
         "collected_cents": sum(
             session.total_front_collected_cents for session in sessions
@@ -611,10 +704,14 @@ def admin_dashboard():
         "written_off_cents": sum(
             session.total_front_writeoff_cents for session in sessions
         ),
-        "open_balance_cents": sum(
-            session.total_open_balance_cents for session in sessions
+        "net_book_position_cents": sum(
+            session.total_net_book_position_cents for session in sessions
         ),
     }
+    admin_totals["paid_out_cents"] = admin_totals["cash_out_cents"]
+    admin_totals["still_owed_cents"] = admin_totals["house_owes_players_cents"]
+    admin_totals["players_owe_cents"] = admin_totals["players_owe_house_cents"]
+    admin_totals["open_balance_cents"] = admin_totals["net_book_position_cents"]
 
     return render_template(
         "admin_dashboard.html",
@@ -622,7 +719,15 @@ def admin_dashboard():
         recent_sessions=recent_sessions,
         recent_events=recent_events,
         debt_entries=debt_entries,
+        live_session=live_session,
+        live_session_no=live_session_no,
+        live_unresolved_count=live_unresolved_count,
         player_names=unique_player_names(events),
+        append_form=append_form,
+        event_types=ADMIN_EVENT_TYPES,
+        event_type_colors=event_type_colors,
+        event_type_labels=event_type_labels,
+        admin_today=datetime.now().date().isoformat(),
         session_label=session_label,
         admin_totals=admin_totals,
     )

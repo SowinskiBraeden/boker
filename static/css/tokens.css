@@ -1,0 +1,84 @@
+:root {
+  /* ---- surfaces (darkest → lightest) ---- */
+  --bg:            #0f0f12;
+  --surface:       #16161c;
+  --surface-raised:#1a1a20;
+  --surface-head:  #1c1c24;
+  --surface-sunk:  #131318;
+  --field:         #1f1f27;
+  --field-alt:     #20202a;
+
+  /* ---- borders / dividers ---- */
+  --border:        #26262f;
+  --border-strong: #2e2e38;
+  --border-hi:     #34343f;
+  --divider:       #1d1d25;
+  --slash:         #3a3a45;
+
+  /* ---- text ---- */
+  --text:          #f3f1f8;
+  --text-strong:   #ecebf1;
+  --text-body:     #e7e5ec;
+  --text-2:        #bcbac6;
+  --num:           #b0aeba;
+  --muted:         #8f8d99;
+  --muted-2:       #84828e;
+  --faint:         #7d7b87;
+  --faint-2:       #757380;
+  --faintest:      #66646f;
+  --faintest-2:    #57555f;
+
+  /* ---- accent (violet) ---- */
+  --accent:        #9b8cf0;
+  --accent-ink:    #12101e;
+  --accent-tint:   #1f1d2e;
+  --accent-chip:   #242137;
+  --accent-chip-bd:#383152;
+  --accent-a22:    rgba(155,140,240,0.22);
+  --accent-a30:    rgba(155,140,240,0.30);
+
+  /* ---- semantic: poker value scale ---- */
+  --pos:           #6fc093;
+  --pos-bar:       #41815a;
+  --pos-tint:      rgba(111,192,147,0.12);
+  --pos-tint-bd:   rgba(111,192,147,0.30);
+  --neg:           #e0758a;
+  --neg-bar:       #9e445a;
+  --neg-tint:      rgba(224,117,138,0.13);
+  --neg-tint-bd:   rgba(224,117,138,0.32);
+  --owes:          #e8829a;
+  --owes-tint:     rgba(232,130,154,0.15);
+  --owes-tint-bd:  rgba(232,130,154,0.40);
+
+  /* ---- semantic: cash-movement hues ---- */
+  --warn:          #e0b15c;
+  --warn-tint:     rgba(224,177,92,0.13);
+  --warn-tint-bd:  rgba(224,177,92,0.32);
+  --rolled:        #8f93c2;
+
+  /* ---- medals ---- */
+  --rank-1: var(--accent);
+  --rank-2: #c2bcd0;
+  --rank-3: #a78bb0;
+
+  /* ---- chart line palette (top-N order) ---- */
+  --line-1: #9b8cf0; --line-2: #6fc093; --line-3: #e0b15c;
+  --line-4: #cf6f86; --line-5: #8f93c2;
+
+  /* ---- spacing scale (4pt) ---- */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px;
+  --s6:24px; --s8:32px; --s10:40px; --s12:48px;
+
+  /* ---- radii ---- */
+  --r-pill:6px; --r-sm:9px; --r-md:11px; --r-lg:14px;
+
+  /* ---- containers ---- */
+  --w-public:1320px;
+  --w-session:1440px;
+  --w-admin:1580px;
+  --gutter: clamp(16px, 4vw, 40px);
+
+  /* ---- Chart.js backward compat (read as raw strings by JS) ---- */
+  --text-muted: #bcbac6;
+  --line: #26262f;
+}
