@@ -45,7 +45,7 @@
 <!-- Admin workspace -->
 <div class="admin-workspace">
 
-    <form class="panel append" method="post" action="{{ url_for('admin_dashboard') }}">
+    <form class="panel append" method="post" action="{{ url_for('admin.dashboard') }}">
         <div class="panel__head">
             <h2 class="panel__title">Append ledger event</h2>
             <span class="panel__tag">fast entry</span>
@@ -104,7 +104,7 @@
                     <span>{{ item.player_name }}</span>
                     <strong>{{ item.amount_cents | money }}</strong>
                     {% if live_session and item.player_name in live_session_player_names %}
-                    <form method="post" action="{{ url_for('admin_apply_payout_carry_in') }}">
+                    <form method="post" action="{{ url_for('admin.apply_payout_carry_in') }}">
                         <input type="hidden" name="session_id" value="{{ live_session.session_id }}">
                         <input type="hidden" name="player_name" value="{{ item.player_name }}">
                         <button class="table-action-button" type="submit">Apply</button>
@@ -146,7 +146,7 @@
                 <div><div class="micro">Seated</div><div class="mono16">{{ live_session.entries|length }}</div></div>
                 <div><div class="micro">Open</div><div class="mono16 mono16--warn">{{ live_unresolved_count }}</div></div>
             </div>
-            <form method="post" action="{{ url_for('admin_session_state') }}"
+            <form method="post" action="{{ url_for('admin.session_state') }}"
                   {% if live_unresolved_count > 0 %}data-close-warning="true"{% endif %}>
                 <input type="hidden" name="session_id" value="{{ live_session.session_id }}">
                 <button class="btn-close" type="submit" name="state" value="closed">Close session</button>
@@ -167,12 +167,12 @@
         </div>
         {% endif %}
 
-        <form method="post" action="{{ url_for('admin_open_session') }}">
+        <form method="post" action="{{ url_for('admin.open_session') }}">
             <input type="hidden" name="session_date" value="{{ admin_today }}">
             <button class="btn-newsession {{ 'btn-newsession--primary' if not live_session else '' }}" type="submit">+ Open new session</button>
         </form>
 
-        <form method="post" action="{{ url_for('admin_prune_empty_sessions') }}" class="prune-session-form">
+        <form method="post" action="{{ url_for('admin.prune_empty_sessions') }}" class="prune-session-form">
             <button class="secondary-button" type="submit" {% if empty_session_count == 0 %}disabled{% endif %}>
                 Prune empty sessions{% if empty_session_count > 0 %} ({{ empty_session_count }}){% endif %}
             </button>
@@ -182,9 +182,9 @@
     <div class="panel panel--pad import-export-panel">
         <h2 class="panel__title" style="margin:0 0 4px">Import / export</h2>
         <p class="csv__desc">Back up or migrate the raw event ledger.</p>
-        <form method="post" action="{{ url_for('admin_import_csv') }}" enctype="multipart/form-data" class="import-form">
+        <form method="post" action="{{ url_for('admin.import_csv') }}" enctype="multipart/form-data" class="import-form">
             <div class="csv__btns">
-                <a class="csv-btn-ghost" href="{{ url_for('admin_export_csv') }}">&darr; Export CSV</a>
+                <a class="csv-btn-ghost" href="{{ url_for('admin.export_csv') }}">&darr; Export CSV</a>
                 <label class="csv-btn-ghost" for="csvTopImport">&uarr; Import CSV</label>
             </div>
             <input id="csvTopImport" type="file" accept=".csv,text/csv" name="csv_file" hidden onchange="this.form.submit()">
@@ -223,7 +223,7 @@
         </div>
 
         <div class="debt-action-grid">
-            <form class="form-card debt-form" method="post" action="{{ url_for('admin_collect_front') }}">
+            <form class="form-card debt-form" method="post" action="{{ url_for('admin.collect_front') }}">
                 <h3>Collect debt</h3>
                 <label>
                     <span>Outstanding debt</span>
@@ -248,7 +248,7 @@
                 <button class="primary-button" type="submit">Mark collected</button>
             </form>
 
-            <form class="form-card debt-form" method="post" action="{{ url_for('admin_write_off_front') }}">
+            <form class="form-card debt-form" method="post" action="{{ url_for('admin.write_off_front') }}">
                 <h3>Write off debt</h3>
                 <label>
                     <span>Outstanding debt</span>
@@ -308,7 +308,7 @@
                 <tbody>
                     {% for s in recent_sessions %}
                     <tr>
-                        <td><a href="{{ url_for('session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a></td>
+                        <td><a href="{{ url_for('public.session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a></td>
                         <td style="font-family:var(--font-mono);color:var(--num)">{{ s.entries|length }}</td>
                         <td style="font-family:var(--font-mono);color:var(--num)">{{ s.total_banker_cash_in_cents | money }}</td>
                         <td style="font-family:var(--font-mono);color:var(--pos)">{{ s.total_banker_cash_out_cents | money }}</td>
@@ -317,7 +317,7 @@
                         <td class="{% if s.total_net_book_position_cents > 0 %}positive{% elif s.total_net_book_position_cents < 0 %}negative{% endif %}" style="font-family:var(--font-mono)">{{ s.total_net_book_position_cents | money }}</td>
                         <td><span class="status-badge status-{{ s.status }}">{{ s.status }}</span></td>
                         <td>
-                            <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
+                            <form method="post" action="{{ url_for('admin.session_state') }}" class="inline-action-form">
                                 <input type="hidden" name="session_id" value="{{ s.session_id }}">
                                 {% if s.status == "open" %}
                                 <button class="table-action-button" type="submit" name="state" value="closed">Close</button>

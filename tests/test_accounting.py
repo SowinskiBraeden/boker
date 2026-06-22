@@ -3,13 +3,14 @@ import tempfile
 import unittest
 
 import app as app_module
-from stats import (
+from charts import player_session_series
+from services import (
     build_leaderboard,
     build_session_summaries,
-    player_session_series,
-    session_sort_key,
+    pending_payout_carry_items,
 )
 from storage import load_events, write_events
+from utils import session_sort_key
 
 
 def cents(amount: float) -> int:
@@ -202,13 +203,13 @@ class AccountingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             data_path = Path(tmpdir) / "entries.csv"
             write_events(data_path, rows)
-            original_path = app_module.DATA_PATH
-            app_module.DATA_PATH = data_path
+            original_path = app_module.app.config["DATA_PATH"]
+            app_module.app.config["DATA_PATH"] = data_path
 
             try:
                 sessions = build_session_summaries(load_events(data_path))
                 self.assertEqual(
-                    app_module.pending_payout_carry_items(sessions),
+                    pending_payout_carry_items(sessions),
                     [{"player_name": "A", "amount_cents": cents(5)}],
                 )
 
@@ -221,7 +222,7 @@ class AccountingTests(unittest.TestCase):
                         data={"session_id": "s2", "player_name": "A"},
                     )
             finally:
-                app_module.DATA_PATH = original_path
+                app_module.app.config["DATA_PATH"] = original_path
 
             self.assertEqual(response.status_code, 302)
             updated_sessions = build_session_summaries(load_events(data_path))
@@ -260,8 +261,8 @@ class AccountingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             data_path = Path(tmpdir) / "entries.csv"
             write_events(data_path, rows)
-            original_path = app_module.DATA_PATH
-            app_module.DATA_PATH = data_path
+            original_path = app_module.app.config["DATA_PATH"]
+            app_module.app.config["DATA_PATH"] = data_path
 
             try:
                 with app_module.app.test_client() as client:
@@ -270,7 +271,7 @@ class AccountingTests(unittest.TestCase):
 
                     response = client.post("/admin/prune-empty-sessions")
             finally:
-                app_module.DATA_PATH = original_path
+                app_module.app.config["DATA_PATH"] = original_path
 
             self.assertEqual(response.status_code, 302)
             remaining = load_events(data_path)
