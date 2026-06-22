@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}boker.club{% endblock %}</title>
+    <title>{% block title %}myboker.org{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,7 +13,7 @@
         <div class="topbar__inner">
             <a class="brand" href="{{ url_for('leaderboard') }}">
                 <span class="brand__mark"></span>
-                <span class="brand__name">boker.club</span>
+                <span class="brand__name">myboker.org</span>
             </a>
             <nav class="mainnav">
                 <a class="navlink {{ 'is-active' if request.endpoint == 'leaderboard' }}" href="{{ url_for('leaderboard') }}">Leaderboard</a>

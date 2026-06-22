@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ player.player_name }} · boker.club{% endblock %}
+{% block title %}{{ player.player_name }} · myboker.org{% endblock %}
 {% block content %}
 
 <div class="hero">
@@ -52,7 +52,7 @@
         <div class="stat__val" style="color:var(--num)">{{ player.total_invested_cents | money }}</div>
     </div>
     <div class="stat">
-        <span class="kicker">Cash-outs</span>
+        <span class="kicker">Gross cashouts</span>
         <div class="stat__val" style="color:var(--num)">{{ player.total_cash_out_cents | money }}</div>
     </div>
 </div>
@@ -105,15 +105,15 @@
                 <div class="result-mix__legend">
                     <div class="result-mix__legend-row">
                         <span><i class="result-mix__key result-mix__key--win"></i>Wins</span>
-                        <strong>{{ player.winning_sessions }} · {{ "%.1f"|format((player.winning_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                        <strong><b>{{ player.winning_sessions }}</b><em>{{ "%.1f"|format((player.winning_sessions / result_total * 100) if result_total else 0) }}%</em></strong>
                     </div>
                     <div class="result-mix__legend-row">
                         <span><i class="result-mix__key result-mix__key--even"></i>Even</span>
-                        <strong>{{ player.break_even_sessions }} · {{ "%.1f"|format((player.break_even_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                        <strong><b>{{ player.break_even_sessions }}</b><em>{{ "%.1f"|format((player.break_even_sessions / result_total * 100) if result_total else 0) }}%</em></strong>
                     </div>
                     <div class="result-mix__legend-row">
                         <span><i class="result-mix__key result-mix__key--loss"></i>Losses</span>
-                        <strong>{{ player.losing_sessions }} · {{ "%.1f"|format((player.losing_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                        <strong><b>{{ player.losing_sessions }}</b><em>{{ "%.1f"|format((player.losing_sessions / result_total * 100) if result_total else 0) }}%</em></strong>
                     </div>
                 </div>
                 {% if result_total > 0 %}
@@ -150,6 +150,16 @@
                 <tr>
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Win %</td>
                     <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ "%.1f"|format(player.win_pct) }}%</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Record</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">
+                        <span style="color:var(--pos)">{{ player.winning_sessions }}W</span>
+                        <span style="color:var(--faintest);margin:0 4px;">·</span>
+                        <span style="color:var(--neg)">{{ player.losing_sessions }}L</span>
+                        <span style="color:var(--faintest);margin:0 4px;">·</span>
+                        <span>{{ player.break_even_sessions }}E</span>
+                    </td>
                 </tr>
                 <tr>
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">ROI</td>
@@ -197,7 +207,7 @@
             <div>
                 <div class="section-marker">
                     <span class="section-marker__dot section-marker__dot--rolled"></span>
-                    Poker basis
+                    Poker basis + settlement
                 </div>
                 <h2 class="panel__title">Investment and settlement</h2>
             </div>
@@ -216,38 +226,54 @@
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Rolled in</td>
                     <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--rolled);">{{ player.total_rollover_in_cents | money }}</td>
                 </tr>
+                {% if player.total_payout_carry_in_cents > 0 %}
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Payout carry-in</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--rolled);">{{ player.total_payout_carry_in_cents | money }}</td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Total invested</td>
                     <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_invested_cents | money }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Cash-outs</td>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Gross cashout result</td>
                     <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_cash_out_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Gross player claim</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_gross_payout_cents | money }}</td>
                 </tr>
                 <tr>
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Rolled out</td>
                     <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--rolled);">{{ player.total_rollover_out_cents | money }}</td>
                 </tr>
                 <tr>
-                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Paid out</td>
-                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_paid_cents | money }}</td>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Cash paid out</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_paid_out_cents | money }}</td>
                 </tr>
-                {% if player.total_front_collected_cents > 0 %}
+                {% if player.total_debt_repayment_cents > 0 %}
                 <tr>
-                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Debt repaid</td>
-                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_front_collected_cents | money }}</td>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Cash debt repaid</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_debt_repayment_cents | money }}</td>
                 </tr>
                 {% endif %}
-                {% if player.current_player_owes_cents > 0 %}
+                {% if player.current_due_to_player_cents > 0 %}
                 <tr>
-                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Still owes</td>
-                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--owes);">{{ player.current_player_owes_cents | money }}</td>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">House owes player</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--neg);">{{ player.current_due_to_player_cents | money }}</td>
                 </tr>
                 {% endif %}
-                {% if player.total_front_writeoff_cents > 0 %}
+                {% if player.current_due_to_house_cents > 0 %}
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Owes house</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--owes);">{{ player.current_due_to_house_cents | money }}</td>
+                </tr>
+                {% endif %}
+                {% if player.total_writeoff_cents > 0 %}
                 <tr>
                     <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Written off</td>
-                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--neg);">{{ player.total_front_writeoff_cents | money }}</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--neg);">{{ player.total_writeoff_cents | money }}</td>
                 </tr>
                 {% endif %}
             </tbody>

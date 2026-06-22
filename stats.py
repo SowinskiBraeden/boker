@@ -28,6 +28,18 @@ PLAYER_PALETTE = [
 BREAK_EVEN_TOLERANCE_CENTS = 100
 
 
+def session_sequence_number(session_id: str, session_date: str) -> int:
+    suffix = session_id.strip().replace(f"{session_date.strip()}-", "", 1)
+
+    if session_id.strip() == session_date.strip():
+        return 1
+    if suffix.isdigit():
+        return int(suffix)
+    if suffix.lower().startswith("s") and suffix[1:].isdigit():
+        return int(suffix[1:])
+    return 9999
+
+
 @dataclass
 class SessionEntry:
     session_id: str
@@ -40,18 +52,31 @@ class SessionEntry:
     cash_out_cents: int = 0
     paid_cents: int = 0
     rollover_in_cents: int = 0
+    payout_carry_in_cents: int = 0
     rollover_out_cents: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
     def invested_cents(self) -> int:
-        # Poker performance: everything that entered play, including house fronts
-        # and prior unpaid winnings rolled into this session.
+        # Poker performance: money/chips that entered play. This is intentionally
+        # broader than real cash because fronts and rollover-ins affect results.
         return self.buy_in_cents + self.front_cents + self.rollover_in_cents
 
     @property
     def net_cents(self) -> int:
         return self.cash_out_cents - self.invested_cents
+
+    @property
+    def paid_out_cents(self) -> int:
+        return self.paid_cents
+
+    @property
+    def debt_repayment_cents(self) -> int:
+        return self.front_collected_cents
+
+    @property
+    def writeoff_cents(self) -> int:
+        return self.front_writeoff_cents
 
     @property
     def gross_payout_cents(self) -> int:
@@ -65,32 +90,41 @@ class SessionEntry:
         return max(self.front_cents - self.cash_out_cents, 0)
 
     @property
+    def gross_due_to_house_cents(self) -> int:
+        return self.player_owes_gross_cents
+
+    @property
     def settled_to_player_cents(self) -> int:
         # Rollover-out resolves the source session's payable even though it is
         # not real cash out. The destination session records it as rollover-in.
-        return self.paid_cents + self.rollover_out_cents
+        return self.paid_out_cents + self.rollover_out_cents
 
     @property
     def current_due_to_player_cents(self) -> int:
-        return max(self.gross_payout_cents - self.settled_to_player_cents, 0)
+        return max(
+            self.gross_payout_cents
+            + self.payout_carry_in_cents
+            - self.settled_to_player_cents,
+            0,
+        )
 
     @property
     def settled_to_house_cents(self) -> int:
         # Front collections are real cash in. Writeoffs are not cash, but they
         # do resolve the receivable.
-        return self.front_collected_cents + self.front_writeoff_cents
+        return self.debt_repayment_cents + self.writeoff_cents
 
     @property
     def current_due_to_house_cents(self) -> int:
-        return max(self.player_owes_gross_cents - self.settled_to_house_cents, 0)
+        return max(self.gross_due_to_house_cents - self.settled_to_house_cents, 0)
 
     @property
     def real_cash_in_cents(self) -> int:
-        return self.buy_in_cents + self.front_collected_cents
+        return self.buy_in_cents + self.debt_repayment_cents
 
     @property
     def real_cash_out_cents(self) -> int:
-        return self.paid_cents
+        return self.paid_out_cents
 
     @property
     def payout_due_cents(self) -> int:
@@ -114,11 +148,11 @@ class SessionEntry:
 
     @property
     def raw_player_owes_cents(self) -> int:
-        return self.player_owes_gross_cents
+        return self.gross_due_to_house_cents
 
     @property
     def front_shortfall_cents(self) -> int:
-        return self.player_owes_gross_cents
+        return self.gross_due_to_house_cents
 
     @property
     def overpaid_front_cents(self) -> int:
@@ -127,29 +161,31 @@ class SessionEntry:
     @property
     def front_writeoff_applied_cents(self) -> int:
         return min(
-            self.front_writeoff_cents,
-            max(self.player_owes_gross_cents - self.front_collected_applied_cents, 0),
+            self.writeoff_cents,
+            max(self.gross_due_to_house_cents - self.front_collected_applied_cents, 0),
         )
 
     @property
     def front_collected_applied_cents(self) -> int:
-        return min(self.front_collected_cents, self.player_owes_gross_cents)
+        return min(self.debt_repayment_cents, self.gross_due_to_house_cents)
 
     @property
     def front_resolved_cents(self) -> int:
-        return min(self.settled_to_house_cents, self.player_owes_gross_cents)
+        return min(self.settled_to_house_cents, self.gross_due_to_house_cents)
 
     @property
     def payout_status(self) -> str:
         if self.current_due_to_house_cents > 0:
             return "owes"
-        if self.front_writeoff_cents > 0:
+        if self.writeoff_cents > 0:
             return "written_off"
-        if self.front_collected_cents > 0:
+        if self.debt_repayment_cents > 0:
             return "collected"
         if self.gross_payout_cents <= 0:
             return "none"
         if self.current_due_to_player_cents <= 0:
+            if self.paid_out_cents < self.gross_payout_cents:
+                return "settled"
             return "paid"
         if self.settled_to_player_cents <= 0:
             return "unpaid"
@@ -181,6 +217,10 @@ class SessionSummary:
         return sum(entry.rollover_in_cents for entry in self.entries)
 
     @property
+    def total_payout_carry_in_cents(self) -> int:
+        return sum(entry.payout_carry_in_cents for entry in self.entries)
+
+    @property
     def total_invested_cents(self) -> int:
         return sum(entry.invested_cents for entry in self.entries)
 
@@ -206,7 +246,11 @@ class SessionSummary:
 
     @property
     def total_paid_cents(self) -> int:
-        return sum(entry.paid_cents for entry in self.entries)
+        return self.total_paid_out_cents
+
+    @property
+    def total_paid_out_cents(self) -> int:
+        return sum(entry.paid_out_cents for entry in self.entries)
 
     @property
     def total_rollover_out_cents(self) -> int:
@@ -222,7 +266,11 @@ class SessionSummary:
 
     @property
     def total_player_owes_gross_cents(self) -> int:
-        return sum(entry.player_owes_gross_cents for entry in self.entries)
+        return sum(entry.gross_due_to_house_cents for entry in self.entries)
+
+    @property
+    def total_gross_due_to_house_cents(self) -> int:
+        return self.total_player_owes_gross_cents
 
     @property
     def total_settled_to_house_cents(self) -> int:
@@ -234,19 +282,39 @@ class SessionSummary:
 
     @property
     def total_front_writeoff_cents(self) -> int:
-        return sum(entry.front_writeoff_cents for entry in self.entries)
+        return self.total_writeoff_cents
 
     @property
     def total_front_collected_cents(self) -> int:
-        return sum(entry.front_collected_cents for entry in self.entries)
+        return self.total_debt_repayment_cents
+
+    @property
+    def total_debt_repayment_cents(self) -> int:
+        return sum(entry.debt_repayment_cents for entry in self.entries)
+
+    @property
+    def total_writeoff_cents(self) -> int:
+        return sum(entry.writeoff_cents for entry in self.entries)
 
     @property
     def total_cash_in_cents(self) -> int:
         return sum(entry.real_cash_in_cents for entry in self.entries)
 
     @property
-    def total_paid_out_cents(self) -> int:
-        return sum(entry.real_cash_out_cents for entry in self.entries)
+    def total_real_cash_in_cents(self) -> int:
+        return self.total_cash_in_cents
+
+    @property
+    def total_real_cash_out_cents(self) -> int:
+        return self.total_paid_out_cents
+
+    @property
+    def total_banker_cash_in_cents(self) -> int:
+        return self.total_real_cash_in_cents
+
+    @property
+    def total_banker_cash_out_cents(self) -> int:
+        return self.total_real_cash_out_cents
 
     @property
     def total_current_due_cents(self) -> int:
@@ -290,10 +358,13 @@ class PlayerStats:
     total_front_writeoff_cents: int
     current_player_owes_cents: int
     total_rollover_in_cents: int
+    total_payout_carry_in_cents: int
     total_invested_cents: int
     total_cash_out_cents: int
+    total_gross_payout_cents: int
     total_paid_cents: int
     total_rollover_out_cents: int
+    current_due_to_player_cents: int
     total_net_cents: int
     roi_pct: float
     current_win_streak: int
@@ -305,6 +376,30 @@ class PlayerStats:
     worst_session_date: str | None
     worst_session_net_cents: int
     rank_change: int = 0
+
+    @property
+    def total_debt_repayment_cents(self) -> int:
+        return self.total_front_collected_cents
+
+    @property
+    def total_writeoff_cents(self) -> int:
+        return self.total_front_writeoff_cents
+
+    @property
+    def current_due_to_house_cents(self) -> int:
+        return self.current_player_owes_cents
+
+    @property
+    def total_paid_out_cents(self) -> int:
+        return self.total_paid_cents
+
+    @property
+    def total_real_cash_out_cents(self) -> int:
+        return self.total_paid_out_cents
+
+    @property
+    def total_real_cash_in_cents(self) -> int:
+        return self.total_buy_in_cents + self.total_debt_repayment_cents
 
 
 def apply_rank_changes(
@@ -331,34 +426,38 @@ def cents_to_dollars(cents: int) -> Markup:
 def session_sort_key(session: SessionSummary) -> tuple[str, int, str, str]:
     session_id = session.session_id.strip()
     session_date = session.session_date.strip()
+    return (
+        session_date,
+        session_sequence_number(session_id, session_date),
+        session.opened_at,
+        session_id,
+    )
 
-    if session_id == session_date:
-        return (session_date, 1, session.opened_at, session_id)
 
-    suffix = session_id.replace(f"{session_date}-", "")
+def entry_sort_key(entry: SessionEntry) -> tuple[str, int, str]:
+    return (
+        entry.session_date,
+        session_sequence_number(entry.session_id, entry.session_date),
+        entry.session_id,
+    )
+
+
+def session_display_suffix(session_id: str, session_date: str) -> str:
+    suffix = session_id.strip().replace(f"{session_date.strip()}-", "", 1)
+
+    if session_id.strip() == session_date.strip():
+        return ""
     if suffix.isdigit():
-        return (session_date, int(suffix), session.opened_at, session_id)
-
+        return f"S{int(suffix)}"
     if suffix.lower().startswith("s") and suffix[1:].isdigit():
-        return (session_date, int(suffix[1:]), session.opened_at, session_id)
-
-    return (session_date, 9999, session.opened_at, session_id)
+        return f"S{int(suffix[1:])}"
+    return suffix
 
 
 def session_chart_label(session: SessionSummary) -> str:
-    session_id = session.session_id.strip()
-
-    if session_id == session.session_date:
-        return safe_date_label(session.session_date)
-
-    suffix = session_id.replace(f"{session.session_date}-", "")
-    if suffix.isdigit():
-        return f"{safe_date_label(session.session_date)} · S{int(suffix)}"
-
-    if suffix.lower().startswith("s") and suffix[1:].isdigit():
-        return f"{safe_date_label(session.session_date)} · S{int(suffix[1:])}"
-
-    return f"{safe_date_label(session.session_date)} · {suffix}"
+    suffix = session_display_suffix(session.session_id, session.session_date)
+    date_label = safe_date_label(session.session_date)
+    return f"{date_label} · {suffix}" if suffix else date_label
 
 
 def safe_date_label(raw_date: str) -> str:
@@ -369,13 +468,7 @@ def safe_date_label(raw_date: str) -> str:
 
 
 def session_label(session: SessionSummary) -> str:
-    if session.session_id == session.session_date:
-        return safe_date_label(session.session_date)
-
-    suffix = session.session_id.replace(f"{session.session_date}-", "")
-    if suffix.isdigit():
-        return f"{safe_date_label(session.session_date)} · S{int(suffix)}"
-    return f"{safe_date_label(session.session_date)} · {suffix}"
+    return session_chart_label(session)
 
 
 def color_for_name(name: str, names: list[str]) -> str:
@@ -450,13 +543,21 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
             entry.front_cents += event["amount_cents"]
         elif event_type == "front_collected":
             entry.front_collected_cents += event["amount_cents"]
+        elif event_type == "debt_repayment":
+            entry.front_collected_cents += event["amount_cents"]
         elif event_type == "front_writeoff":
+            entry.front_writeoff_cents += event["amount_cents"]
+        elif event_type == "writeoff":
             entry.front_writeoff_cents += event["amount_cents"]
         elif event_type == "rollover_in":
             entry.rollover_in_cents += event["amount_cents"]
+        elif event_type == "payout_carry_in":
+            entry.payout_carry_in_cents += event["amount_cents"]
         elif event_type == "cashout":
             entry.cash_out_cents += event["amount_cents"]
         elif event_type == "paid":
+            entry.paid_cents += event["amount_cents"]
+        elif event_type == "paid_out":
             entry.paid_cents += event["amount_cents"]
         elif event_type == "rollover_out":
             entry.rollover_out_cents += event["amount_cents"]
@@ -484,19 +585,12 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
             )
         )
 
-    sessions.sort(
-        key=lambda session: (
-            session.session_date,
-            session.opened_at,
-            session.session_id,
-        ),
-        reverse=True,
-    )
+    sessions.sort(key=session_sort_key, reverse=True)
     return sessions
 
 
 def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | None]:
-    ordered_entries = sorted(entries, key=lambda entry: entry.session_date)
+    ordered_entries = sorted(entries, key=entry_sort_key)
 
     longest_win_streak = 0
     longest_loss_streak = 0
@@ -585,14 +679,17 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
 
         total_buy_in = sum(entry.buy_in_cents for entry in entries)
         total_front = sum(entry.front_cents for entry in entries)
-        total_front_collected = sum(entry.front_collected_cents for entry in entries)
-        total_front_writeoff = sum(entry.front_writeoff_cents for entry in entries)
+        total_front_collected = sum(entry.debt_repayment_cents for entry in entries)
+        total_front_writeoff = sum(entry.writeoff_cents for entry in entries)
         current_player_owes = sum(entry.player_owes_cents for entry in entries)
         total_rollover_in = sum(entry.rollover_in_cents for entry in entries)
+        total_payout_carry_in = sum(entry.payout_carry_in_cents for entry in entries)
         total_invested = sum(entry.invested_cents for entry in entries)
         total_cash_out = sum(entry.cash_out_cents for entry in entries)
-        total_paid = sum(entry.paid_cents for entry in entries)
+        total_gross_payout = sum(entry.gross_payout_cents for entry in entries)
+        total_paid = sum(entry.paid_out_cents for entry in entries)
         total_rollover_out = sum(entry.rollover_out_cents for entry in entries)
+        current_due_to_player = sum(entry.current_due_to_player_cents for entry in entries)
         total_net = sum(entry.net_cents for entry in entries)
         roi_pct = (total_net / total_invested * 100) if total_invested else 0.0
 
@@ -614,10 +711,13 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
                 total_front_writeoff_cents=total_front_writeoff,
                 current_player_owes_cents=current_player_owes,
                 total_rollover_in_cents=total_rollover_in,
+                total_payout_carry_in_cents=total_payout_carry_in,
                 total_invested_cents=total_invested,
                 total_cash_out_cents=total_cash_out,
+                total_gross_payout_cents=total_gross_payout,
                 total_paid_cents=total_paid,
                 total_rollover_out_cents=total_rollover_out,
+                current_due_to_player_cents=current_due_to_player,
                 total_net_cents=total_net,
                 roi_pct=roi_pct,
                 current_win_streak=run_summary["current_win_streak"],
