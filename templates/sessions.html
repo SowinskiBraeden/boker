@@ -29,9 +29,9 @@
             </thead>
             <tbody>
                 {% for s in sessions %}
-                <tr onclick="window.location='{{ url_for('session_detail', session_id=s.session_id) }}'">
+                <tr onclick="window.location='{{ url_for('public.session_detail', session_id=s.session_id) }}'">
                     <td class="col-left">
-                        <a href="{{ url_for('session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a>
+                        <a href="{{ url_for('public.session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a>
                     </td>
                     <td><span class="badge badge--{{ s.status }}">{{ s.status }}</span></td>
                     <td>{{ s.entries|length }}</td>
