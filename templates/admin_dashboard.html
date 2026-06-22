@@ -1,342 +1,328 @@
 {% extends "base.html" %}
-{% block title %}Admin - Poker Portal{% endblock %}
+{% block title %}Admin · boker.club{% endblock %}
+{% block page_class %}page--admin{% endblock %}
 {% block content %}
-<section class="hero-card compact">
-    <div>
-        <p class="eyebrow">Admin</p>
-        <h1>Ledger controls</h1>
-        <p class="muted-text">Append new buy-ins, cash-outs, corrections, and note-only events to the audit trail.</p>
+
+<div class="hero" style="padding-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <p class="hero__kicker" style="margin:0;">Admin</p>
+        {% if open_sessions %}
+        <span class="live-badge">{{ open_sessions|length }} session{{ 's' if open_sessions|length != 1 else '' }} live</span>
+        {% endif %}
     </div>
-</section>
+    <h1 class="hero__title">Ledger controls</h1>
+    <p class="hero__sub">Append events to the audit trail. All history is permanent.</p>
+</div>
 
-<section class="grid two-col admin-layout">
-    <form class="panel form-card" method="post">
-        <p class="eyebrow">New event</p>
-        <h2>Add to the ledger</h2>
+<!-- Banker cash/book position. Cash tiles are real money only; rollovers only
+     affect receivables/payables through the session settlement formulas. -->
+<div class="cash-strip">
+    <div class="stat stat--rail" style="--rail:var(--accent);">
+        <span class="kicker">Cash in</span>
+        <div class="stat__val" style="color:var(--num)">{{ admin_totals.cash_in_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--pos);">
+        <span class="kicker">Cash out</span>
+        <div class="stat__val" style="color:var(--pos)">{{ admin_totals.cash_out_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--neg);">
+        <span class="kicker">House owes players</span>
+        <div class="stat__val {{ 'num-neg' if admin_totals.house_owes_players_cents > 0 else '' }}">{{ admin_totals.house_owes_players_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--owes);">
+        <span class="kicker">Players owe house</span>
+        <div class="stat__val {{ 'num-neg' if admin_totals.players_owe_house_cents > 0 else '' }}">{{ admin_totals.players_owe_house_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:{{ 'var(--pos)' if admin_totals.net_book_position_cents == 0 else 'var(--warn)' }};">
+        <span class="kicker">Net book position</span>
+        <div class="stat__val {% if admin_totals.net_book_position_cents == 0 %}num-muted{% elif admin_totals.net_book_position_cents > 0 %}num-pos{% else %}num-neg{% endif %}">
+            {{ admin_totals.net_book_position_cents | money }}
+        </div>
+        <div class="stat__sub">cash in - cash out + receivables - payables</div>
+    </div>
+</div>
 
-        <label>
-            <span>Open session</span>
-            <select name="session_id" required>
-                <option value="">Select session</option>
-                {% for session in open_sessions %}
-                <option value="{{ session.session_id }}">
-                    {{ session_label(session) }}
-                </option>
-                {% endfor %}
-            </select>
-        </label>
+<!-- Two-column workspace -->
+<div class="admin-workspace">
 
-        <label>
-            <span>Player name</span>
-            <input list="player_names" type="text" name="player_name" placeholder="Peter Venkman" required>
-            <datalist id="player_names">
-                {% for player_name in player_names %}
-                    <option value="{{ player_name }}"></option>
-                {% endfor %}
-            </datalist>
-        </label>
+    <!-- LEFT: append form + recent sessions -->
+    <div class="col-main">
 
-        <label>
-            <span>Event type</span>
-            <select name="event_type" required>
-                <option value="buyin">Buy-in</option>
-                <option value="front">Front</option>
-                <option value="rollover_in">Rollover in</option>
-                <option value="cashout">Cash-out</option>
-                <option value="paid">Paid out</option>
-                <option value="rollover_out">Rollover out</option>
-                <option value="note">Note only</option>
-            </select>
-        </label>
-
-        <label>
-            <span>Amount</span>
-            <input type="number" step="0.01" name="amount" placeholder="5.00">
-        </label>
-
-        <label>
-            <span>Note</span>
-            <textarea name="note" rows="4" placeholder="Rebuy, fronted chips, correction, partial payout, e-transfer sent, cash paid, etc."></textarea>
-        </label>
-
-        <button class="primary-button" type="submit">Add event</button>
-    </form>
-
-    <section class="grid">
-        <form class="panel form-card" method="post" action="{{ url_for('admin_open_session') }}">
-            <p class="eyebrow">Session state</p>
-            <h2>Open a new session</h2>
-
-            <label>
-                <span>Session date</span>
-                <input type="date" name="session_date" required>
-            </label>
-
-            <div class="button-row">
-                <button class="primary-button" type="submit">Open session</button>
+        <form class="panel append" method="post" action="{{ url_for('admin_dashboard') }}">
+            <div class="panel__head">
+                <h2 class="panel__title">Append ledger event</h2>
+                <span class="panel__tag">fast entry</span>
+            </div>
+            <div class="append__body">
+                <div class="append__grid">
+                    <label class="field">
+                        <span class="field__label">Session</span>
+                        <select class="control" name="session_id" required>
+                            <option value="">Select session</option>
+                            {% for s in open_sessions %}
+                            <option value="{{ s.session_id }}" {{ 'selected' if append_form.session_id == s.session_id else '' }}>
+                                {{ session_label(s) }}{{ ' (live)' if s.status == 'open' else '' }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span class="field__label">Player</span>
+                        <input class="control" list="player_names_list" type="text" name="player_name" placeholder="Player name" value="{{ append_form.player_name }}" required>
+                        <datalist id="player_names_list">
+                            {% for name in player_names %}<option value="{{ name }}"></option>{% endfor %}
+                        </datalist>
+                    </label>
+                    <label class="field">
+                        <span class="field__label">Event type</span>
+                        <select class="control" name="event_type" required id="eventTypeSelect">
+                            {% for value, label, color in event_types %}
+                            <option value="{{ value }}" data-color="{{ color }}" data-label="{{ label }}" {{ 'selected' if append_form.event_type == value else '' }}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span class="field__label">Amount</span>
+                        <span class="control control--money">
+                            <span class="control__prefix">$</span>
+                            <input name="amount" inputmode="decimal" placeholder="0" autofocus>
+                        </span>
+                    </label>
+                </div>
+                <label class="field append__note">
+                    <span class="field__label">Note <span class="field__opt">(optional)</span></span>
+                    <input class="control" name="note" placeholder="e.g. fronted buy-in, settle next week">
+                </label>
+                <div class="append__footer">
+                    <button type="submit" class="btn btn--primary">Append event</button>
+                    <span class="append__preview">Will record as
+                        <span class="evtag-pill" id="eventTypePreview" style="color:{{ event_type_colors[append_form.event_type] }}">{{ event_type_labels[append_form.event_type] | upper }}</span>
+                    </span>
+                </div>
             </div>
         </form>
 
-        <section class="panel form-card">
-            <div class="panel-header">
-                <div>
-                    <p class="eyebrow">Tools</p>
-                    <h2>Audit CSV</h2>
-                </div>
-            </div>
+    </div><!-- /.col-main -->
 
-            <div class="admin-tools-grid">
-                <div class="helper-box">
-                    <p class="muted-text">
-                        Export the current audit trail or import a replacement CSV. Import creates a timestamped backup first.
-                    </p>
-                    <div class="button-row">
-                        <a class="primary-button" href="{{ url_for('admin_export_csv') }}">Export CSV</a>
-                    </div>
-                </div>
+    <!-- RIGHT: session controls + CSV + raw events feed -->
+    <div class="col-side">
 
-                <form method="post" action="{{ url_for('admin_import_csv') }}" enctype="multipart/form-data" class="helper-box import-form">
-                    <label for="csv_file">
-                        <span>Import replacement CSV</span>
-                    </label>
-                    <input id="csv_file" name="csv_file" type="file" accept=".csv,text/csv" required>
-                    <div class="button-row">
-                        <button
-                            class="secondary-button"
-                            type="submit"
-                            onclick="return confirm('Replace the current audit CSV? A backup will be created first.');"
-                        >
-                            Import CSV
-                        </button>
-                    </div>
+        <div class="panel panel--pad">
+            <h2 class="panel__title panel__title--mb">Session controls</h2>
+
+            {% if live_session %}
+            <div class="livecard">
+                <div class="livecard__head">
+                    <span class="dot dot--live"></span>
+                    <span class="livecard__name">{{ session_label(live_session) }}</span>
+                    <span class="livecard__no">{{ live_session_no }}</span>
+                </div>
+                <div class="livecard__metrics">
+                    <div><div class="micro">In play</div><div class="mono16">{{ live_session.total_invested_cents | money }}</div></div>
+                    <div><div class="micro">Seated</div><div class="mono16">{{ live_session.entries|length }}</div></div>
+                    <div><div class="micro">Open</div><div class="mono16 mono16--warn">{{ live_unresolved_count }}</div></div>
+                </div>
+                <form method="post" action="{{ url_for('admin_session_state') }}">
+                    <input type="hidden" name="session_id" value="{{ live_session.session_id }}">
+                    <button class="btn-close" type="submit" name="state" value="closed">Close &amp; settle session</button>
                 </form>
             </div>
-        </section>
+            {% endif %}
 
-    </section>
-</section>
+            <form method="post" action="{{ url_for('admin_open_session') }}">
+                <input type="hidden" name="session_date" value="{{ admin_today }}">
+                <button class="btn-newsession {{ 'btn-newsession--primary' if not live_session else '' }}" type="submit">+ Open new session</button>
+            </form>
+        </div>
 
-<section class="panel debt-panel">
-    <div class="panel-header">
+        <div class="panel panel--pad">
+            <h2 class="panel__title" style="margin:0 0 4px">Import / export</h2>
+            <p class="csv__desc">Back up or migrate the raw event ledger.</p>
+            <form method="post" action="{{ url_for('admin_import_csv') }}" enctype="multipart/form-data" class="import-form">
+                <div class="csv__btns">
+                    <a class="csv-btn-ghost" href="{{ url_for('admin_export_csv') }}">&darr; Export CSV</a>
+                    <label class="csv-btn-ghost" for="csvTopImport">&uarr; Import CSV</label>
+                </div>
+                <input id="csvTopImport" type="file" accept=".csv,text/csv" name="csv_file" hidden onchange="this.form.submit()">
+                <label class="csv__drop" id="csvDrop" for="csvTopImport">Drop ledger.csv to import</label>
+            </form>
+        </div>
+
+    </div><!-- /.col-side -->
+
+</div><!-- /.admin-workspace -->
+
+<div class="admin-bottom-grid">
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">Recent sessions</span>
+                <h2 class="panel__title">Current totals</h2>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th>Players</th>
+                        <th>Cash in</th>
+                        <th>Cash out</th>
+                        <th>House owes</th>
+                        <th>Players owe house</th>
+                        <th>Book position</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in recent_sessions %}
+                    <tr>
+                        <td><a href="{{ url_for('session_detail', session_id=s.session_id) }}">{{ session_label(s) }}</a></td>
+                        <td style="font-family:var(--font-mono);color:var(--num)">{{ s.entries|length }}</td>
+                        <td style="font-family:var(--font-mono);color:var(--num)">{{ s.total_cash_in_cents | money }}</td>
+                        <td style="font-family:var(--font-mono);color:var(--pos)">{{ s.total_paid_out_cents | money }}</td>
+                        <td class="{{ 'negative' if s.total_current_due_to_player_cents > 0 else '' }}" style="font-family:var(--font-mono)">{{ s.total_current_due_to_player_cents | money }}</td>
+                        <td class="{{ 'negative' if s.total_current_due_to_house_cents > 0 else '' }}" style="font-family:var(--font-mono)">{{ s.total_current_due_to_house_cents | money }}</td>
+                        <td class="{% if s.total_net_book_position_cents > 0 %}positive{% elif s.total_net_book_position_cents < 0 %}negative{% endif %}" style="font-family:var(--font-mono)">{{ s.total_net_book_position_cents | money }}</td>
+                        <td><span class="status-badge status-{{ s.status }}">{{ s.status }}</span></td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
+                                <input type="hidden" name="session_id" value="{{ s.session_id }}">
+                                {% if s.status == "open" %}
+                                <button class="table-action-button" type="submit" name="state" value="closed">Close</button>
+                                {% else %}
+                                <button class="table-action-button" type="submit" name="state" value="open">Reopen</button>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9">No sessions yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">Recent events</span>
+                <h2 class="panel__title">Ledger feed</h2>
+            </div>
+            <span class="badge badge--closed" style="font-size:9.5px;">append-only</span>
+        </div>
+        <div class="event-feed feed feed--inline">
+            {% for event in recent_events %}
+            <div class="event-card event-card--inline">
+                <div class="event-card-top">
+                    <strong>{{ event.player_name or "Session" }}</strong>
+                    <span class="pill pill-{{ event.event_type }}">{{ event.event_type | replace('_', ' ') }}</span>
+                    {% if event.note %}<span class="event-note">{{ event.note }}</span>{% endif %}
+                </div>
+                <p class="event-amount">{{ event.amount_cents | money }}</p>
+                <p class="tiny-text">{{ event.session_date | pretty_date }}</p>
+            </div>
+            {% else %}
+            <p class="muted-text" style="padding:20px;">No recent events.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+const eventTypeSelect = document.getElementById('eventTypeSelect');
+const eventTypePreview = document.getElementById('eventTypePreview');
+eventTypeSelect?.addEventListener('change', () => {
+    const option = eventTypeSelect.selectedOptions[0];
+    if (!option || !eventTypePreview) return;
+    eventTypePreview.style.color = option.dataset.color || 'var(--muted)';
+    eventTypePreview.textContent = (option.dataset.label || option.value).toUpperCase();
+});
+
+const csvDrop = document.getElementById('csvDrop');
+const csvInput = document.getElementById('csvTopImport');
+csvDrop?.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    csvDrop.classList.add('is-drag');
+});
+csvDrop?.addEventListener('dragleave', () => csvDrop.classList.remove('is-drag'));
+csvDrop?.addEventListener('drop', (event) => {
+    event.preventDefault();
+    csvDrop.classList.remove('is-drag');
+    if (!csvInput || !event.dataTransfer?.files?.length) return;
+    csvInput.files = event.dataTransfer.files;
+    csvInput.form?.submit();
+});
+</script>
+
+<!-- Front debt resolution -->
+{% if debt_entries %}
+<div class="panel debt-panel" style="margin-top:20px;">
+    <div class="panel__head">
         <div>
-            <p class="eyebrow">Front debt</p>
-            <h2>Debt resolution</h2>
+            <span class="kicker" style="margin:0;">Front receivables</span>
+            <h2 class="panel__title">Debt resolution</h2>
         </div>
         <div class="debt-summary">
-            <span>Open {{ admin_totals.players_owe_cents | money }}</span>
-            <span>Collected {{ admin_totals.collected_cents | money }}</span>
-            <span>Written off {{ admin_totals.written_off_cents | money }}</span>
+            <span class="badge badge--owes">Open {{ admin_totals.players_owe_house_cents | money }}</span>
+            <span class="badge badge--paid">Repaid {{ admin_totals.collected_cents | money }}</span>
+            <span class="badge badge--written_off">Written off {{ admin_totals.written_off_cents | money }}</span>
         </div>
     </div>
-
-    {% if debt_entries %}
-    <div class="debt-action-grid">
-        <form class="form-card compact-form" method="post" action="{{ url_for('admin_collect_front') }}">
+    <div class="debt-action-grid" style="padding:20px;">
+        <form class="form-card" style="padding:0;background:transparent;" method="post" action="{{ url_for('admin_collect_front') }}">
             <h3>Collect debt</h3>
-
             <label>
                 <span>Outstanding debt</span>
                 <select name="debt_key" required>
                     <option value="">Select debt</option>
                     {% for item in debt_entries %}
-                        {% set session = item.session %}
-                        {% set entry = item.entry %}
-                        <option value="{{ session.session_id }}||{{ entry.player_name }}">
-                            {{ entry.player_name }} · {{ session_label(session) }} · owes {{ entry.player_owes_cents | money }}
-                        </option>
+                    {% set s = item.session %}{% set e = item.entry %}
+                    <option value="{{ s.session_id }}||{{ e.player_name }}">
+                        {{ e.player_name }} · {{ session_label(s) }} · owes {{ e.player_owes_cents | money }}
+                    </option>
                     {% endfor %}
                 </select>
             </label>
-
             <label>
                 <span>Amount collected</span>
-                <input type="number" step="0.01" name="amount" placeholder="5.00" required>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required>
             </label>
-
             <label>
                 <span>Note</span>
-                <textarea name="note" rows="3" placeholder="E-transfer received, cash collected, etc."></textarea>
+                <textarea name="note" rows="2" placeholder="E-transfer received, cash, etc."></textarea>
             </label>
-
-            <div class="button-row">
-                <button class="primary-button" type="submit">Mark collected</button>
-            </div>
+            <button class="primary-button" type="submit">Mark collected</button>
         </form>
 
-        <form class="form-card compact-form" method="post" action="{{ url_for('admin_write_off_front') }}">
+        <form class="form-card" style="padding:0;background:transparent;" method="post" action="{{ url_for('admin_write_off_front') }}">
             <h3>Write off debt</h3>
-
             <label>
                 <span>Outstanding debt</span>
                 <select name="debt_key" required>
                     <option value="">Select debt</option>
                     {% for item in debt_entries %}
-                        {% set session = item.session %}
-                        {% set entry = item.entry %}
-                        <option value="{{ session.session_id }}||{{ entry.player_name }}">
-                            {{ entry.player_name }} · {{ session_label(session) }} · owes {{ entry.player_owes_cents | money }}
-                        </option>
+                    {% set s = item.session %}{% set e = item.entry %}
+                    <option value="{{ s.session_id }}||{{ e.player_name }}">
+                        {{ e.player_name }} · {{ session_label(s) }} · owes {{ e.player_owes_cents | money }}
+                    </option>
                     {% endfor %}
                 </select>
             </label>
-
             <label>
                 <span>Amount to write off</span>
-                <input type="number" step="0.01" name="amount" placeholder="5.00" required>
+                <input type="number" step="0.01" name="amount" placeholder="0.00" required>
             </label>
-
             <label>
                 <span>Note</span>
-                <textarea name="note" rows="3" placeholder="Won't be collected."></textarea>
+                <textarea name="note" rows="2" placeholder="Won't be collected."></textarea>
             </label>
-
-            <div class="button-row">
-                <button class="secondary-button" type="submit">Write off front</button>
-            </div>
+            <button class="secondary-button" type="submit">Write off front</button>
         </form>
     </div>
-    {% else %}
-    <p class="muted-text">No outstanding front debt.</p>
-    {% endif %}
-</section>
+</div>
+{% endif %}
 
-<section class="grid admin-cash-grid">
-    <article class="panel stat-card">
-        <span>Cash in</span>
-        <strong>{{ admin_totals.cash_in_cents | money }}</strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Paid out</span>
-        <strong>{{ admin_totals.paid_out_cents | money }}</strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Still owed</span>
-        <strong class="{{ 'negative' if admin_totals.still_owed_cents > 0 else 'positive' }}">
-            {{ admin_totals.still_owed_cents | money }}
-        </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Players owe</span>
-        <strong class="{{ 'negative' if admin_totals.players_owe_cents > 0 else '' }}">
-            {{ admin_totals.players_owe_cents | money }}
-        </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Written off</span>
-        <strong class="{{ 'negative' if admin_totals.written_off_cents > 0 else '' }}">
-            {{ admin_totals.written_off_cents | money }}
-        </strong>
-    </article>
-
-    <article class="panel stat-card">
-        <span>Open balance</span>
-        <strong class="{% if admin_totals.open_balance_cents > 0 %}negative{% elif admin_totals.open_balance_cents < 0 %}positive{% endif %}">
-            {{ admin_totals.open_balance_cents | money }}
-        </strong>
-    </article>
-</section>
-
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <p class="eyebrow">Recent sessions</p>
-            <h2>Current totals</h2>
-        </div>
-    </div>
-    <div class="table-wrap small-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Session</th>
-                    <th>Players</th>
-                    <th>Cash in</th>
-                    <th>Paid out</th>
-                    <th>Still owed</th>
-                    <th>Players owe</th>
-                    <th>Collected</th>
-                    <th>Written off</th>
-                    <th>Open balance</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for session in recent_sessions %}
-                <tr>
-                    <td>
-                        <a href="{{ url_for('session_detail', session_id=session.session_id) }}">
-                            {{ session_label(session) }}
-                        </a>
-                    </td>
-                    <td>{{ session.entries|length }}</td>
-                    <td>{{ session.total_cash_in_cents | money }}</td>
-                    <td>{{ session.total_paid_out_cents | money }}</td>
-                    <td class="{{ 'negative' if session.total_current_due_cents > 0 else 'positive' }}">
-                        {{ session.total_current_due_cents | money }}
-                    </td>
-                    <td class="{{ 'negative' if session.total_player_owes_cents > 0 else '' }}">
-                        {{ session.total_player_owes_cents | money }}
-                    </td>
-                    <td class="{{ 'positive' if session.total_front_collected_cents > 0 else '' }}">
-                        {{ session.total_front_collected_cents | money }}
-                    </td>
-                    <td class="{{ 'negative' if session.total_front_writeoff_cents > 0 else '' }}">
-                        {{ session.total_front_writeoff_cents | money }}
-                    </td>
-                    <td class="{% if session.total_open_balance_cents > 0 %}negative{% elif session.total_open_balance_cents < 0 %}positive{% endif %}">
-                        {{ session.total_open_balance_cents | money }}
-                    </td>
-                    <td>
-                        <span class="status-badge status-{{ session.status }}">
-                            {{ session.status }}
-                        </span>
-                    </td>
-                    <td>
-                        <form method="post" action="{{ url_for('admin_session_state') }}" class="inline-action-form">
-                            <input type="hidden" name="session_id" value="{{ session.session_id }}">
-                            {% if session.status == "open" %}
-                                <button class="table-action-button" type="submit" name="state" value="closed">Close</button>
-                            {% else %}
-                                <button class="table-action-button" type="submit" name="state" value="open">Reopen</button>
-                            {% endif %}
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="11">No sessions yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <p class="eyebrow">Recent raw events</p>
-            <h2>Ledger feed</h2>
-        </div>
-    </div>
-    <div class="event-feed condensed">
-        {% for event in recent_events %}
-        <article class="event-card">
-            <div class="event-card-top">
-                <strong>{{ event.player_name }}</strong>
-                <span class="pill pill-{{ event.event_type }}">{{ event.event_type }}</span>
-            </div>
-            <p class="event-amount">{{ event.amount_cents | money }}</p>
-            <p class="muted-text small">{{ event.session_date | pretty_date }}</p>
-            {% if event.note %}<p class="muted-text small">{{ event.note }}</p>{% endif %}
-        </article>
-        {% else %}
-        <p class="muted-text">No recent events.</p>
-        {% endfor %}
-    </div>
-</section>
 {% endblock %}

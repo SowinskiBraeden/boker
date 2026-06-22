@@ -1,23 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Admin Login · Poker Portal{% endblock %}
+{% block title %}Admin Login · boker.club{% endblock %}
 {% block content %}
-<section class="form-shell narrow">
-    <form class="panel form-card" method="post">
-        <p class="eyebrow">Restricted access</p>
-        <h1>Admin login</h1>
-        <p class="muted-text">Only the ledger manager needs credentials. All stats pages stay public.</p>
 
+<div class="form-shell narrow">
+    <form class="panel form-card" method="post">
+        <div>
+            <p class="eyebrow">Restricted access</p>
+            <h1 style="font-size:28px;margin-bottom:8px;">Admin login</h1>
+            <p class="muted-text" style="margin-bottom:8px;">Only boker.club manager needs credentials. All stats pages stay public.</p>
+        </div>
         <label>
             <span>Username</span>
-            <input type="text" name="username" required>
+            <input type="text" name="username" autocomplete="username" required>
         </label>
-
         <label>
             <span>Password</span>
-            <input type="password" name="password" required>
+            <input type="password" name="password" autocomplete="current-password" required>
         </label>
-
         <button class="primary-button" type="submit">Login</button>
     </form>
-</section>
+</div>
+
 {% endblock %}

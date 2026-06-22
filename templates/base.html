@@ -3,47 +3,50 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Poker Portal{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>{% block title %}boker.club{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="site-shell">
-        <header class="topbar">
-            <div>
-                <a class="brand" href="{{ url_for('leaderboard') }}">Poker Portal</a>
-                <p class="brand-subtitle">Low-stakes hold'em ledger and session tracker</p>
-            </div>
-            <nav class="nav-links">
-                <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
-                <a href="{{ url_for('sessions') }}">Sessions</a>
+    <header class="topbar">
+        <div class="topbar__inner">
+            <a class="brand" href="{{ url_for('leaderboard') }}">
+                <span class="brand__mark"></span>
+                <span class="brand__name">boker.club</span>
+            </a>
+            <nav class="mainnav">
+                <a class="navlink {{ 'is-active' if request.endpoint == 'leaderboard' }}" href="{{ url_for('leaderboard') }}">Leaderboard</a>
+                <a class="navlink {{ 'is-active' if request.endpoint in ('sessions', 'session_detail') }}" href="{{ url_for('sessions') }}">Sessions</a>
                 {% if is_admin %}
-                    <a href="{{ url_for('admin_dashboard') }}">Admin</a>
-                    <form method="post" action="{{ url_for('admin_logout') }}">
-                        <button class="ghost-button" type="submit">Logout</button>
-                    </form>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">Admin</a>
                 {% else %}
-                    <a href="{{ url_for('admin_login') }}">Admin Login</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'admin_login' }}" href="{{ url_for('admin_login') }}">Admin</a>
                 {% endif %}
             </nav>
-        </header>
+            <span class="topbar__spacer"></span>
+            {% if is_admin %}
+                <div class="topbar__admin-actions">
+                    <form method="post" action="{{ url_for('admin_logout') }}" style="margin:0">
+                        <button class="btn btn--ghost btn--sm" type="submit">Logout</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </header>
 
+    <main class="page {% block page_class %}page--public{% endblock %}">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <section class="flash-stack">
+                <div class="flash-stack">
                     {% for category, message in messages %}
                         <div class="flash {{ category }}">{{ message }}</div>
                     {% endfor %}
-                </section>
+                </div>
             {% endif %}
         {% endwith %}
 
-        <main class="page-content">
-            {% block content %}{% endblock %}
-        </main>
-    </div>
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>

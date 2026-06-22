@@ -1,231 +1,318 @@
 {% extends "base.html" %}
-{% block title %}{{ player.player_name }} · Poker Portal{% endblock %}
+{% block title %}{{ player.player_name }} · boker.club{% endblock %}
 {% block content %}
-<section class="hero-card compact">
+
+<div class="hero">
     <div>
-        <p class="eyebrow">Player profile</p>
-        <h1>{{ player.player_name }}</h1>
-        <p class="muted-text">A quick read on lifetime performance, hit rate, and session-by-session movement.</p>
+        {% if player_rank %}
+        <p class="player-rank">Rank #{{ player_rank }}</p>
+        {% endif %}
+        <h1 class="hero__title">{{ player.player_name }}</h1>
+        <p class="hero__sub">{{ player.sessions_played }} session{{ 's' if player.sessions_played != 1 else '' }} · {{ "%.1f"|format(player.win_pct) }}% win rate</p>
     </div>
-</section>
+</div>
 
-<section class="grid three-col profile-summary-grid">
-    <article class="panel stat-card"><span>Total Net</span><strong class="{{ 'positive' if player.total_net_cents > 0 else 'negative' if player.total_net_cents < 0 else 'neutral' }}">{{ player.total_net_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Total invested</span><strong>{{ player.total_invested_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Cash-outs</span><strong>{{ player.total_cash_out_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Current debt</span><strong class="{{ 'negative' if player.current_player_owes_cents > 0 else '' }}">{{ player.current_player_owes_cents | money }}</strong></article>
-    <article class="panel stat-card"><span>Win %</span><strong>{{ "%.1f"|format(player.win_pct) }}%</strong></article>
-    <article class="panel stat-card"><span>Sessions</span><strong>{{ player.sessions_played }}</strong></article>
-</section>
-
-<section class="grid one-col">
-    <div class="panel chart-panel">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Trend</p>
-                <h2>Cumulative profit</h2>
-            </div>
+<div class="player-stat-grid" style="margin-bottom:20px;">
+    <div class="stat">
+        <span class="kicker">Total net</span>
+        <div class="stat__val {{ 'num-pos' if player.total_net_cents > 0 else 'num-neg' if player.total_net_cents < 0 else 'num-muted' }}">
+            {{ '+' if player.total_net_cents > 0 else '' }}{{ player.total_net_cents | money }}
         </div>
-        <div class="chart-frame">
+    </div>
+    <div class="stat">
+        <span class="kicker">Win rate</span>
+        <div class="stat__val" style="color:var(--text-strong)">{{ "%.1f"|format(player.win_pct) }}%</div>
+        <div class="stat__sub">{{ player.winning_sessions }}W · {{ player.losing_sessions }}L · {{ player.break_even_sessions }}E</div>
+    </div>
+    <div class="stat">
+        <span class="kicker">ROI</span>
+        <div class="stat__val {{ 'num-pos' if player.roi_pct > 0 else 'num-neg' if player.roi_pct < 0 else 'num-muted' }}">{{ "%.1f"|format(player.roi_pct) }}%</div>
+    </div>
+    <div class="stat">
+        <span class="kicker">Sessions</span>
+        <div class="stat__val" style="color:var(--text-strong)">{{ player.sessions_played }}</div>
+    </div>
+    <div class="stat">
+        <span class="kicker">Current W/L</span>
+        <div class="stat-pair">
+            <span class="stat-pair__val" style="color:var(--pos)">{{ player.current_win_streak }}W</span>
+            <span class="stat-pair__val" style="color:var(--neg)">{{ player.current_loss_streak }}L</span>
+        </div>
+        <div class="stat__sub">Longest {{ player.longest_win_streak }}W · {{ player.longest_loss_streak }}L</div>
+    </div>
+    <div class="stat">
+        <span class="kicker">Best / worst</span>
+        <div class="stat-pair">
+            <span class="stat-pair__val" style="color:var(--pos)">{{ player.biggest_win_cents | money }}</span>
+            <span class="stat-pair__val" style="color:var(--neg)">{{ player.biggest_loss_cents | money }}</span>
+        </div>
+    </div>
+    <div class="stat">
+        <span class="kicker">Total invested</span>
+        <div class="stat__val" style="color:var(--num)">{{ player.total_invested_cents | money }}</div>
+    </div>
+    <div class="stat">
+        <span class="kicker">Cash-outs</span>
+        <div class="stat__val" style="color:var(--num)">{{ player.total_cash_out_cents | money }}</div>
+    </div>
+</div>
+
+<!-- Cumulative profit chart -->
+<div class="panel" style="margin-bottom:20px;">
+    <div class="panel__head">
+        <span class="kicker" style="margin:0;">Trend</span>
+        <h2 class="panel__title">Cumulative profit</h2>
+    </div>
+    <div class="chart-wrap">
+        <div class="chart-frame chart-frame--tall">
             <canvas id="playerCumulativeChart"></canvas>
         </div>
     </div>
-</section>
+</div>
 
-<section class="grid two-col">
-    <div class="panel chart-panel">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Volatility</p>
-                <h2>Session results</h2>
+<!-- Charts row: session results + result mix -->
+<div class="split" style="margin-bottom:20px;">
+    <div class="panel col-main">
+        <div class="panel__head">
+            <span class="kicker" style="margin:0;">Session by session</span>
+            <h2 class="panel__title">Results</h2>
+        </div>
+        <div class="chart-wrap">
+            <div class="chart-frame">
+                <canvas id="playerSessionChart"></canvas>
             </div>
         </div>
-        <div class="chart-frame">
-            <canvas id="playerSessionChart"></canvas>
-        </div>
     </div>
-    <div class="panel chart-panel">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Breakdown</p>
-                <h2>Result mix</h2>
+    <div class="panel col-side">
+        <div class="panel__head">
+            <span class="kicker" style="margin:0;">Breakdown</span>
+            <h2 class="panel__title">Result mix</h2>
+        </div>
+        <div class="chart-wrap">
+            <div class="result-mix" aria-label="Player result mix">
+                {% set result_total = player.winning_sessions + player.losing_sessions + player.break_even_sessions %}
+                <div class="result-mix__bar">
+                    {% if player.winning_sessions > 0 %}
+                    <span class="result-mix__seg result-mix__seg--win" style="flex-grow:{{ player.winning_sessions }}"></span>
+                    {% endif %}
+                    {% if player.break_even_sessions > 0 %}
+                    <span class="result-mix__seg result-mix__seg--even" style="flex-grow:{{ player.break_even_sessions }}"></span>
+                    {% endif %}
+                    {% if player.losing_sessions > 0 %}
+                    <span class="result-mix__seg result-mix__seg--loss" style="flex-grow:{{ player.losing_sessions }}"></span>
+                    {% endif %}
+                </div>
+                <div class="result-mix__legend">
+                    <div class="result-mix__legend-row">
+                        <span><i class="result-mix__key result-mix__key--win"></i>Wins</span>
+                        <strong>{{ player.winning_sessions }} · {{ "%.1f"|format((player.winning_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                    </div>
+                    <div class="result-mix__legend-row">
+                        <span><i class="result-mix__key result-mix__key--even"></i>Even</span>
+                        <strong>{{ player.break_even_sessions }} · {{ "%.1f"|format((player.break_even_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                    </div>
+                    <div class="result-mix__legend-row">
+                        <span><i class="result-mix__key result-mix__key--loss"></i>Losses</span>
+                        <strong>{{ player.losing_sessions }} · {{ "%.1f"|format((player.losing_sessions / result_total * 100) if result_total else 0) }}%</strong>
+                    </div>
+                </div>
+                {% if result_total > 0 %}
+                <div class="result-mix__note">±$1.00 counts as even</div>
+                {% endif %}
             </div>
         </div>
-        <div class="chart-frame chart-frame-small">
-            <canvas id="playerBreakdownChart"></canvas>
-        </div>
     </div>
-</section>
+</div>
 
-<section class="panel">
-    <div class="panel-header">
-        <div>
-            <p class="eyebrow">Breakdown</p>
-            <h2>Detailed stats</h2>
+<!-- Perf vs Cash two-panel split -->
+<div class="split" style="margin-bottom:20px;">
+
+    <!-- Poker performance -->
+    <div class="panel col-main">
+        <div class="panel__head">
+            <div>
+                <div class="section-marker">
+                    <span class="section-marker__dot section-marker__dot--accent"></span>
+                    Poker performance
+                </div>
+                <h2 class="panel__title">Game results</h2>
+            </div>
         </div>
-    </div>
-    <div class="table-wrap">
-        <table>
+        <table style="width:100%;border-collapse:collapse;">
             <tbody>
-                <tr><th>Total Net</th><td>{{ player.total_net_cents | money }}</td></tr>
-                <tr><th>Win %</th><td>{{ "%.1f"|format(player.win_pct) }}%</td></tr>
-                <tr><th>ROI</th><td>{{ "%.1f"|format(player.roi_pct) }}%</td></tr>
-                <tr><th>Sessions</th><td>{{ player.sessions_played }}</td></tr>
-                <tr><th>Paid Buy-ins</th><td>{{ player.total_buy_in_cents | money }}</td></tr>
-                <tr><th>Fronted</th><td>{{ player.total_front_cents | money }}</td></tr>
-                <tr><th>Debt Collected</th><td>{{ player.total_front_collected_cents | money }}</td></tr>
-                <tr><th>Current Debt</th><td>{{ player.current_player_owes_cents | money }}</td></tr>
-                <tr><th>Written Off</th><td>{{ player.total_front_writeoff_cents | money }}</td></tr>
-                <tr><th>Rolled In</th><td>{{ player.total_rollover_in_cents | money }}</td></tr>
-                <tr><th>Total Invested</th><td>{{ player.total_invested_cents | money }}</td></tr>
-                <tr><th>Cash-outs</th><td>{{ player.total_cash_out_cents | money }}</td></tr>
-                <tr><th>Rolled Out</th><td>{{ player.total_rollover_out_cents | money }}</td></tr>
-                <tr><th>Winning Sessions</th><td>{{ player.winning_sessions }}</td></tr>
-                <tr><th>Losing Sessions</th><td>{{ player.losing_sessions }}</td></tr>
-                <tr><th>Break-even Sessions</th><td>{{ player.break_even_sessions }}</td></tr>
-                <tr><th>Average Win</th><td>{{ player.avg_win_cents | money }}</td></tr>
-                <tr><th>Average Loss</th><td>{{ player.avg_loss_cents | money }}</td></tr>
-                <tr><th>Biggest Win</th><td>{{ player.biggest_win_cents | money }}</td></tr>
-                <tr><th>Biggest Loss</th><td>{{ player.biggest_loss_cents | money }}</td></tr>
-                <tr><th>Current Win Streak</th><td>{{ player.current_win_streak }}</td></tr>
-                <tr><th>Current Loss Streak</th><td>{{ player.current_loss_streak }}</td></tr>
-                <tr><th>Longest Win Streak</th><td>{{ player.longest_win_streak }}</td></tr>
-                <tr><th>Longest Loss Streak</th><td>{{ player.longest_loss_streak }}</td></tr>
                 <tr>
-                    <th>Best Session</th>
-                    <td>
-                        {{ player.best_session_net_cents | money }}
-                        {% if player.best_session_date %}
-                            <span class="muted-text small">on {{ player.best_session_date | pretty_date }}</span>
-                        {% endif %}
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Total Net</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;border-top:1px solid var(--divider);"
+                        class="{{ 'num-pos' if player.total_net_cents > 0 else 'num-neg' if player.total_net_cents < 0 else '' }}">
+                        {{ '+' if player.total_net_cents > 0 else '' }}{{ player.total_net_cents | money }}
                     </td>
                 </tr>
                 <tr>
-                    <th>Worst Session</th>
-                    <td>
-                        {{ player.worst_session_net_cents | money }}
-                        {% if player.worst_session_date %}
-                            <span class="muted-text small">on {{ player.worst_session_date | pretty_date }}</span>
-                        {% endif %}
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Win %</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ "%.1f"|format(player.win_pct) }}%</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">ROI</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);"
+                        class="{{ 'num-pos' if player.roi_pct > 0 else 'num-neg' if player.roi_pct < 0 else '' }}">{{ "%.1f"|format(player.roi_pct) }}%</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Average Win</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.avg_win_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Average Loss</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--neg);">{{ player.avg_loss_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Best / Worst</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">
+                        <span style="color:var(--pos)">{{ player.biggest_win_cents | money }}</span>
+                        <span style="color:var(--faintest);margin:0 4px;">/</span>
+                        <span style="color:var(--neg)">{{ player.biggest_loss_cents | money }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Win / Loss Streak</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">
+                        <span style="color:var(--pos)">{{ player.current_win_streak }}W</span>
+                        <span style="color:var(--faintest);margin:0 4px;">·</span>
+                        <span style="color:var(--neg)">{{ player.current_loss_streak }}L</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Longest Win / Loss</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">
+                        {{ player.longest_win_streak }}W · {{ player.longest_loss_streak }}L
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
-</section>
+
+    <!-- Poker inputs and settlement. Fronts/rollovers are part of poker basis,
+         while paid/collected rows are real cash movement. -->
+    <div class="panel col-side">
+        <div class="panel__head">
+            <div>
+                <div class="section-marker">
+                    <span class="section-marker__dot section-marker__dot--rolled"></span>
+                    Poker basis
+                </div>
+                <h2 class="panel__title">Investment and settlement</h2>
+            </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+            <tbody>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Buy-ins paid</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_buy_in_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Fronted</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--warn);">{{ player.total_front_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Rolled in</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--rolled);">{{ player.total_rollover_in_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Total invested</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_invested_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Cash-outs</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--num);">{{ player.total_cash_out_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Rolled out</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--rolled);">{{ player.total_rollover_out_cents | money }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Paid out</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_paid_cents | money }}</td>
+                </tr>
+                {% if player.total_front_collected_cents > 0 %}
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Debt repaid</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--pos);">{{ player.total_front_collected_cents | money }}</td>
+                </tr>
+                {% endif %}
+                {% if player.current_player_owes_cents > 0 %}
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Still owes</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--owes);">{{ player.current_player_owes_cents | money }}</td>
+                </tr>
+                {% endif %}
+                {% if player.total_front_writeoff_cents > 0 %}
+                <tr>
+                    <td style="padding:11px 20px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--divider);">Written off</td>
+                    <td style="padding:11px 20px;text-align:right;font-family:var(--font-mono);border-top:1px solid var(--divider);color:var(--neg);">{{ player.total_front_writeoff_cents | money }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
-    const playerChartData = {{ chart_data | tojson }};
-    const rootStyles = getComputedStyle(document.documentElement);
-    const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
-    const lineColor = rootStyles.getPropertyValue('--line').trim();
+const playerChartData = {{ chart_data | tojson }};
+const rootStyles = getComputedStyle(document.documentElement);
+const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
+const lineColor = rootStyles.getPropertyValue('--line').trim();
 
-    const sharedScaleOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    color: textMuted,
-                    usePointStyle: true,
-                    boxWidth: 10,
-                    boxHeight: 10,
-                    padding: 18,
-                },
-            },
+const sharedOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { position: 'bottom', labels: { color: textMuted, usePointStyle: true, boxWidth: 9, boxHeight: 9, padding: 16 } },
+    },
+    scales: {
+        x: { ticks: { color: textMuted, maxRotation: 0 }, grid: { color: lineColor } },
+        y: { ticks: { color: textMuted }, grid: { color: lineColor } },
+    },
+};
+
+const cumulativeCtx = document.getElementById('playerCumulativeChart');
+if (cumulativeCtx) {
+    new Chart(cumulativeCtx, {
+        type: 'line',
+        data: {
+            labels: playerChartData.labels,
+            datasets: [{
+                label: 'Cumulative Profit',
+                data: playerChartData.cumulative_values,
+                borderColor: playerChartData.color,
+                backgroundColor: playerChartData.color + '38',
+                borderWidth: 2.5,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                tension: 0.22,
+                fill: true,
+            }]
         },
-        scales: {
-            x: {
-                ticks: { color: textMuted, maxRotation: 0 },
-                grid: { color: lineColor },
-            },
-            y: {
-                ticks: { color: textMuted },
-                grid: { color: lineColor },
-            },
+        options: sharedOpts,
+    });
+}
+
+const sessionCtx = document.getElementById('playerSessionChart');
+if (sessionCtx) {
+    new Chart(sessionCtx, {
+        type: 'bar',
+        data: {
+            labels: playerChartData.labels,
+            datasets: [{
+                label: 'Session Net',
+                data: playerChartData.net_values,
+                backgroundColor: playerChartData.net_colors,
+                borderColor: playerChartData.net_colors,
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
         },
-    };
+        options: sharedOpts,
+    });
+}
 
-    const cumulativeCtx = document.getElementById('playerCumulativeChart');
-    if (cumulativeCtx) {
-        new Chart(cumulativeCtx, {
-            type: 'line',
-            data: {
-                labels: playerChartData.labels,
-                datasets: [{
-                    label: 'Cumulative Profit',
-                    data: playerChartData.cumulative_values,
-                    borderColor: playerChartData.color,
-                    backgroundColor: playerChartData.color,
-                    borderWidth: 2.5,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    tension: 0.22,
-                }]
-            },
-            options: sharedScaleOptions,
-        });
-    }
-
-    const sessionCtx = document.getElementById('playerSessionChart');
-    if (sessionCtx) {
-        new Chart(sessionCtx, {
-            type: 'bar',
-            data: {
-                labels: playerChartData.labels,
-                datasets: [{
-                    label: 'Session Net',
-                    data: playerChartData.net_values,
-                    backgroundColor: playerChartData.net_colors,
-                    borderColor: playerChartData.net_colors,
-                    borderRadius: 8,
-                    borderSkipped: false,
-                }]
-            },
-            options: sharedScaleOptions,
-        });
-    }
-</script>
-
-<script>
-    const breakdownCtx = document.getElementById('playerBreakdownChart');
-    if (breakdownCtx) {
-        new Chart(breakdownCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Wins', 'Losses', 'Break-even'],
-                datasets: [{
-                    data: [
-                        {{ player.winning_sessions }},
-                        {{ player.losing_sessions }},
-                        {{ player.break_even_sessions }}
-                    ],
-                    backgroundColor: [
-                        '#59d98e',
-                        '#f06c72',
-                        '#e4bf65'
-                    ],
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: textMuted,
-                            usePointStyle: true,
-                            boxWidth: 10,
-                            boxHeight: 10,
-                            padding: 18,
-                        },
-                    },
-                },
-            },
-        });
-    }
 </script>
 {% endblock %}

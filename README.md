@@ -58,6 +58,16 @@ A few examples:
 - a `note` event for bookkeeping context
 - `session_open` / `session_close` to mark whether a game night is still live
 
+Accounting in the app keeps poker results separate from banker cashflow:
+
+- poker investment is `buyin + front + rollover_in`
+- poker net is `cashout - poker investment`
+- real cash in is `buyin + front_collected`
+- real cash out is `paid`
+- `rollover_out` settles the source session without counting as cash out
+- `rollover_in` enters play in the destination session without counting as cash in
+- `front_writeoff` resolves a receivable without counting as cash in
+
 It is still just a small side project, but I wanted the event model to stay clean enough that the numbers are easy to trust and the history is easy to read back through.
 
 ## CSV format
