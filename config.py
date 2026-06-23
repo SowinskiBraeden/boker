@@ -10,6 +10,24 @@ DATA_PATH = BASE_DIR / "data" / "entries.csv"
 ELIGIBLE_MIN_SESSIONS = 3
 
 
+def load_local_env(env_path: Path) -> None:
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+load_local_env(BASE_DIR / ".env")
+
+
 class Config:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-before-deploying")
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
