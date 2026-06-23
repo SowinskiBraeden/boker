@@ -2,9 +2,16 @@
    RESET + BASE
    ================================================================ */
 *, *::before, *::after { box-sizing: border-box; }
-html { color-scheme: dark; scroll-behavior: smooth; }
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
+}
 body {
   margin: 0;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   font-family: var(--font-ui);
   font-size: 15px;
@@ -12,6 +19,7 @@ body {
   color: var(--text-body);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 img, canvas, svg { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
@@ -49,6 +57,7 @@ h1, h2, h3, h4 { margin: 0; }
   display: flex;
   align-items: center;
   gap: 28px;
+  min-width: 0;
 }
 .brand {
   display: flex;
@@ -82,6 +91,29 @@ h1, h2, h3, h4 { margin: 0; }
   white-space: nowrap;
 }
 .mainnav { display: flex; gap: 4px; }
+.nav-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--text-2);
+}
+.nav-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 160ms, opacity 160ms;
+}
+.nav-is-open .nav-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-is-open .nav-toggle span:nth-child(2) { opacity: 0; }
+.nav-is-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 .navlink {
   font-size: 13.5px;
   font-weight: 600;
@@ -105,6 +137,7 @@ h1, h2, h3, h4 { margin: 0; }
 .page {
   margin: 0 auto;
   padding: clamp(22px,3.4vw,46px) var(--gutter) 96px;
+  min-width: 0;
 }
 .page--public  { max-width: var(--w-public);  }
 .page--session { max-width: var(--w-session); }
@@ -140,11 +173,15 @@ h1, h2, h3, h4 { margin: 0; }
 @media (max-width: 640px) {
   .site-footer {
     grid-template-columns: 1fr;
-    justify-items: start;
+    justify-items: center;
+    gap: 6px;
+    margin-top: 36px;
+    padding: 18px 0 max(20px, env(safe-area-inset-bottom));
+    text-align: center;
   }
   .site-footer span:nth-child(2),
   .site-footer span:nth-child(3) {
-    justify-self: start;
+    justify-self: center;
   }
 }
 
@@ -268,6 +305,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
+  min-width: 0;
 }
 .panel__head {
   padding: 16px 22px;
@@ -1666,6 +1704,43 @@ select.control { cursor: pointer; }
   h1 { font-size: 28px; }
   .hero { padding: 18px 0 14px; }
   .topbar__season { display: none; }
+  .page {
+    padding: 18px 12px 72px;
+  }
+  .panel {
+    border-radius: 12px;
+  }
+  .panel__head {
+    padding: 14px 14px;
+  }
+  .panel__body,
+  .form-card,
+  .append__body,
+  .panel--pad {
+    padding: 16px 14px;
+  }
+  .chart-wrap {
+    padding: 0 10px 14px;
+  }
+  .chart-frame {
+    height: 230px;
+  }
+  .chart-frame--tall {
+    height: 260px;
+  }
+  .cards,
+  .cards-2,
+  .provisional-grid,
+  .recon-grid,
+  .append__grid {
+    grid-template-columns: 1fr;
+  }
+  .form-shell {
+    padding-top: 20px;
+  }
+  .form-shell.narrow {
+    grid-template-columns: minmax(0, 480px);
+  }
   .cash-strip { grid-template-columns: 1fr 1fr; }
   .debt-action-grid { grid-template-columns: 1fr; }
   .snapshot-grid { grid-template-columns: 1fr; }
@@ -1699,6 +1774,39 @@ select.control { cursor: pointer; }
   .leaderboard-hero-stats .stat:last-child {
     min-width: 0;
   }
+  .tbl-scroll,
+  .table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+  }
+  .tbl {
+    min-width: 620px;
+  }
+  .tbl--session,
+  .tbl--session.is-full {
+    min-width: 760px;
+  }
+  .feed,
+  .debt-list,
+  .admin-bottom-grid .table-wrap,
+  .admin-bottom-grid .event-feed {
+    max-height: none;
+    height: auto;
+  }
+  .csv__btns,
+  .append__footer,
+  .button-row,
+  .modal-card__actions {
+    align-items: stretch;
+  }
+  .csv__btns > *,
+  .append__footer > *,
+  .button-row > *,
+  .modal-card__actions > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 440px) {
@@ -1706,32 +1814,68 @@ select.control { cursor: pointer; }
 }
 
 /* ================================================================
-   MOBILE — additional responsive rules (phones ≤ 600px)
+   MOBILE — additional responsive rules
    ================================================================ */
 
-/* Topbar: two-row layout on phones.
-   Row 1 → brand (fills remaining space) + admin actions.
-   Row 2 → nav links (horizontally scrollable so nothing clips). */
-@media (max-width: 600px) {
+/* Topbar: app-style single row with an anchored menu on phones. */
+@media (max-width: 700px) {
   .topbar__inner {
-    flex-wrap: wrap;
-    height: auto;
-    padding-top: 10px;
-    padding-bottom: 4px;
-    gap: 0 16px;
+    height: 58px;
+    padding-inline: 12px;
+    gap: 10px;
   }
-  .brand { flex: 1; }
+  .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .brand__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-toggle {
+    display: grid;
+    flex: none;
+    order: 20;
+  }
   .topbar__spacer { display: none; }
   .mainnav {
-    order: 10;      /* pushes nav below brand + admin-actions */
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 8px;
-    margin-top: 2px;
+    position: fixed;
+    top: calc(58px + env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+    z-index: 60;
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    background: rgba(22, 22, 28, .98);
+    box-shadow: 0 18px 48px rgba(0,0,0,.42);
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 150ms, transform 150ms, visibility 150ms;
+    overflow: hidden;
   }
-  .mainnav::-webkit-scrollbar { display: none; }
+  .nav-is-open .mainnav {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+  }
+  .navlink {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .topbar__admin-actions .btn {
+    height: 38px;
+    padding-inline: 11px;
+  }
 }
 
 /* Toolbar: stack left/right sections vertically on narrow viewports */
