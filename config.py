@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 
 ELIGIBLE_MIN_SESSIONS = 3
+APP_VERSION = "v1.8.4"
 
 
 def load_local_env(env_path: Path) -> None:
@@ -29,6 +30,7 @@ load_local_env(BASE_DIR / ".env")
 
 
 class Config:
+    APP_VERSION: str = APP_VERSION
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-before-deploying")
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "change-me")
