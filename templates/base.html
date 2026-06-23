@@ -16,7 +16,12 @@
                 <span class="brand__mark"></span>
                 <span class="brand__name">myboker.org</span>
             </a>
-            <nav class="mainnav">
+            <button class="nav-toggle" type="button" aria-controls="mainnav" aria-expanded="false" aria-label="Open navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <nav class="mainnav" id="mainnav">
                 <a class="navlink {{ 'is-active' if request.endpoint == 'public.leaderboard' }}" href="{{ url_for('public.leaderboard') }}">Leaderboard</a>
                 <a class="navlink {{ 'is-active' if request.endpoint in ('public.sessions', 'public.session_detail') }}" href="{{ url_for('public.sessions') }}">Sessions</a>
                 {% if is_admin %}
@@ -55,5 +60,36 @@
             <span>cedarline.digital</span>
         </footer>
     </main>
+    <script>
+    (() => {
+        const toggle = document.querySelector('.nav-toggle');
+        const nav = document.getElementById('mainnav');
+        if (!toggle || !nav) return;
+
+        const setOpen = (open) => {
+            document.body.classList.toggle('nav-is-open', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+        };
+
+        toggle.addEventListener('click', () => {
+            setOpen(!document.body.classList.contains('nav-is-open'));
+        });
+        nav.addEventListener('click', (event) => {
+            if (event.target.closest('a')) setOpen(false);
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') setOpen(false);
+        });
+        document.addEventListener('click', (event) => {
+            if (!document.body.classList.contains('nav-is-open')) return;
+            if (event.target.closest('.topbar')) return;
+            setOpen(false);
+        });
+        window.addEventListener('resize', () => {
+            if (window.matchMedia('(min-width: 701px)').matches) setOpen(false);
+        });
+    })();
+    </script>
 </body>
 </html>
