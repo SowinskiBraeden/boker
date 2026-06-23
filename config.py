@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 
 ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "1.8.4"
+APP_VERSION = "1.8.6"
 
 
 def load_local_env(env_path: Path) -> None:
