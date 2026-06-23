@@ -1704,3 +1704,78 @@ select.control { cursor: pointer; }
 @media (max-width: 440px) {
   .cash-strip { grid-template-columns: 1fr; }
 }
+
+/* ================================================================
+   MOBILE — additional responsive rules (phones ≤ 600px)
+   ================================================================ */
+
+/* Topbar: two-row layout on phones.
+   Row 1 → brand (fills remaining space) + admin actions.
+   Row 2 → nav links (horizontally scrollable so nothing clips). */
+@media (max-width: 600px) {
+  .topbar__inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 4px;
+    gap: 0 16px;
+  }
+  .brand { flex: 1; }
+  .topbar__spacer { display: none; }
+  .mainnav {
+    order: 10;      /* pushes nav below brand + admin-actions */
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+    margin-top: 2px;
+  }
+  .mainnav::-webkit-scrollbar { display: none; }
+}
+
+/* Toolbar: stack left/right sections vertically on narrow viewports */
+@media (max-width: 700px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .toolbar__left,
+  .toolbar__right { width: 100%; }
+  .session-filter-form { width: 100%; }
+  .session-filter-select { min-width: 0; flex: 1; width: 100%; }
+}
+
+/* Panel head: let title + action button wrap on narrow panels */
+@media (max-width: 580px) {
+  .panel__head { flex-wrap: wrap; row-gap: 6px; }
+}
+
+/* Segmented control: scroll horizontally if it overflows on very small phones */
+@media (max-width: 380px) {
+  .segmented {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .segmented::-webkit-scrollbar { display: none; }
+}
+
+/* Session net bars: tighter name column so bars have room */
+@media (max-width: 540px) {
+  .session-net-bars__row {
+    grid-template-columns: minmax(68px, 100px) minmax(80px, 1fr) minmax(70px, max-content);
+    gap: 8px;
+  }
+  .session-net-bars__name { font-size: 12px; }
+  .session-net-bars__amount { font-size: 11px; }
+}
+
+/* Very small phones: reduce nav / segment padding to keep everything touchable */
+@media (max-width: 360px) {
+  .navlink { padding: 6px 10px; font-size: 12.5px; }
+  .seg { padding: 6px 10px; font-size: 12px; }
+  .hero__title, h1 { font-size: 24px; }
+}
