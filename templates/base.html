@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}myboker.org{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -47,6 +48,12 @@
         {% endwith %}
 
         {% block content %}{% endblock %}
+
+        <footer class="site-footer" aria-label="Site footer">
+            <span>&copy; 2026 myboker.org</span>
+            <span>Version {{ app_version }}</span>
+            <span>cedarline.digital</span>
+        </footer>
     </main>
 </body>
 </html>

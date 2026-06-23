@@ -22,7 +22,10 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_globals() -> dict:
-        return {"is_admin": is_admin()}
+        return {
+            "app_version": app.config["APP_VERSION"],
+            "is_admin": is_admin(),
+        }
 
     app.register_blueprint(public_bp)
     app.register_blueprint(admin_bp)
