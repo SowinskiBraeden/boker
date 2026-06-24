@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import click
 from flask import Flask
 
-from auth import is_admin
+from auth import current_user_id, is_logged_in
 from config import Config
-from routes.admin import admin_bp
+from db import database_extensions_available, db, init_database
+from extensions import csrf, limiter, mail
+from routes.account import account_bp
+from routes.leagues import leagues_bp
 from routes.public import public_bp
 from storage import ensure_data_file
 from utils import cents_to_dollars, safe_date_label
 
 
-def create_app() -> Flask:
+def create_app(config_overrides: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
+    if config_overrides:
+        app.config.update(config_overrides)
 
     ensure_data_file(app.config["DATA_PATH"])
+    init_database(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
+    mail.init_app(app)
 
     app.jinja_env.filters["money"] = cents_to_dollars
     app.jinja_env.filters["pretty_date"] = safe_date_label
@@ -24,11 +34,25 @@ def create_app() -> Flask:
     def inject_globals() -> dict:
         return {
             "app_version": app.config["APP_VERSION"],
-            "is_admin": is_admin(),
+            "current_user_id": current_user_id(),
+            "is_logged_in": is_logged_in(),
         }
 
     app.register_blueprint(public_bp)
-    app.register_blueprint(admin_bp)
+    app.register_blueprint(account_bp)
+    app.register_blueprint(leagues_bp)
+
+    @app.cli.command("init-db")
+    def init_db_command() -> None:
+        if not database_extensions_available() or db is None:
+            raise click.ClickException(
+                "Database dependencies are not installed. Run pip install -r requirements.txt."
+            )
+
+        with app.app_context():
+            db.create_all()
+
+        click.echo("Initialized database tables.")
 
     return app
 

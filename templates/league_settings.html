@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ league.name }} · myboker.org{% endblock %}
+{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block content %}
+
+
+<div class="stack">
+
+    <form class="panel form-card" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">General</p>
+            <h2 class="panel__title" style="margin-top:4px;">League info</h2>
+        </div>
+        <label>
+            <span>Name <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">The display name for this league. Shown on your dashboard and the public leaderboard.</span></span></span>
+            <input type="text" name="name" value="{{ form.name }}" required>
+        </label>
+        <label>
+            <span>Description <span class="form-opt-hint">(optional)</span> <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Optional. A short note about the league — game night, buy-in rules, anything useful to members.</span></span></span>
+            <textarea name="description">{{ form.description }}</textarea>
+        </label>
+        <label>
+            <span>Visibility <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Private keeps the league off the Explore page. Public makes the leaderboard and session history visible to anyone with the link — no account needed.</span></span></span>
+            <select name="visibility">
+                <option value="private" {{ 'selected' if form.visibility == 'private' else '' }}>Private — only members can see this league</option>
+                <option value="public" {{ 'selected' if form.visibility == 'public' else '' }}>Public — leaderboard is visible to anyone</option>
+            </select>
+        </label>
+        <div>
+            <button class="btn btn--primary" type="submit">Save changes</button>
+        </div>
+    </form>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Access</p>
+                <h2 class="panel__title">Members</h2>
+            </div>
+            <span class="panel__tag">{{ members|length }} member{{ 's' if members|length != 1 else '' }}</span>
+        </div>
+        <div class="panel__body" style="padding-bottom:0;">
+            {% for membership, member_user in members %}
+            <div class="member-row">
+                <div>
+                    <strong>{{ member_user.email }}</strong>
+                    <span class="kicker" style="margin-left:8px;text-transform:capitalize;">{{ membership.role }}</span>
+                </div>
+                {% if membership.role != 'owner' %}
+                <form method="post" action="{{ url_for('leagues.remove_member', league_ref=league.url_ref, user_id=member_user.id) }}" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--ghost btn--sm" type="submit">Remove</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <form class="form-card" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}" style="padding:16px 20px 20px;border-top:1px solid var(--border);">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p class="kicker" style="margin-bottom:10px;">Invite by email</p>
+            <div class="session-create-row" style="align-items:flex-end;gap:10px;">
+                <label style="flex:1 1 200px;">
+                    <span>Email</span>
+                    <input type="email" name="email" placeholder="friend@example.com" required>
+                </label>
+                <label style="flex:0 0 130px;">
+                    <span>Role</span>
+                    <select name="role">
+                        <option value="manager">Manager</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </label>
+                <button class="btn btn--primary btn--sm" type="submit" style="flex:0 0 auto;margin-bottom:1px;">Send invite</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;color:var(--neg);">Danger zone</p>
+                <h2 class="panel__title">Destructive actions</h2>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Archive league</strong>
+                    <p class="muted-text">Removes this league from your dashboard. All players, sessions, and ledger data are preserved.</p>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-archive">Archive league</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal-backdrop" id="modal-archive" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <h2 style="font-size:18px;margin:0;">Archive league</h2>
+        </div>
+        <p class="modal-card__text">
+            <strong>{{ league.name }}</strong> will be hidden from your dashboard. All data is preserved and can be recovered by contacting support. This does not delete any sessions or ledger events.<br><br>
+            Type the league name to confirm:
+        </p>
+        <form method="post" action="{{ url_for('leagues.archive_league', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="padding:0 20px 16px;">
+                <input
+                    class="modal-confirm-input"
+                    type="text"
+                    name="confirm_name"
+                    placeholder="{{ league.name }}"
+                    autocomplete="off"
+                    data-match="{{ league.name }}"
+                    data-target="archive-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="archive-confirm-btn" type="submit" disabled>Archive league</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.removeAttribute('hidden');
+            const inp = el.querySelector('.modal-confirm-input, input[type="password"]');
+            if (inp) { inp.value = ''; inp.focus(); checkConfirmInput(inp); }
+        }
+    }
+    function closeModal(el) {
+        el.closest('.modal-backdrop').setAttribute('hidden', '');
+    }
+    function checkConfirmInput(inp) {
+        const targetId = inp.dataset.target;
+        const btn = document.getElementById(targetId);
+        if (!btn) return;
+        if (inp.dataset.match) {
+            btn.disabled = inp.value !== inp.dataset.match;
+        } else if (inp.dataset.minlength) {
+            btn.disabled = inp.value.length < parseInt(inp.dataset.minlength, 10);
+        }
+    }
+
+    document.querySelectorAll('[data-modal]').forEach(trigger => {
+        trigger.addEventListener('click', () => openModal(trigger.dataset.modal));
+    });
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn));
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.setAttribute('hidden', ''); });
+    });
+    document.querySelectorAll('.modal-confirm-input').forEach(inp => {
+        inp.addEventListener('input', () => checkConfirmInput(inp));
+    });
+})();
+</script>
+
+{% endblock %}

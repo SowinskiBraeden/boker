@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Sessions · {{ league.name }} · myboker.org{% endblock %}
+{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block content %}
+
+<div class="stack">
+
+    {% if can_manage %}
+    <form class="panel form-card" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Add session</p>
+            <h2 class="panel__title" style="margin-top:4px;">New session</h2>
+        </div>
+        <input type="hidden" name="status" value="open">
+        <div class="session-create-row">
+            <label>
+                <span>Date <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">The night the game was played. Same-day sessions automatically become S1, S2, etc.</span></span></span>
+                <input type="date" name="session_date" value="{{ form.session_date }}" required>
+            </label>
+            <label>
+                <span>Label <span class="form-opt-hint">(optional)</span> <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">A short name for this session — 'Main table', 'Side game', etc. Shown in the session list alongside the date.</span></span></span>
+                <input type="text" name="label" value="{{ form.label or '' }}" placeholder="e.g. Main table">
+            </label>
+            <label>
+                <span>Notes <span class="form-opt-hint">(optional)</span> <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Optional context visible in the session list — venue, occasion, anything worth noting.</span></span></span>
+                <input type="text" name="notes" value="{{ form.notes or '' }}" placeholder="Optional context">
+            </label>
+        </div>
+        <div>
+            <button class="btn btn--primary" type="submit">Create session</button>
+        </div>
+    </form>
+    {% endif %}
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">History</p>
+                <h2 class="panel__title">All sessions</h2>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="panel__tag">{{ sessions|length }} total</span>
+                {% if can_manage and empty_count > 0 %}
+                <form method="post" action="{{ url_for('leagues.prune_empty_sessions', league_ref=league.url_ref) }}" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--ghost btn--sm" type="submit">Prune empty ({{ empty_count }})</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% if sessions %}
+        <div>
+            {% for session in sessions %}
+            {% set sm = db_id_to_summary.get(session.id) %}
+            <div class="session-row session-row--{{ session.status }}">
+                <div class="session-row__info">
+                    <div class="session-date-block">
+                        <span class="session-date-block__mon">{{ session.session_date.strftime('%b') }}</span>
+                        <span class="session-date-block__day">{{ session.session_date.strftime('%-d') }}</span>
+                    </div>
+                    <div class="session-row__text">
+                        <div class="session-row__title">
+                            <a href="{{ url_for('leagues.session_public_view', league_ref=league.url_ref, session_id=session.id) }}">{{ session.display_label }}</a>
+                        </div>
+                        <div class="session-row__meta">
+                            <span>S{{ session.sequence_on_date }}</span>
+                            {% if sm and sm.entries %}
+                            <span>· {{ sm.entries|length }} player{{ 's' if sm.entries|length != 1 else '' }}</span>
+                            <span>· {{ sm.total_invested_cents | money }} pot</span>
+                            {% if sm.total_current_due_to_house_cents > 0 or sm.total_current_due_to_player_cents > 0 %}
+                            <span style="color:var(--warn);">· {{ (sm.total_current_due_to_house_cents + sm.total_current_due_to_player_cents) | money }} open</span>
+                            {% endif %}
+                            {% endif %}
+                            {% if session.notes %}<span>· {{ session.notes }}</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="session-row__actions">
+                    <span class="status-pill status-pill--{{ session.status }}">{{ session.status }}</span>
+                    <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_public_view', league_ref=league.url_ref, session_id=session.id) }}">View</a>
+                    {% if can_manage %}
+                    <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_detail', league_ref=league.url_ref, session_id=session.id) }}">Manage</a>
+                    {% if session.status == 'open' %}
+                    <form method="post" action="{{ url_for('leagues.close_league_session', league_ref=league.url_ref, session_id=session.id) }}" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--ghost btn--sm" type="submit">Close</button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn--outline btn--sm" type="button"
+                        data-modal="modal-reopen-session"
+                        data-reopen-action="{{ url_for('leagues.open_league_session', league_ref=league.url_ref, session_id=session.id) }}">Reopen</button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-panel">
+            <h3 class="panel__title">No sessions yet</h3>
+            <p class="muted-text">Create the first session above. Same-day sessions will automatically become S1, S2, and so on.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Reopen confirmation modal -->
+<div class="modal-backdrop" id="modal-reopen-session" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-reopen-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Settled session</span>
+            <h2 class="panel__title" id="modal-reopen-title">Reopen this session?</h2>
+        </div>
+        <p class="modal-card__text">This session has been closed and books are assumed to be settled. Reopening will allow new ledger events to be appended and may affect settlement totals.</p>
+        <div class="modal-card__actions">
+            <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+            <form id="reopenForm" method="post" action="" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn--primary btn--sm" type="submit">Reopen session</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+var reopenModal = document.getElementById('modal-reopen-session');
+var reopenForm = document.getElementById('reopenForm');
+
+document.querySelectorAll('[data-modal="modal-reopen-session"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        if (reopenForm && this.dataset.reopenAction) {
+            reopenForm.action = this.dataset.reopenAction;
+        }
+        if (reopenModal) reopenModal.removeAttribute('hidden');
+    });
+});
+document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        this.closest('.modal-backdrop').setAttribute('hidden', '');
+    });
+});
+reopenModal && reopenModal.addEventListener('click', function(e) {
+    if (e.target === this) this.setAttribute('hidden', '');
+});
+</script>
+
+{% endblock %}

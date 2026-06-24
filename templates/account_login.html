@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Login · myboker.org{% endblock %}
+{% block content %}
+
+<div class="form-shell narrow">
+    <form class="panel form-card" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Owner access</p>
+            <h1 style="font-size:28px;margin-bottom:8px;">Account login</h1>
+            <p class="muted-text" style="margin-bottom:8px;">Manage leagues, players, sessions, and ledger entries.</p>
+        </div>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email" autocomplete="email" value="{{ form.email or '' }}" required>
+        </label>
+        <label>
+            <span>Password</span>
+            <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn--primary" type="submit">Login</button>
+        <a class="btn btn--ghost" href="{{ url_for('account.register') }}">Create account</a>
+        <a style="font:400 12px/1 var(--font-ui);color:var(--text-3);text-align:center;margin-top:4px;" href="{{ url_for('account.forgot_password') }}">Forgot password?</a>
+    </form>
+</div>
+
+{% endblock %}
