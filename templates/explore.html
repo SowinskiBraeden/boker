@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Explore leagues · myboker.org{% endblock %}
+{% block content %}
+
+<div class="hero" style="padding-bottom:8px;">
+    <p class="hero__kicker">Public leagues</p>
+    <h1 class="hero__title">Explore</h1>
+    <p class="hero__sub">Browse poker leagues that have made their results publicly visible.</p>
+</div>
+
+<form method="get" action="{{ url_for('public.explore') }}" class="explore-search">
+    <input class="field-input explore-search__input" type="text" name="q" value="{{ q }}" placeholder="Search by league name…">
+    <button class="btn btn--primary" type="submit">Search</button>
+    {% if q %}<a class="btn btn--ghost" href="{{ url_for('public.explore') }}">Clear</a>{% endif %}
+</form>
+
+{% if leagues %}
+<div class="explore-grid">
+    {% for league in leagues %}
+    {% set c = counts.get(league.id, {}) %}
+    <a class="explore-card" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">
+        <div class="explore-card__head">
+            <h2 class="explore-card__name">{{ league.name }}</h2>
+            {% if league.description %}
+            <p class="explore-card__desc">{{ league.description }}</p>
+            {% endif %}
+        </div>
+        <div class="explore-card__stats">
+            <div class="explore-card__stat">
+                <span class="kicker">Players</span>
+                <strong>{{ c.get('players', 0) }}</strong>
+            </div>
+            <div class="explore-card__stat">
+                <span class="kicker">Sessions</span>
+                <strong>{{ c.get('sessions', 0) }}</strong>
+            </div>
+            <div class="explore-card__stat">
+                <span class="kicker">Open</span>
+                <strong>{{ c.get('open_sessions', 0) }}</strong>
+            </div>
+        </div>
+        <div class="explore-card__footer">
+            <span class="explore-card__link">View league →</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% elif q %}
+<div class="empty-panel" style="max-width:480px;">
+    <h3 class="panel__title">No results for "{{ q }}"</h3>
+    <p class="muted-text">Try a shorter search or browse all leagues.</p>
+</div>
+{% else %}
+<div class="empty-panel" style="max-width:480px;">
+    <h3 class="panel__title">No public leagues yet</h3>
+    <p class="muted-text">League owners can set their league to public in settings.</p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ league.name }} · myboker.org{% endblock %}
+{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block content %}
+
+{% if is_logged_in %}
+<a class="league-back-link" href="{{ url_for('leagues.index') }}">← Leagues</a>
+{% endif %}
+
+<div class="db-hero">
+    <div class="db-hero__bg-letter" aria-hidden="true">{{ league.name[0] | upper }}</div>
+    <div class="db-hero__body">
+        <div class="db-hero__chips">
+            {% if is_owner %}
+            <span class="db-chip db-chip--accent">Owner</span>
+            {% endif %}
+            <span class="db-chip">{{ league.visibility }}</span>
+        </div>
+        <h1 class="hero__title" style="margin-bottom:8px;">{{ league.name }}</h1>
+        <p class="hero__sub" style="margin:0;">{{ league.description or 'No description set.' }}</p>
+    </div>
+</div>
+
+{% if counts.open_sessions > 0 %}
+<div class="db-live-bar">
+    <span class="live-badge">{{ counts.open_sessions }} live</span>
+    <span class="db-live-bar__text">
+        {% if counts.open_sessions == 1 %}A session is currently in progress.{% else %}{{ counts.open_sessions }} sessions are in progress.{% endif %}
+    </span>
+    <a class="btn btn--sm db-live-bar__btn" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">View sessions →</a>
+</div>
+{% endif %}
+
+<div class="db-stats">
+    <div class="stat stat--rail" style="--rail:var(--pos);">
+        <span class="kicker">Active players</span>
+        <div class="stat__val" style="color:var(--text-strong);">{{ counts.players }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--accent);">
+        <span class="kicker">Sessions</span>
+        <div class="stat__val" style="color:var(--text-strong);">{{ counts.sessions }}</div>
+        {% if counts.open_sessions > 0 %}
+        <div class="stat__sub" style="color:var(--pos);">{{ counts.open_sessions }} open now</div>
+        {% endif %}
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--warn);">
+        <span class="kicker">Ledger events</span>
+        <div class="stat__val" style="color:var(--text-strong);">{{ counts.events }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--rolled);">
+        <span class="kicker">Seasons</span>
+        <div class="stat__val" style="color:var(--text-strong);">{{ counts.seasons }}</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+
+    <a class="dashboard-card panel" style="--card-accent:var(--warn);" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">
+        <div class="dashboard-card__top">
+            <span class="kicker">Stats</span>
+            <span class="dashboard-card__count">{{ counts.players }} ranked</span>
+        </div>
+        <strong class="dashboard-card__title">Leaderboard</strong>
+        <p class="dashboard-card__desc">All-time results, ROI, settlement totals, and standings.</p>
+        <span class="dashboard-card__arrow">→</span>
+    </a>
+
+    <a class="dashboard-card panel" style="--card-accent:var(--pos);" href="{{ url_for('leagues.players', league_ref=league.url_ref) }}">
+        <div class="dashboard-card__top">
+            <span class="kicker">Roster</span>
+            <span class="dashboard-card__count">{{ counts.players }} active</span>
+        </div>
+        <strong class="dashboard-card__title">Players</strong>
+        <p class="dashboard-card__desc">Add and manage player records for stats and ledger entry.</p>
+        <span class="dashboard-card__arrow">→</span>
+    </a>
+
+    <a class="dashboard-card panel {% if counts.open_sessions > 0 %}dashboard-card--live{% endif %}" style="--card-accent:var(--accent);" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">
+        <div class="dashboard-card__top">
+            <span class="kicker">Schedule</span>
+            {% if counts.open_sessions > 0 %}
+            <span class="live-badge">{{ counts.open_sessions }} live</span>
+            {% else %}
+            <span class="dashboard-card__count">{{ counts.sessions }} total</span>
+            {% endif %}
+        </div>
+        <strong class="dashboard-card__title">Sessions</strong>
+        <p class="dashboard-card__desc">Create sessions, record events, and manage open/closed state.</p>
+        <span class="dashboard-card__arrow">→</span>
+    </a>
+
+    <a class="dashboard-card panel" style="--card-accent:var(--rolled);" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">
+        <div class="dashboard-card__top">
+            <span class="kicker">Accounting</span>
+            <span class="dashboard-card__count">{{ counts.events }} events</span>
+        </div>
+        <strong class="dashboard-card__title">League ledger</strong>
+        <p class="dashboard-card__desc">Review all events, open debts, cash movement, and settlements.</p>
+        <span class="dashboard-card__arrow">→</span>
+    </a>
+
+</div>
+
+{% endblock %}

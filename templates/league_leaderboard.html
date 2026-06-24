@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard · {{ league.name }} · myboker.org{% endblock %}
+{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block content %}
+
+<div class="hero" style="display:flex;flex-wrap:wrap;gap:var(--s6);align-items:flex-start;justify-content:space-between;">
+    <div>
+        <h1 class="hero__title">Leaderboard</h1>
+        <p class="hero__sub">{{ session_count }} session{{ 's' if session_count != 1 else '' }}{% if selected_session_date %} through {{ selected_session_label }}{% endif %}</p>
+    </div>
+    <div class="leaderboard-hero-stats">
+        <div class="stat">
+            <span class="kicker">Cash paid out</span>
+            <div class="stat__val" style="color:var(--accent)">{{ cash_paid_out_cents | money }}</div>
+        </div>
+        <div class="stat">
+            <span class="kicker">Sessions</span>
+            <div class="stat__val" style="color:var(--text-strong)">{{ session_count }}{% if total_session_count != session_count %}<span style="color:var(--faintest);font-size:16px"> / {{ total_session_count }}</span>{% endif %}</div>
+        </div>
+        <div class="stat">
+            <span class="kicker">Players</span>
+            <div class="stat__val" style="color:var(--text-strong)">{{ all_count }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel stack" style="gap:0;margin-bottom:20px;">
+    <div class="panel__head">
+        <div>
+            <span class="kicker">Trend</span>
+            <h2 class="panel__title">Cumulative profit</h2>
+        </div>
+        <button class="btn btn--ghost btn--sm" type="button" id="expandLeaderboardChart">Expand</button>
+    </div>
+    <div class="chart-wrap">
+        <div class="chart-frame chart-frame--tall">
+            <canvas id="leaderboardChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar">
+    <div class="toolbar__left">
+        <div class="segmented">
+            <button class="seg {{ 'is-on' if mode=='eligible' }}" data-mode="eligible">
+                Eligible <span class="seg__count">{{ eligible_count }}</span>
+            </button>
+            <button class="seg {{ 'is-on' if mode=='all' }}" data-mode="all">
+                All players <span class="seg__count">{{ all_count }}</span>
+            </button>
+            <button class="seg {{ 'is-on' if mode=='recent' }}" data-mode="recent">
+                Recent <span class="seg__count">5 sess</span>
+            </button>
+        </div>
+        <p class="toolbar__hint">
+            {% if mode == 'eligible' %}
+                {{ eligible_min_sessions }}+ sessions required. Keeps one-off guests from skewing standings.
+            {% elif mode == 'all' %}
+                Everyone who's sat down — rankings can swing on tiny samples.
+            {% else %}
+                Form guide — aggregated over the last 5 sessions only.
+            {% endif %}
+        </p>
+    </div>
+    <div class="toolbar__right">
+        <form class="session-filter-form" method="get">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <select class="session-filter-select" name="through_session" onchange="this.form.submit()">
+                <option value="">Latest session</option>
+                {% for s in available_sessions %}
+                <option value="{{ s.session_id }}" {{ 'selected' if selected_session_id == s.session_id else '' }}>{{ session_label(s) }}</option>
+                {% endfor %}
+            </select>
+            {% if selected_session_id %}
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref, mode=mode) }}">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="panel tbl-scroll" style="margin-bottom:20px;">
+    <table class="tbl" id="leaderboardTable" data-sort-key="net" data-sort-direction="desc">
+        <thead>
+            <tr>
+                <th class="col-rank" style="width:52px;">
+                    <span style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--muted);">#</span>
+                </th>
+                <th class="col-player">
+                    <button type="button" class="sort-btn" data-sort-key="player" data-sort-type="string" data-initial-direction="asc">Player <span class="sort-arrow">↕</span></button>
+                </th>
+                <th class="col-rank-delta"><button type="button" class="sort-btn" data-sort-key="rankdelta" data-sort-type="number" data-initial-direction="desc">Δ Rank <span class="sort-arrow">↕</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="net" data-sort-type="number" data-initial-direction="desc">Net <span class="sort-arrow">↓</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="winpct" data-sort-type="number" data-initial-direction="desc">Win% <span class="sort-arrow">↕</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="roi" data-sort-type="number" data-initial-direction="desc">ROI <span class="sort-arrow">↕</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="avgwin" data-sort-type="number" data-initial-direction="desc">Avg Win <span class="sort-arrow">↕</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="avgloss" data-sort-type="number" data-initial-direction="desc">Avg Loss <span class="sort-arrow">↕</span></button></th>
+                <th><button type="button" class="sort-btn" data-sort-key="sessions" data-sort-type="number" data-initial-direction="desc">Sessions <span class="sort-arrow">↕</span></button></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in main_board %}
+            {% set idx = loop.index %}
+            {% set player_href = url_for('leagues.player_detail', league_ref=league.url_ref, player_id=player_ids[player.player_name]) if player_ids.get(player.player_name) else '' %}
+            <tr data-player-row="true" data-original-rank="{{ idx }}"
+                {% if player_href %}onclick="window.location='{{ player_href }}'"{% endif %}>
+                <td class="col-rank" data-sort-value="{{ idx }}">
+                    <span class="rank-num {{ 'rank-1' if idx==1 else 'rank-2' if idx==2 else 'rank-3' if idx==3 else '' }}" data-rank-cell>#{{ idx }}</span>
+                </td>
+                <td class="col-player" data-sort-value="{{ player.player_name|lower }}">
+                    {% if player_href %}<a href="{{ player_href }}">{{ player.player_name }}</a>{% else %}{{ player.player_name }}{% endif %}
+                </td>
+                <td class="col-rank-delta" data-sort-value="{{ player.rank_change }}">
+                    {% if player.rank_change > 0 %}
+                        <span class="rank-delta rank-delta--up">▲{{ player.rank_change }}</span>
+                    {% elif player.rank_change < 0 %}
+                        <span class="rank-delta rank-delta--down">▼{{ player.rank_change | abs }}</span>
+                    {% else %}
+                        <span class="rank-delta rank-delta--flat">—</span>
+                    {% endif %}
+                </td>
+                <td class="num-net {{ 'num-pos' if player.total_net_cents > 0 else 'num-neg' if player.total_net_cents < 0 else 'num-muted' }}"
+                    data-sort-value="{{ player.total_net_cents }}">
+                    {{ '+' if player.total_net_cents > 0 else '' }}{{ player.total_net_cents | money }}
+                </td>
+                <td data-sort-value="{{ '%.4f'|format(player.win_pct) }}">{{ "%.1f"|format(player.win_pct) }}%</td>
+                <td class="{{ 'num-pos' if player.roi_pct > 0 else 'num-neg' if player.roi_pct < 0 else '' }}"
+                    data-sort-value="{{ '%.4f'|format(player.roi_pct) }}">{{ "%.1f"|format(player.roi_pct) }}%</td>
+                <td class="num-pos" data-sort-value="{{ player.avg_win_cents }}">{{ player.avg_win_cents | money }}</td>
+                <td class="num-neg" data-sort-value="{{ player.avg_loss_cents }}">{{ player.avg_loss_cents | money }}</td>
+                <td data-sort-value="{{ player.sessions_played }}">{{ player.sessions_played }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" style="text-align:left;padding:28px;color:var(--muted);">
+                    No players yet — add the first event from a league session ledger.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if mode == 'eligible' and provisional_board %}
+<div style="margin-bottom:20px;">
+    <div class="toolbar" style="margin-top:0;margin-bottom:12px;">
+        <span class="kicker" style="margin:0;">Provisional · fewer than {{ eligible_min_sessions }} sessions</span>
+    </div>
+    <div class="provisional-grid">
+        {% for player in provisional_board %}
+        {% set player_href = url_for('leagues.player_detail', league_ref=league.url_ref, player_id=player_ids[player.player_name]) if player_ids.get(player.player_name) else '' %}
+        <a class="provisional-card" href="{{ player_href or '#' }}"
+           style="display:block;text-decoration:none;">
+            <p class="provisional-card__name">{{ player.player_name }}</p>
+            <div class="provisional-card__meta">
+                <span>{{ player.sessions_played }} sess</span>
+                <span class="{{ 'num-pos' if player.total_net_cents > 0 else 'num-neg' if player.total_net_cents < 0 else '' }}"
+                      style="font-family:var(--font-mono);font-size:11px;font-weight:600;">{{ player.total_net_cents | money }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Expand modal -->
+<div id="chartModal" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;">
+    <div style="position:absolute;inset:0;background:rgba(8,10,12,.82);backdrop-filter:blur(6px);" data-close-modal></div>
+    <div style="position:relative;z-index:1;width:min(1280px,calc(100vw - 48px));margin:24px auto;padding:22px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-lg);box-shadow:0 24px 64px rgba(0,0,0,.4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+            <h2 style="margin:0;">Cumulative profit</h2>
+            <button class="btn btn--ghost btn--sm" data-close-modal>Close</button>
+        </div>
+        <div style="height:min(70vh,780px);position:relative;">
+            <canvas id="leaderboardChartExpanded"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+const CHART_PALETTE = ['#9b8cf0','#6fc093','#e0b15c','#cf6f86','#8f93c2','#7cb9e0','#f4a261','#a78bb0','#5cb8a0','#e58f3a'];
+const leaderboardChartData = {{ chart_data | tojson }};
+const rootStyles = getComputedStyle(document.documentElement);
+const textMuted = rootStyles.getPropertyValue('--text-muted').trim();
+const lineColor = rootStyles.getPropertyValue('--line').trim();
+
+leaderboardChartData.datasets.forEach((ds, i) => {
+    ds.borderColor = CHART_PALETTE[i % CHART_PALETTE.length];
+    ds.backgroundColor = CHART_PALETTE[i % CHART_PALETTE.length];
+});
+
+function buildChartConfig(data, compact) {
+    return {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map(ds => ({
+                ...ds,
+                pointRadius: compact ? 0 : 2,
+                pointHoverRadius: 5,
+                borderWidth: compact ? 2 : 2.5,
+                tension: 0.28,
+                fill: false,
+            })),
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { color: textMuted, usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14 },
+                },
+                tooltip: {
+                    callbacks: {
+                        label(ctx) {
+                            const v = ctx.parsed.y;
+                            return v == null ? `${ctx.dataset.label}: —` : `${ctx.dataset.label}: $${Number(v).toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: textMuted, maxRotation: 0, autoSkip: true, maxTicksLimit: compact ? 6 : 10 },
+                    grid: { color: lineColor, display: !compact },
+                },
+                y: {
+                    ticks: {
+                        color: textMuted,
+                        maxTicksLimit: compact ? 8 : 10,
+                        callback(v) { return (v < 0 ? '-' : '') + '$' + Math.abs(Number(v)).toFixed(0); }
+                    },
+                    grid: { color: lineColor },
+                }
+            }
+        }
+    };
+}
+
+const ctx = document.getElementById('leaderboardChart');
+let mainChart = null;
+if (ctx && leaderboardChartData.labels.length > 0) {
+    const filtered = leaderboardChartData.datasets.filter(ds => (ds.sessions_played || 0) > 1);
+    const chartData = {
+        labels: leaderboardChartData.labels,
+        datasets: filtered.length ? filtered : leaderboardChartData.datasets,
+    };
+    mainChart = new Chart(ctx, buildChartConfig(chartData, true));
+}
+
+const modal = document.getElementById('chartModal');
+const expandBtn = document.getElementById('expandLeaderboardChart');
+let expandedChart = null;
+
+expandBtn?.addEventListener('click', () => {
+    if (!leaderboardChartData.labels.length) return;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (expandedChart) expandedChart.destroy();
+    expandedChart = new Chart(
+        document.getElementById('leaderboardChartExpanded'),
+        buildChartConfig(leaderboardChartData, false)
+    );
+});
+
+document.querySelectorAll('[data-close-modal]').forEach(el => {
+    el.addEventListener('click', () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (expandedChart) { expandedChart.destroy(); expandedChart = null; }
+    });
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (expandedChart) { expandedChart.destroy(); expandedChart = null; }
+    }
+});
+
+// Segmented mode switcher
+document.querySelectorAll('[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', btn.dataset.mode);
+        window.location.href = url.toString();
+    });
+});
+
+// Table sort
+const tbl = document.getElementById('leaderboardTable');
+const sortBtns = tbl ? Array.from(tbl.querySelectorAll('.sort-btn[data-sort-key]')) : [];
+const colMap = { rank: 0, player: 1, rankdelta: 2, net: 3, winpct: 4, roi: 5, avgwin: 6, avgloss: 7, sessions: 8 };
+
+function setActiveSort(key, dir) {
+    sortBtns.forEach(b => {
+        const active = b.dataset.sortKey === key;
+        b.classList.toggle('is-active', active);
+        const arrow = b.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = active ? (dir === 'asc' ? '↑' : '↓') : '↕';
+    });
+}
+
+function sortTable(key, sortType, forcedDir) {
+    if (!tbl) return;
+    const tbody = tbl.tBodies[0];
+    const rows = Array.from(tbody.querySelectorAll('tr[data-player-row]'));
+    const curKey = tbl.dataset.sortKey;
+    const curDir = tbl.dataset.sortDirection || 'desc';
+    let dir = forcedDir;
+    if (!dir) {
+        if (curKey === key) dir = curDir === 'desc' ? 'asc' : 'desc';
+        else {
+            const btn = sortBtns.find(b => b.dataset.sortKey === key);
+            dir = btn?.dataset.initialDirection || 'desc';
+        }
+    }
+    const mult = dir === 'asc' ? 1 : -1;
+    const ci = colMap[key] ?? 0;
+    rows.sort((a, b) => {
+        const av = a.children[ci]?.dataset.sortValue ?? '';
+        const bv = b.children[ci]?.dataset.sortValue ?? '';
+        if (sortType === 'number') {
+            const n = (Number(av) - Number(bv)) * mult;
+            if (n !== 0) return n;
+        } else {
+            const s = av.localeCompare(bv) * mult;
+            if (s !== 0) return s;
+        }
+        return Number(a.dataset.originalRank) - Number(b.dataset.originalRank);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    tbl.dataset.sortKey = key;
+    tbl.dataset.sortDirection = dir;
+    rows.forEach((row, i) => {
+        const rc = row.querySelector('[data-rank-cell]');
+        if (rc) rc.textContent = `#${i + 1}`;
+    });
+    setActiveSort(key, dir);
+}
+
+sortBtns.forEach(b => {
+    b.addEventListener('click', () => sortTable(b.dataset.sortKey, b.dataset.sortType));
+});
+setActiveSort('net', 'desc');
+</script>
+{% endblock %}

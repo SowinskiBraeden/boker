@@ -1,13 +1,79 @@
 #!/usr/bin/env python3
-"""Authentication helpers.
-
-Kept in its own module so both app.py (context processor) and routes/admin.py
-(route guards) can import is_admin() without circular imports.
-"""
 from __future__ import annotations
 
-from flask import session as flask_session
+from functools import wraps
+
+from flask import current_app, flash, redirect, request, session as flask_session, url_for
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
-def is_admin() -> bool:
-    return bool(flask_session.get("is_admin"))
+def _serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+
+
+def generate_reset_token(user_id: str) -> str:
+    return _serializer().dumps(user_id, salt="password-reset")
+
+
+def verify_reset_token(token: str, max_age: int = 3600) -> str | None:
+    try:
+        return _serializer().loads(token, salt="password-reset", max_age=max_age)
+    except (SignatureExpired, BadSignature):
+        return None
+
+
+def generate_invite_token(league_id: str, email: str, role: str, invited_by_user_id: str) -> str:
+    return _serializer().dumps(
+        {"league_id": league_id, "email": email, "role": role, "invited_by": invited_by_user_id},
+        salt="league-invite",
+    )
+
+
+def verify_invite_token(token: str, max_age: int = 604800) -> dict | None:
+    try:
+        data = _serializer().loads(token, salt="league-invite", max_age=max_age)
+        return data if isinstance(data, dict) else None
+    except (SignatureExpired, BadSignature):
+        return None
+
+
+def hash_password(password: str) -> str:
+    return generate_password_hash(password)
+
+
+def verify_password(password_hash: str, password: str) -> bool:
+    return check_password_hash(password_hash, password)
+
+
+def normalize_email(email: str) -> str:
+    return email.strip().casefold()
+
+
+def log_user_in(user_id: str) -> None:
+    flask_session.pop("is_admin", None)
+    flask_session["user_id"] = user_id
+
+
+def log_user_out() -> None:
+    flask_session.pop("user_id", None)
+
+
+def current_user_id() -> str | None:
+    user_id = flask_session.get("user_id")
+    return str(user_id) if user_id else None
+
+
+def is_logged_in() -> bool:
+    return current_user_id() is not None
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not is_logged_in():
+            flash("Login required.", "error")
+            return redirect(url_for("account.login", next=request.full_path))
+        return view(*args, **kwargs)
+
+    return wrapped_view

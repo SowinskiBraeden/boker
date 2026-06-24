@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}myboker.org · Poker league records{% endblock %}
+{% block content %}
+
+<section class="l-hero">
+    <p class="l-hero__kicker">For private poker leagues</p>
+    <h1 class="l-hero__h1">Your home game,<br>properly tracked.</h1>
+    <p class="l-hero__sub">Sessions, ledgers, leaderboards, and settlement visibility — built for home groups that want clean records without a payment app or social network in the way.</p>
+    <div class="l-hero__cta">
+        {% if is_logged_in %}
+        <a class="btn btn--primary" href="{{ url_for('leagues.index') }}">Open leagues</a>
+        {% else %}
+        <a class="btn btn--primary" href="{{ url_for('account.register') }}">Create account</a>
+        <a class="btn btn--ghost" href="{{ url_for('account.login') }}">Sign in</a>
+        <a class="btn btn--ghost" href="{{ url_for('public.explore') }}">Explore league stats</a>
+        {% endif %}
+    </div>
+</section>
+
+<div class="l-preview" aria-hidden="true">
+    <div class="l-preview__panel">
+        <div class="l-preview__head">
+            <span class="kicker" style="margin:0;">Leaderboard</span>
+            <span class="l-preview__tag">All-time</span>
+        </div>
+        <div class="l-preview__rows">
+            <div class="l-preview__row">
+                <span class="l-preview__rank">1</span>
+                <span class="l-preview__player">Rivera</span>
+                <span class="l-preview__val l-preview__val--pos">+$1,420</span>
+            </div>
+            <div class="l-preview__row">
+                <span class="l-preview__rank">2</span>
+                <span class="l-preview__player">Chen</span>
+                <span class="l-preview__val l-preview__val--pos">+$640</span>
+            </div>
+            <div class="l-preview__row">
+                <span class="l-preview__rank">3</span>
+                <span class="l-preview__player">Okafor</span>
+                <span class="l-preview__val l-preview__val--neg">-$210</span>
+            </div>
+            <div class="l-preview__row l-preview__row--faded">
+                <span class="l-preview__rank">4</span>
+                <span class="l-preview__player">Walsh</span>
+                <span class="l-preview__val l-preview__val--neg">-$850</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="l-preview__panel l-preview__panel--featured">
+        <div class="l-preview__head">
+            <span class="kicker" style="margin:0;">Session #18</span>
+            <span class="live-badge">live</span>
+        </div>
+        <div class="l-preview__stats">
+            <div class="l-preview__stat">
+                <span class="kicker" style="margin:0;">Cash in</span>
+                <strong>$1,200</strong>
+            </div>
+            <div class="l-preview__stat">
+                <span class="kicker" style="margin:0;">Players</span>
+                <strong>8</strong>
+            </div>
+            <div class="l-preview__stat">
+                <span class="kicker" style="margin:0;">Open debts</span>
+                <strong style="color:var(--warn);">$180</strong>
+            </div>
+        </div>
+        <div class="l-preview__evts">
+            <div class="l-preview__evt">
+                <span class="pill pill-buyin">buy-in</span>
+                <span class="l-preview__evt-name">Rivera</span>
+                <span class="l-preview__evt-val">$200</span>
+            </div>
+            <div class="l-preview__evt">
+                <span class="pill pill-front">front</span>
+                <span class="l-preview__evt-name">Chen</span>
+                <span class="l-preview__evt-val">$200</span>
+            </div>
+            <div class="l-preview__evt">
+                <span class="pill pill-cashout">cashout</span>
+                <span class="l-preview__evt-name">Okafor</span>
+                <span class="l-preview__evt-val">$450</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="l-preview__panel">
+        <div class="l-preview__head">
+            <span class="kicker" style="margin:0;">Open debts</span>
+            <span class="l-preview__tag">Session #17</span>
+        </div>
+        <div class="l-preview__rows">
+            <div class="l-preview__row">
+                <span class="l-preview__player">Walsh</span>
+                <span class="l-preview__val" style="color:var(--owes);">owes $120</span>
+            </div>
+            <div class="l-preview__row">
+                <span class="l-preview__player">Okafor</span>
+                <span class="l-preview__val" style="color:var(--owes);">owes $60</span>
+            </div>
+            <div class="l-preview__row l-preview__row--faded">
+                <span class="l-preview__player">Chen</span>
+                <span class="l-preview__val" style="color:var(--pos);">settled</span>
+            </div>
+            <div class="l-preview__row l-preview__row--faded">
+                <span class="l-preview__player">Rivera</span>
+                <span class="l-preview__val" style="color:var(--pos);">settled</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="l-features">
+    <div class="l-feature">
+        <div class="l-feature__icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+                <rect x="1" y="7" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 7V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h3 class="l-feature__title">League workspaces</h3>
+        <p class="l-feature__desc">Each league has its own players, sessions, leaderboard, and accounting. One account can manage multiple leagues independently.</p>
+    </div>
+    <div class="l-feature">
+        <div class="l-feature__icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+                <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M7 8h8M7 11h6M7 14h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h3 class="l-feature__title">Append-only ledger</h3>
+        <p class="l-feature__desc">Buy-ins, fronts, cashouts, rollovers, debt repayments, and write-offs stay permanently on record. Events are never deleted.</p>
+    </div>
+    <div class="l-feature">
+        <div class="l-feature__icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+                <path d="M3 17L8 11L13 14L20 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 20h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h3 class="l-feature__title">Performance analytics</h3>
+        <p class="l-feature__desc">Net, ROI, win rate, and all-time cash movement are computed from ledger events. Rankings stay separate from settlement records.</p>
+    </div>
+    <div class="l-feature">
+        <div class="l-feature__icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+                <path d="M7 5h8M15 5l-3-3m3 3l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 17H7m0 0l3 3m-3-3l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h3 class="l-feature__title">Settlement visibility</h3>
+        <p class="l-feature__desc">Open debts, player payables, and house receivables are always tracked. Share settlement status with the group, not just final numbers.</p>
+    </div>
+</section>
+
+{% endblock %}

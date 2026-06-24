@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Leagues · myboker.org{% endblock %}
+{% block content %}
+
+<div class="hero" style="padding-bottom:12px;">
+    <p class="hero__kicker">Leagues</p>
+    <h1 class="hero__title">Your poker leagues</h1>
+    <p class="hero__sub">Owner and manager workspace.</p>
+</div>
+
+<div class="toolbar">
+    <div class="toolbar__left">
+        <a class="btn btn--primary" href="{{ url_for('leagues.new') }}">New league</a>
+    </div>
+</div>
+
+{% if leagues %}
+<div class="league-hub-summary">
+    <div class="stat stat--rail" style="--rail:var(--accent);">
+        <span class="kicker">Leagues</span>
+        <div class="stat__val" style="color:var(--num)">{{ page_summary.league_count }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--pos);">
+        <span class="kicker">Live</span>
+        <div class="stat__val" style="color:var(--num)">{{ page_summary.live_count }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--rolled);">
+        <span class="kicker">Sessions</span>
+        <div class="stat__val" style="color:var(--num)">{{ page_summary.sessions_count }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--warn);">
+        <span class="kicker">Open items</span>
+        <div class="stat__val {{ 'num-neg' if page_summary.open_items_cents > 0 else 'num-muted' }}">{{ page_summary.open_items_cents | money }}</div>
+    </div>
+</div>
+
+<div class="league-board">
+    {% for item in leagues %}
+    {% set league = item.league %}
+    {% set membership = item.membership %}
+    <article class="panel league-row">
+        <div class="league-row__identity">
+            <a class="league-row__title" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">
+                <div>
+                    <span class="kicker">{{ membership.role }}</span>
+                    <h2>{{ league.name }}</h2>
+                </div>
+                {% if item.live_session %}
+                <span class="live-badge">{{ session_label(item.live_session) }}</span>
+                {% else %}
+                <span class="status-pill status-pill--closed">idle</span>
+                {% endif %}
+            </a>
+            <div class="league-row__chips">
+                <span class="db-chip {% if league.visibility == 'public' %}db-chip--public{% endif %}">
+                    {% if league.visibility == 'public' %}
+                    <svg width="11" height="11" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M10 2c-2.5 3-2.5 13 0 16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+                        <path d="M10 2c2.5 3 2.5 13 0 16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+                        <path d="M2.5 10h15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                    public
+                    {% else %}
+                    <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden="true">
+                        <rect x="1" y="5" width="8" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M3 5V3.5A2 2 0 0 1 7 3.5V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    private
+                    {% endif %}
+                </span>
+            </div>
+            <p class="league-row__desc">
+                {% if league.description %}{{ league.description }}{% else %}{{ league.slug }}{% endif %}
+            </p>
+            <div class="league-row__meta">
+                {% if item.latest_session %}
+                <span>Latest {{ session_label(item.latest_session) }}</span>
+                {% else %}
+                <span>No sessions yet</span>
+                {% endif %}
+                {% if item.leader %}
+                <span>Leader {{ item.leader.player_name }} · {{ item.leader.total_net_cents | money }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="league-row__metrics">
+            <div><span>Players</span><strong>{{ item.players_count }}</strong></div>
+            <div><span>Sessions</span><strong>{{ item.sessions_count }}</strong></div>
+            <div><span>Paid out</span><strong>{{ item.cash_paid_out_cents | money }}</strong></div>
+            <div><span>Open</span><strong class="{{ 'num-neg' if item.open_items_cents > 0 else 'num-muted' }}">{{ item.open_items_cents | money }}</strong></div>
+        </div>
+
+        <div class="league-row__leaders">
+            <div class="league-row__section-head">
+                <span class="kicker">Top 3</span>
+                <a href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">Full board</a>
+            </div>
+            {% if item.top_players %}
+            <ol class="league-top-list">
+                {% for player in item.top_players %}
+                <li>
+                    <span>{{ player.player_name }}</span>
+                    <strong class="{{ 'num-pos' if player.total_net_cents > 0 else 'num-neg' if player.total_net_cents < 0 else 'num-muted' }}">
+                        {{ '+' if player.total_net_cents > 0 else '' }}{{ player.total_net_cents | money }}
+                    </strong>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div class="league-row__empty">
+                <span>No results yet</span>
+                <a href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Create a session</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="league-row__actions">
+            <a class="btn btn--primary btn--sm" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">Open</a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Sessions</a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">Ledger</a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.players', league_ref=league.url_ref) }}">Players</a>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="panel empty-panel">
+    <h2 class="panel__title">No leagues yet</h2>
+    <p class="muted-text">Create the first league to start adding players, sessions, and ledger events.</p>
+    <a class="btn btn--primary" href="{{ url_for('leagues.new') }}">Create league</a>
+</div>
+{% endif %}
+
+{% endblock %}

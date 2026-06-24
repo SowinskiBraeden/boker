@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 from markupsafe import Markup
 
 from models import SessionEntry, SessionSummary
 
 BREAK_EVEN_TOLERANCE_CENTS = 100
+
+
+def slugify(value: str, fallback: str = "league") -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().casefold()).strip("-")
+    return slug or fallback
 
 
 def cents_to_dollars(cents: int) -> Markup:

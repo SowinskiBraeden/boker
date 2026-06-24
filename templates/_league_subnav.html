@@ -1,0 +1,18 @@
+<div class="subnav">
+    <div class="subnav__inner">
+        <a class="subnav__name" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">{{ league.name }}</a>
+        <span class="subnav__divider"></span>
+        <nav class="subnav__nav">
+            <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.dashboard' }}" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">Overview</a>
+            <a class="subnav__link {{ 'is-active' if request.endpoint in ('leagues.sessions', 'leagues.session_detail') }}" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Sessions</a>
+            <a class="subnav__link {{ 'is-active' if request.endpoint in ('leagues.players', 'leagues.player_detail') }}" href="{{ url_for('leagues.players', league_ref=league.url_ref) }}">Players</a>
+            <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.leaderboard' }}" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">Leaderboard</a>
+            {% if is_logged_in %}
+            <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.ledger' }}" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">Ledger</a>
+            {% endif %}
+            {% if is_owner is defined and is_owner %}
+            <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.league_settings' }}" href="{{ url_for('leagues.league_settings', league_ref=league.url_ref) }}">Settings</a>
+            {% endif %}
+        </nav>
+    </div>
+</div>

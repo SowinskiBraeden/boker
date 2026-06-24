@@ -20,7 +20,24 @@ public_bp = Blueprint("public", __name__)
 
 @public_bp.get("/")
 def home():
-    return redirect(url_for("public.leaderboard"))
+    return render_template("landing.html")
+
+
+@public_bp.get("/help")
+def help():
+    return render_template("docs.html")
+
+
+@public_bp.get("/explore")
+def explore():
+    from auth import is_logged_in
+    from db import database_extensions_available
+    from league_repositories import league_counts, list_public_leagues
+
+    q = request.args.get("q", "").strip()
+    leagues = list_public_leagues(q) if database_extensions_available() else []
+    counts = {league.id: league_counts(league.id) for league in leagues}
+    return render_template("explore.html", leagues=leagues, counts=counts, q=q)
 
 
 @public_bp.get("/leaderboard")

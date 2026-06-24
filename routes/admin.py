@@ -51,6 +51,7 @@ def login():
             username == current_app.config["ADMIN_USERNAME"]
             and password == current_app.config["ADMIN_PASSWORD"]
         ):
+            flask_session.pop("user_id", None)
             flask_session["is_admin"] = True
             flash("Admin login successful.", "success")
             return redirect(url_for("admin.dashboard"))
@@ -64,7 +65,7 @@ def login():
 def logout():
     flask_session.clear()
     flash("Logged out.", "success")
-    return redirect(url_for("public.leaderboard"))
+    return redirect(url_for("public.home"))
 
 
 @admin_bp.post("/admin/session-state")
