@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" class="admin-html">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Admin{% endblock %} · boker admin</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <meta name="robots" content="noindex,nofollow">
+</head>
+<body class="admin-body">
+
+<aside class="adm-sidebar">
+    <div class="adm-sidebar__logo">
+        <span class="adm-sidebar__wordmark">myboker.org</span>
+        <span class="adm-sidebar__tag">Admin</span>
+    </div>
+
+    <nav class="adm-nav">
+        <span class="adm-nav__section">Overview</span>
+        <a class="adm-nav__link {{ 'is-active' if request.endpoint == 'site_admin.dashboard' }}"
+           href="{{ url_for('site_admin.dashboard') }}">
+            <svg class="adm-nav__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+                <rect x="9" y="1" width="6" height="6" rx="1.5"/>
+                <rect x="1" y="9" width="6" height="6" rx="1.5"/>
+                <rect x="9" y="9" width="6" height="6" rx="1.5"/>
+            </svg>
+            Dashboard
+        </a>
+
+        <span class="adm-nav__section">Manage</span>
+        <a class="adm-nav__link {{ 'is-active' if request.endpoint and request.endpoint.startswith('site_admin.user') }}"
+           href="{{ url_for('site_admin.users') }}">
+            <svg class="adm-nav__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="5" r="3"/>
+                <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke-linecap="round"/>
+            </svg>
+            Users
+        </a>
+        <a class="adm-nav__link {{ 'is-active' if request.endpoint and request.endpoint.startswith('site_admin.league') }}"
+           href="{{ url_for('site_admin.leagues') }}">
+            <svg class="adm-nav__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="8" cy="8" r="6.5"/>
+                <path d="M5 8h6M8 5v6"/>
+            </svg>
+            Leagues
+        </a>
+    </nav>
+</aside>
+
+<div class="adm-main">
+    <header class="adm-header">
+        <div class="adm-header__left">
+            {% block breadcrumb %}
+            <h1 class="adm-header__title">{% block page_title %}{% endblock %}</h1>
+            {% endblock %}
+        </div>
+        <div class="adm-header__right">
+            <span class="adm-header__user">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.5">
+                    <circle cx="8" cy="5" r="3"/>
+                    <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke-linecap="round"/>
+                </svg>
+                {{ current_user_id }}
+            </span>
+            <a class="adm-header__back" href="{{ url_for('public.home') }}">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back to site
+            </a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="adm-flash-stack">
+                {% for category, message in messages %}
+                    <div class="adm-flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="adm-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

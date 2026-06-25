@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Users <span style="color:var(--faintest);font-weight:400;font-size:12px;margin-left:6px;">{{ total }}</span>{% endblock %}
+
+{% block content %}
+
+<form class="adm-search" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search by email…" autofocus>
+    <button class="adm-btn adm-btn--primary" type="submit">Search</button>
+    {% if search %}<a class="adm-btn adm-btn--ghost" href="{{ url_for('site_admin.users') }}">Clear</a>{% endif %}
+</form>
+
+{% if users %}
+<div class="adm-table-wrap">
+    <table class="adm-table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Joined</th>
+                <th>Last login</th>
+                <th>Leagues</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('site_admin.user_detail', user_id=user.id) }}">{{ user.email }}</a>
+                    {% if user.is_site_admin %}<span class="adm-pill adm-pill--admin" style="margin-left:4px;">admin</span>{% endif %}
+                </td>
+                <td class="cell-muted">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                <td class="cell-muted">
+                    {% if user.last_login_at %}{{ user.last_login_at.strftime('%b %d, %Y') }}{% else %}—{% endif %}
+                </td>
+                <td class="cell-muted">{{ league_counts.get(user.id, 0) }}</td>
+                <td>
+                    {% if user.disabled_at %}
+                        <span class="adm-pill adm-pill--disabled">Disabled</span>
+                    {% else %}
+                        <span class="adm-pill adm-pill--active">Active</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="adm-pagination">
+    {% if page > 1 %}
+        <a href="{{ url_for('site_admin.users', q=search, page=page-1) }}">← Prev</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+        <a href="{{ url_for('site_admin.users', q=search, page=page+1) }}">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p style="color:var(--faintest);font-size:13px;">
+    {% if search %}No users matching "{{ search }}".{% else %}No users yet.{% endif %}
+</p>
+{% endif %}
+
+{% endblock %}

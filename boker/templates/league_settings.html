@@ -64,17 +64,32 @@
                     <span>Email</span>
                     <input type="email" name="email" placeholder="friend@example.com" required>
                 </label>
-                <label style="flex:0 0 130px;">
+                <label style="flex:0 0 140px;">
                     <span>Role</span>
                     <select name="role">
                         <option value="manager">Manager</option>
                         <option value="viewer">Viewer</option>
                     </select>
                 </label>
-                <button class="btn btn--primary btn--sm" type="submit" style="flex:0 0 auto;margin-bottom:1px;">Send invite</button>
+                <button class="btn btn--primary" type="submit" style="flex:0 0 auto;">Send invite</button>
             </div>
         </form>
     </div>
+
+    {% if has_managers %}
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Ownership</p>
+                <h2 class="panel__title">Transfer league ownership</h2>
+            </div>
+        </div>
+        <div class="panel__body">
+            <p class="muted-text">Transfer ownership of this league to one of your managers. You will become a manager and lose owner privileges.</p>
+            <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-transfer" style="margin-top:8px;">Transfer ownership</button>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="panel">
         <div class="panel__head">
@@ -95,6 +110,48 @@
     </div>
 
 </div>
+
+{% if has_managers %}
+<div class="modal-backdrop" id="modal-transfer" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <h2 style="font-size:18px;margin:0;">Transfer ownership</h2>
+        </div>
+        <p class="modal-card__text">
+            Select a manager to become the new owner. You will become a manager and lose owner privileges. This cannot be undone without their help.<br><br>
+            Type the league name to confirm:
+        </p>
+        <form method="post" action="{{ url_for('leagues.transfer_ownership', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="padding:0 20px 12px;">
+                <label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px;">New owner</label>
+                <select name="new_owner_user_id" style="width:100%;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--r-sm);background:var(--field);color:var(--text);font-family:inherit;font-size:13px;">
+                    {% for membership, member_user in members %}
+                    {% if membership.role == 'manager' %}
+                    <option value="{{ member_user.id }}">{{ member_user.email }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="padding:0 20px 16px;">
+                <input
+                    class="modal-confirm-input"
+                    type="text"
+                    name="confirm_name"
+                    placeholder="{{ league.name }}"
+                    autocomplete="off"
+                    data-match="{{ league.name }}"
+                    data-target="transfer-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="transfer-confirm-btn" type="submit" disabled>Transfer ownership</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <div class="modal-backdrop" id="modal-archive" hidden>
     <div class="modal-card">

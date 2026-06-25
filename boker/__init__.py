@@ -13,6 +13,7 @@ from .extensions import csrf, limiter, mail
 from .routes.account import account_bp
 from .routes.leagues import leagues_bp
 from .routes.public import public_bp
+from .routes.site_admin import site_admin_bp
 from .storage import ensure_data_file
 from .utils import cents_to_dollars, safe_date_label
 
@@ -44,6 +45,7 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     app.register_blueprint(public_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(leagues_bp)
+    app.register_blueprint(site_admin_bp)
 
     @app.cli.command("init-db")
     def init_db_command() -> None:

@@ -75,6 +75,7 @@ class User(TimestampMixin, db.Model):
     email_verified_at = db.Column(db.DateTime(timezone=True), nullable=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
     disabled_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    is_site_admin = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class League(TimestampMixin, db.Model):

@@ -1,0 +1,209 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ league.name }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="adm-header__breadcrumb">
+        <a href="{{ url_for('site_admin.leagues') }}">Leagues</a>
+        <span class="adm-header__sep">/</span>
+        <span class="adm-header__title">{{ league.name }}</span>
+    </div>
+{% endblock %}
+
+{% block content %}
+
+<div class="adm-card">
+    <div class="adm-card__title">League info</div>
+    <dl class="adm-kv">
+        <div class="adm-kv-row">
+            <dt>Name</dt>
+            <dd><b>{{ league.name }}</b></dd>
+        </div>
+        <div class="adm-kv-row">
+            <dt>League ID</dt>
+            <dd class="adm-mono">{{ league.id }}</dd>
+        </div>
+        <div class="adm-kv-row">
+            <dt>Slug / key</dt>
+            <dd class="adm-mono">{{ league.slug }}-{{ league.public_key }}</dd>
+        </div>
+        {% if league.description %}
+        <div class="adm-kv-row">
+            <dt>Description</dt>
+            <dd>{{ league.description }}</dd>
+        </div>
+        {% endif %}
+        <div class="adm-kv-row">
+            <dt>Visibility</dt>
+            <dd>
+                {% if league.visibility == 'public' %}
+                    <span class="adm-pill adm-pill--public">Public</span>
+                {% else %}
+                    <span class="adm-pill adm-pill--private">Private</span>
+                {% endif %}
+            </dd>
+        </div>
+        <div class="adm-kv-row">
+            <dt>Owner</dt>
+            <dd>
+                {% if owner %}
+                    <a href="{{ url_for('site_admin.user_detail', user_id=owner.id) }}">{{ owner.email }}</a>
+                {% else %}
+                    <span style="color:var(--faintest)">Unknown</span>
+                {% endif %}
+            </dd>
+        </div>
+        <div class="adm-kv-row">
+            <dt>Created</dt>
+            <dd>{{ league.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</dd>
+        </div>
+        <div class="adm-kv-row">
+            <dt>Status</dt>
+            <dd>
+                {% if league.archived_at %}
+                    <span class="adm-pill adm-pill--archived">Archived</span>
+                    <span style="color:var(--faintest);font-size:12px;margin-left:6px;">{{ league.archived_at.strftime('%b %d, %Y') }}</span>
+                {% else %}
+                    <span class="adm-pill adm-pill--active">Active</span>
+                {% endif %}
+            </dd>
+        </div>
+    </dl>
+</div>
+
+<div class="adm-stat-grid" style="margin-bottom:20px;">
+    <div class="adm-stat">
+        <div class="adm-stat__label">Members</div>
+        <div class="adm-stat__val">{{ memberships | length }}</div>
+    </div>
+    <div class="adm-stat">
+        <div class="adm-stat__label">Players</div>
+        <div class="adm-stat__val">{{ player_count }}</div>
+        <div class="adm-stat__sub">added to this league</div>
+    </div>
+    <div class="adm-stat">
+        <div class="adm-stat__label">Sessions</div>
+        <div class="adm-stat__val">{{ session_count }}</div>
+        <div class="adm-stat__sub"><b>{{ open_sessions }}</b> open</div>
+    </div>
+    <div class="adm-stat">
+        <div class="adm-stat__label">Ledger events</div>
+        <div class="adm-stat__val">{{ event_count }}</div>
+    </div>
+</div>
+
+{% if not league.archived_at %}
+<div style="margin-bottom:20px;">
+    <a class="adm-btn adm-btn--ghost" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}" target="_blank">
+        View league →
+    </a>
+</div>
+{% endif %}
+
+{% if memberships %}
+<div class="adm-card">
+    <div class="adm-card__title">Members ({{ memberships | length }})</div>
+    <div class="adm-table-wrap" style="border:none;border-radius:0;margin:0 -20px -20px;">
+        <table class="adm-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Joined league</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for membership, user in memberships %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('site_admin.user_detail', user_id=user.id) }}">{{ user.email }}</a>
+                        {% if user.is_site_admin %}<span class="adm-pill adm-pill--admin" style="margin-left:4px;">admin</span>{% endif %}
+                        {% if user.disabled_at %}<span class="adm-pill adm-pill--disabled" style="margin-left:4px;">disabled</span>{% endif %}
+                    </td>
+                    <td><span class="adm-pill adm-pill--{{ membership.role }}">{{ membership.role }}</span></td>
+                    <td class="cell-muted">{{ membership.created_at.strftime('%b %d, %Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="adm-card">
+    <div class="adm-card__title">Admin actions</div>
+
+    <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:var(--faintest);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Send invite</div>
+        <form method="post" action="{{ url_for('site_admin.admin_invite_member', league_id=league.id) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;">
+                <label style="font-size:11px;color:var(--faintest);">Email</label>
+                <input type="email" name="email" placeholder="user@example.com" required
+                       style="padding:6px 10px;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);color:var(--text);font-size:12px;font-family:inherit;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;color:var(--faintest);">Role</label>
+                <select name="role" style="padding:6px 10px;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);color:var(--text);font-size:12px;font-family:inherit;">
+                    <option value="manager">Manager</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+            <button class="adm-btn adm-btn--primary adm-btn--sm" type="submit">Send invite</button>
+        </form>
+    </div>
+
+    {% set has_non_owners = [] %}
+    {% for membership, user in memberships %}{% if membership.role != 'owner' %}{% set _ = has_non_owners.append(1) %}{% endif %}{% endfor %}
+    {% if has_non_owners %}
+    <div style="margin-bottom:20px;border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--faintest);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Remove member</div>
+        <div class="adm-table-wrap" style="border:none;border-radius:0;margin:0;">
+            <table class="adm-table">
+                <thead>
+                    <tr><th>User</th><th>Role</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for membership, user in memberships %}
+                    {% if membership.role != 'owner' %}
+                    <tr>
+                        <td><a href="{{ url_for('site_admin.user_detail', user_id=user.id) }}">{{ user.email }}</a></td>
+                        <td><span class="adm-pill adm-pill--{{ membership.role }}">{{ membership.role }}</span></td>
+                        <td>
+                            <form method="post" action="{{ url_for('site_admin.admin_remove_member', league_id=league.id, user_id=user.id) }}" style="margin:0;display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="adm-btn adm-btn--danger adm-btn--sm" type="submit">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% set has_managers = [] %}
+    {% for membership, user in memberships %}{% if membership.role == 'manager' %}{% set _ = has_managers.append((membership, user)) %}{% endif %}{% endfor %}
+    {% if has_managers %}
+    <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-size:12px;font-weight:600;color:var(--faintest);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Transfer ownership</div>
+        <form method="post" action="{{ url_for('site_admin.admin_transfer_ownership', league_id=league.id) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;">
+                <label style="font-size:11px;color:var(--faintest);">New owner</label>
+                <select name="new_owner_user_id" style="padding:6px 10px;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);color:var(--text);font-size:12px;font-family:inherit;">
+                    {% for membership, user in memberships %}
+                    {% if membership.role == 'manager' %}
+                    <option value="{{ user.id }}">{{ user.email }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="adm-btn adm-btn--warn adm-btn--sm" type="submit">Transfer ownership</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

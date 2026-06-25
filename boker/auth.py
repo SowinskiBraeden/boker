@@ -77,3 +77,28 @@ def login_required(view):
         return view(*args, **kwargs)
 
     return wrapped_view
+
+
+def current_user_is_site_admin() -> bool:
+    user_id = current_user_id()
+    if not user_id:
+        return False
+    from .db import db
+    from .db_models import User
+    if db is None:
+        return False
+    user = db.session.get(User, user_id)
+    return bool(user and user.is_site_admin and user.disabled_at is None)
+
+
+def site_admin_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not is_logged_in():
+            return redirect(url_for("account.login", next=request.full_path))
+        if not current_user_is_site_admin():
+            from flask import abort
+            abort(403)
+        return view(*args, **kwargs)
+
+    return wrapped_view

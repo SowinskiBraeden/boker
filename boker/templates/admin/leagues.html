@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block title %}Leagues{% endblock %}
+{% block page_title %}Leagues <span style="color:var(--faintest);font-weight:400;font-size:12px;margin-left:6px;">{{ total }}</span>{% endblock %}
+
+{% block content %}
+
+<form class="adm-search" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search by name or owner email…" autofocus>
+    <select name="visibility" style="padding:8px 10px;background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);color:var(--text);font-size:13px;font-family:inherit;">
+        <option value="" {% if not visibility %}selected{% endif %}>All visibility</option>
+        <option value="public" {% if visibility == 'public' %}selected{% endif %}>Public</option>
+        <option value="private" {% if visibility == 'private' %}selected{% endif %}>Private</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);white-space:nowrap;">
+        <input type="checkbox" name="archived" value="1" {% if show_archived %}checked{% endif %}> Show archived
+    </label>
+    <button class="adm-btn adm-btn--primary" type="submit">Filter</button>
+    {% if search or visibility or show_archived %}
+        <a class="adm-btn adm-btn--ghost" href="{{ url_for('site_admin.leagues') }}">Clear</a>
+    {% endif %}
+</form>
+
+{% if leagues %}
+<div class="adm-table-wrap">
+    <table class="adm-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>Visibility</th>
+                <th>Members</th>
+                <th>Sessions</th>
+                <th>Created</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for league in leagues %}
+            <tr>
+                <td><a href="{{ url_for('site_admin.league_detail', league_id=league.id) }}">{{ league.name }}</a></td>
+                <td>
+                    {% set owner = owners_by_id.get(league.created_by_user_id) %}
+                    {% if owner %}
+                        <a href="{{ url_for('site_admin.user_detail', user_id=owner.id) }}">{{ owner.email }}</a>
+                    {% else %}
+                        <span class="cell-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if league.visibility == 'public' %}
+                        <span class="adm-pill adm-pill--public">Public</span>
+                    {% else %}
+                        <span class="adm-pill adm-pill--private">Private</span>
+                    {% endif %}
+                </td>
+                <td class="cell-muted">{{ member_counts.get(league.id, 0) }}</td>
+                <td class="cell-muted">{{ session_counts.get(league.id, 0) }}</td>
+                <td class="cell-muted">{{ league.created_at.strftime('%b %d, %Y') }}</td>
+                <td>
+                    {% if league.archived_at %}
+                        <span class="adm-pill adm-pill--archived">Archived</span>
+                    {% else %}
+                        <span class="adm-pill adm-pill--active">Active</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="adm-pagination">
+    {% if page > 1 %}
+        <a href="{{ url_for('site_admin.leagues', q=search, visibility=visibility, archived='1' if show_archived else '', page=page-1) }}">← Prev</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+        <a href="{{ url_for('site_admin.leagues', q=search, visibility=visibility, archived='1' if show_archived else '', page=page+1) }}">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p style="color:var(--faintest);font-size:13px;">
+    {% if search or visibility %}No leagues matching those filters.{% else %}No leagues yet.{% endif %}
+</p>
+{% endif %}
+
+{% endblock %}

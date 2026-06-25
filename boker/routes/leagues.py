@@ -1127,7 +1127,8 @@ def league_settings(league_ref: str):
     from ..repositories.leagues import list_members_for_league
 
     members = list_members_for_league(league.id)
-    return render_template("league_settings.html", league=league, form=form, is_owner=True, members=members)
+    has_managers = any(m.role == "manager" for m, u in members)
+    return render_template("league_settings.html", league=league, form=form, is_owner=True, members=members, has_managers=has_managers)
 
 
 @leagues_bp.post("/l/<league_ref>/settings/invite")
@@ -1194,6 +1195,37 @@ def remove_member(league_ref: str, user_id: str):
     db.session.commit()
     flash("Member removed.", "success")
     return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+
+@leagues_bp.post("/l/<league_ref>/settings/transfer")
+@login_required
+def transfer_ownership(league_ref: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from ..repositories.leagues import find_membership, transfer_league_ownership
+
+    league = require_league(league_ref, {"owner"})
+    new_owner_id = request.form.get("new_owner_user_id", "").strip()
+
+    if not new_owner_id:
+        flash("Select a manager to transfer ownership to.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+    membership = find_membership(league.id, new_owner_id)
+    if membership is None or membership.role != "manager":
+        flash("Target user must be a manager of this league.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+    try:
+        transfer_league_ownership(league.id, new_owner_id)
+        db.session.commit()
+        flash("Ownership transferred. You are now a manager of this league.", "success")
+    except ValueError as exc:
+        flash(str(exc), "error")
+
+    return redirect(url_for("leagues.dashboard", **league_url_values(league)))
 
 
 @leagues_bp.post("/l/<league_ref>/archive")

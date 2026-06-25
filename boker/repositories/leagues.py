@@ -322,3 +322,23 @@ def remove_league_member(league_id: str, user_id: str) -> None:
     ).one_or_none()
     if membership and membership.role != "owner":
         membership.disabled_at = utc_now()
+
+
+def transfer_league_ownership(league_id: str, new_owner_user_id: str) -> None:
+    current_owner = LeagueMembership.query.filter_by(
+        league_id=league_id,
+        role="owner",
+        disabled_at=None,
+    ).one_or_none()
+    new_owner_membership = LeagueMembership.query.filter_by(
+        league_id=league_id,
+        user_id=new_owner_user_id,
+        disabled_at=None,
+    ).one_or_none()
+    if current_owner is None or new_owner_membership is None:
+        raise ValueError("Invalid transfer: owner or target not found.")
+    league = db.session.get(League, league_id)
+    if league:
+        league.created_by_user_id = new_owner_user_id
+    current_owner.role = "manager"
+    new_owner_membership.role = "owner"
