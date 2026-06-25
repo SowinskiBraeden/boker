@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
+
 import click
 from flask import Flask
 
 from auth import current_user_id, is_logged_in
-from config import Config
+from config import Config, ProductionConfig
 from db import database_extensions_available, db, init_database
 from extensions import csrf, limiter, mail
 from routes.account import account_bp
@@ -17,7 +19,8 @@ from utils import cents_to_dollars, safe_date_label
 
 def create_app(config_overrides: dict | None = None) -> Flask:
     app = Flask(__name__)
-    app.config.from_object(Config)
+    cfg = ProductionConfig if os.getenv("FLASK_ENV") == "production" else Config
+    app.config.from_object(cfg)
     if config_overrides:
         app.config.update(config_overrides)
 
@@ -60,4 +63,4 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1")

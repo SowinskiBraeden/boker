@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from auth import (
@@ -97,7 +99,9 @@ def login():
             flash("That account is disabled.", "error")
         else:
             log_user_in(user.id)
-            next_url = request.args.get("next") or url_for("leagues.index")
+            raw_next = request.args.get("next", "")
+            parsed = urlparse(raw_next)
+            next_url = raw_next if (raw_next and not parsed.netloc and not parsed.scheme) else url_for("leagues.index")
             flash("Logged in.", "success")
             return redirect(next_url)
 
