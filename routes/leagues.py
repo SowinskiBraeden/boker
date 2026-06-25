@@ -1291,6 +1291,8 @@ def import_ledger_csv(league_ref: str):
         flash(f"CSV header mismatch. Expected: {', '.join(CSV_HEADERS)}", "error")
         return redirect(url_for("leagues.ledger", **league_url_values(league)))
 
+    from db_models import PokerSession, make_session
+
     sessions = list_sessions_for_league(league.id)
     session_by_ref = {session_event_ref(s): s for s in sessions}
 
@@ -1302,6 +1304,43 @@ def import_ledger_csv(league_ref: str):
         for e in list_ledger_events_for_league(league.id)
         if e.legacy_event_id
     }
+
+    # Auto-create any sessions referenced in the CSV that don't exist yet.
+    # Refs are "YYYY-MM-DD-NN" so we can recover exact date and sequence.
+    missing_refs: set[str] = set()
+    for row in csv.DictReader(lines):
+        ref = row.get("session_id", "").strip()
+        if ref and ref not in session_by_ref:
+            missing_refs.add(ref)
+
+    sessions_created = 0
+    for ref in sorted(missing_refs):
+        try:
+            date_part, seq_part = ref.rsplit("-", 1)
+            session_date = date.fromisoformat(date_part)
+            sequence = int(seq_part)
+        except (ValueError, IndexError):
+            continue  # malformed ref — row will produce a clear error below
+
+        existing = PokerSession.query.filter_by(
+            league_id=league.id,
+            session_date=session_date,
+            sequence_on_date=sequence,
+        ).one_or_none()
+        if existing:
+            session_by_ref[ref] = existing
+            continue
+
+        new_session = make_session(
+            league_id=league.id,
+            session_date=session_date,
+            sequence_on_date=sequence,
+            status="closed",
+        )
+        db.session.add(new_session)
+        db.session.flush()
+        session_by_ref[ref] = new_session
+        sessions_created += 1
 
     errors: list[str] = []
     queued: list[dict] = []
@@ -1373,5 +1412,8 @@ def import_ledger_csv(league_ref: str):
     db.session.commit()
     s_count = f"{len(queued)} event{'s' if len(queued) != 1 else ''}"
     s_skip = f"{skipped} duplicate{'s' if skipped != 1 else ''}"
-    flash(f"Imported {s_count}, skipped {s_skip}.", "success")
+    parts = [f"Imported {s_count}", f"skipped {s_skip}"]
+    if sessions_created:
+        parts.append(f"created {sessions_created} session{'s' if sessions_created != 1 else ''}")
+    flash(", ".join(parts) + ".", "success")
     return redirect(url_for("leagues.ledger", **league_url_values(league)))
