@@ -1,132 +1,188 @@
-# Poker Portal
+# Boker
 
-A small Flask app I put together for tracking our low-stakes hold'em nights without having to keep a spreadsheet open all the time.
+A Flask web app for tracking low-stakes poker nights. Multiple leagues, per-player stats, session history, leaderboards, and a full double-entry ledger — without keeping a spreadsheet open.
 
-The idea is pretty simple: public pages for stats and session history, plus a small admin area for recording buy-ins, gross cashout results, actual paid-out cash, and notes. The data sits in a CSV audit log, so everything is append-only and easy to follow later.
+## Features
 
-## What it does
-
-- all-time leaderboard
-- per-session pages
-- per-player stat pages
-- admin login for recording events
-- open / closed session tracking
-- actual cash payout tracking with `paid_out` events
-- debt repayments and write-offs with `debt_repayment` / `writeoff` events
-- session and player charts
-- CSV import / export from the admin page
-- append-only `entries.csv` ledger instead of overwriting old rows
+- User accounts with registration and login
+- Create and manage multiple leagues
+- Invite league members by email with role-based access (owner / manager / viewer)
+- Public or private league visibility
+- Per-session event ledger (buy-ins, cashouts, fronts, rollovers, payouts)
+- All-time leaderboard with rank tracking and eligibility thresholds
+- Per-player stat pages with session history and charts
+- Open / closed session tracking
+- Debt tracking: fronts, repayments, and write-offs
+- CSV export of any league ledger
+- CSV import for migrating historical data
+- Rate limiting and CSRF protection
 
 ## Stack
 
-Built with a pretty lightweight setup:
-
-- Python
-- Flask
-- Jinja templates
+- Python 3 / Flask
+- SQLAlchemy + Flask-Migrate (SQLite for local dev, PostgreSQL in production)
+- Jinja2 templates
 - Chart.js
-- plain CSS
-- CSV event log for storage
+- Plain CSS
+
+## Setup
+
+### 1. Clone and create a virtual environment
+
+```bash
+git clone https://github.com/SowinskiBraeden/boker
+cd boker
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and set at minimum:
+
+```env
+SECRET_KEY=replace-this-with-a-long-random-string
+```
+
+The other values can be left as defaults for local development. See the [Environment variables](#environment-variables) section for the full list.
+
+### 4. Initialize the database
+
+```bash
+flask --app app db upgrade
+```
+
+This creates `data/boker-dev.sqlite3` and applies all migrations. Run this again whenever you pull new migrations.
+
+### 5. Run the development server
+
+```bash
+flask --app app run
+```
+
+Then open `http://127.0.0.1:5000` and register an account.
+
+## Environment variables
+
+All variables are read from `.env` at startup. Copy `.env.example` as a starting point.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SECRET_KEY` | Yes | `change-this-before-deploying` | Flask session signing key. Use a long random string in production. |
+| `DATABASE_URL` | No | `sqlite:///data/boker-dev.sqlite3` | SQLAlchemy connection URL. For production use a `postgresql+psycopg://` URL. |
+| `FLASK_ENV` | No | _(unset)_ | Set to `production` to enable secure cookie flags. |
+| `APP_BASE_URL` | No | `http://localhost:5000` | Base URL used when generating links in email (invite, password reset). |
+| `MAIL_SERVER` | No | _(empty)_ | SMTP server hostname. Email features are disabled if left blank. |
+| `MAIL_PORT` | No | `587` | SMTP port. |
+| `MAIL_USE_TLS` | No | `true` | Set to `false` to disable STARTTLS. |
+| `MAIL_USERNAME` | No | _(empty)_ | SMTP username / API key. |
+| `MAIL_PASSWORD` | No | _(empty)_ | SMTP password / API key secret. |
+| `MAIL_DEFAULT_SENDER` | No | `noreply@myboker.org` | From address on outgoing mail. |
+| `FLASK_DEBUG` | No | `0` | Set to `1` to enable the Flask reloader and debugger. |
+
+## Running tests
+
+```bash
+python -m pytest tests/
+```
+
+Or with the standard library runner:
+
+```bash
+python -m unittest discover tests/
+```
+
+## Production deployment
+
+### Database
+
+Set `DATABASE_URL` to a PostgreSQL connection string:
+
+```env
+DATABASE_URL=postgresql+psycopg://user:password@host/dbname
+```
+
+`psycopg` (v3) is already in `requirements.txt`.
+
+After deploying, run migrations:
+
+```bash
+flask --app app db upgrade
+```
+
+### Environment
+
+Set `FLASK_ENV=production` to enable:
+- `Secure` flag on the session cookie
+- `SameSite=Strict` cookie policy
+- HTTPS preferred URL scheme
+
+Generate a strong secret key:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### WSGI
+
+Run with a production WSGI server (gunicorn, uWSGI, etc.) rather than the Flask dev server:
+
+```bash
+gunicorn "app:app"
+```
 
 ## Ledger model
 
-The app treats `data/entries.csv` as the source of truth.
+Each event in the ledger is an append-only row. Nothing is edited or deleted — corrections are new rows. This keeps the full history readable.
 
-Each row is an event, not a final snapshot. Instead of editing an old row, I append another one. That keeps rebuys, corrections, payouts, and session state changes visible in the log instead of hiding them behind edits.
+### Event types
 
-Current event types:
+| Event | Description |
+|---|---|
+| `buyin` | Player buys chips. Counts as poker investment and real cash in. |
+| `front` | House fronts chips to a player. Counts as poker investment; cash is owed back. |
+| `cashout` | Gross chip result at end of session. Not cash movement — sets the payout claim. |
+| `paid_out` | Cash physically paid out to a player. Settles the payout claim. |
+| `rollover_out` | Player carries winnings into the next session instead of being paid. Settles source session without cash movement. |
+| `rollover_in` | Carried funds enter play in the destination session. Counts as investment without new cash in. |
+| `payout_carry_in` | Prior-session credit applied to a later payout. Increases the payout due without counting as investment. |
+| `debt_repayment` | Player repays a front outside of poker. Counts as real cash in; reduces the receivable. |
+| `writeoff` | Front is forgiven. Resolves the receivable without cash. |
+| `note` | Free-text bookkeeping note. No financial effect. |
+| `session_open` | Marks a session as live. |
+| `session_close` | Marks a session as closed. |
 
-- `buyin`
-- `front`
-- `debt_repayment`
-- `writeoff`
-- `cashout`
-- `paid_out`
-- `rollover_in`
-- `payout_carry_in`
-- `rollover_out`
-- `note`
-- `session_open`
-- `session_close`
+Legacy ledgers may contain `paid`, `front_collected`, or `front_writeoff` — the app reads these as aliases for `paid_out`, `debt_repayment`, and `writeoff`.
 
-A few examples:
+### Accounting summary
 
-- another `buyin` for a rebuy
-- another `cashout` if chip counts are corrected later
-- a `paid_out` event when someone is actually settled up
-- a `debt_repayment` event when a front is repaid outside poker
-- a `writeoff` event when a front will not be collected
-- a `note` event for bookkeeping context
-- `session_open` / `session_close` to mark whether a game night is still live
-
-Accounting in the app keeps poker results separate from banker cashflow:
-
-- poker investment is `buyin + front + rollover_in`
-- poker net is `cashout - poker investment`
-- real cash in is `buyin + debt_repayment`
-- real cash out is `paid_out`
-- `rollover_out` settles the source session without counting as cash out
-- `rollover_in` enters play in the destination session without counting as cash in
-- `payout_carry_in` records prior-session value carried into a later payout; it increases the destination payout due without counting as poker investment or cash in
-- `writeoff` resolves a receivable without counting as cash in
-
-Older ledgers may still contain `paid`, `front_collected`, or `front_writeoff`.
-The app reads those historical names as aliases for `paid_out`,
-`debt_repayment`, and `writeoff`.
-
-It is still just a small side project, but I wanted the event model to stay clean enough that the numbers are easy to trust and the history is easy to read back through.
+- **Poker investment** = `buyin + front + rollover_in`
+- **Poker net** = `cashout − investment`
+- **Real cash in** = `buyin + debt_repayment`
+- **Real cash out** = `paid_out`
+- **Rollover-out** settles a session without cash leaving the book
+- **Writeoff** resolves a receivable without cash coming in
 
 ## CSV format
 
-Main file:
-
-`data/entries.csv`
+Each league's ledger can be exported and re-imported as CSV.
 
 Header:
 
-```csv
+```
 id,created_at,session_id,session_date,player_name,event_type,amount_cents,note,actor
 ```
 
-Amounts are stored in cents to avoid floating-point issues.
+Amounts are stored in cents (integer) to avoid floating-point rounding.
 
-## Running it locally
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python app.py
-```
-
-Then open:
-
-`http://127.0.0.1:8000`
-
-## Environment values
-
-The app reads these from `.env`:
-
-- `SECRET_KEY`
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-
-Example:
-
-```env
-SECRET_KEY=change-this
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change-me
-```
-
-## Notes
-
-A few choices here were deliberate:
-
-- no database for now
-- no user accounts, just one admin login
-- public-facing stats pages, admin-only controls
-- CSV backup before importing a replacement ledger
-
-If I ever decide to take it further, the first real upgrade would probably be moving the storage layer to SQLite while keeping the rest of the app roughly the same.
+Import validates headers, event types, session references, and player names before writing anything. Rows with a matching `id` are skipped so re-importing a previous export is safe.
