@@ -1256,7 +1256,7 @@ def import_ledger_csv(league_ref: str):
         list_ledger_events_for_league,
         session_event_ref,
     )
-    from league_repositories import list_players_for_league, list_sessions_for_league
+    from league_repositories import create_player, list_players_for_league, list_sessions_for_league, unique_player_slug
     from storage import CSV_HEADERS
 
     league = require_league(league_ref, {"owner", "manager"})
@@ -1342,6 +1342,26 @@ def import_ledger_csv(league_ref: str):
         session_by_ref[ref] = new_session
         sessions_created += 1
 
+    # Auto-create any players referenced in the CSV that don't exist yet.
+    # Only rows that need a player (not note/session_open/session_close) are considered.
+    non_player_types = {"note", "session_open", "session_close"}
+    missing_players: set[str] = set()
+    for row in csv.DictReader(lines):
+        raw_type = row.get("event_type", "").strip()
+        if canonical_event_type(raw_type) in non_player_types:
+            continue
+        name = row.get("player_name", "").strip()
+        if name and name.casefold() not in player_by_name:
+            missing_players.add(name)
+
+    players_created = 0
+    for name in sorted(missing_players):
+        slug = unique_player_slug(league.id, name)
+        new_player = create_player(league.id, name, slug)
+        db.session.flush()
+        player_by_name[name.casefold()] = new_player
+        players_created += 1
+
     errors: list[str] = []
     queued: list[dict] = []
     skipped = 0
@@ -1415,5 +1435,7 @@ def import_ledger_csv(league_ref: str):
     parts = [f"Imported {s_count}", f"skipped {s_skip}"]
     if sessions_created:
         parts.append(f"created {sessions_created} session{'s' if sessions_created != 1 else ''}")
+    if players_created:
+        parts.append(f"created {players_created} player{'s' if players_created != 1 else ''}")
     flash(", ".join(parts) + ".", "success")
     return redirect(url_for("leagues.ledger", **league_url_values(league)))
