@@ -16,12 +16,29 @@
 
 <div class="stack">
 
+    {% if not user.email_verified_at %}
+    <form class="panel form-card" method="post" action="{{ url_for('account.resend_verification') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow" style="color:var(--warn);">Verification</p>
+            <h2 class="panel__title" style="margin-top:4px;">Email not verified</h2>
+        </div>
+        <p class="muted-text" style="margin:0;">Your email address hasn't been verified yet. Check your inbox or resend the email below.</p>
+        <div>
+            <button class="btn btn--primary" type="submit">Resend verification email</button>
+        </div>
+    </form>
+    {% endif %}
+
     <form class="panel form-card" method="post" action="{{ url_for('account.update_email') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
             <p class="eyebrow">Profile</p>
             <h2 class="panel__title" style="margin-top:4px;">Email address</h2>
         </div>
+        {% if user.email_verified_at %}
+        <p class="verify-status verify-status--ok">Verified on {{ user.email_verified_at.strftime('%b %d, %Y') }}</p>
+        {% endif %}
         <label>
             <span>Email</span>
             <input type="email" name="email" value="{{ user.email }}" required autocomplete="email">

@@ -28,6 +28,7 @@
                 <td>
                     <a href="{{ url_for('site_admin.user_detail', user_id=user.id) }}">{{ user.email }}</a>
                     {% if user.is_site_admin %}<span class="adm-pill adm-pill--admin" style="margin-left:4px;">admin</span>{% endif %}
+                    {% if not user.email_verified_at %}<span class="adm-pill adm-pill--warn" style="margin-left:4px;">unverified</span>{% endif %}
                 </td>
                 <td class="cell-muted">{{ user.created_at.strftime('%b %d, %Y') }}</td>
                 <td class="cell-muted">

@@ -36,10 +36,18 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 
     @app.context_processor
     def inject_globals() -> dict:
+        uid = current_user_id()
+        email_verified = None
+        if uid and db is not None and database_extensions_available():
+            from .db_models import User
+            user = db.session.get(User, uid)
+            if user is not None:
+                email_verified = user.email_verified_at is not None
         return {
             "app_version": app.config["APP_VERSION"],
-            "current_user_id": current_user_id(),
-            "is_logged_in": is_logged_in(),
+            "current_user_id": uid,
+            "is_logged_in": uid is not None,
+            "email_verified": email_verified,
         }
 
     app.register_blueprint(public_bp)

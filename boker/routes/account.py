@@ -7,6 +7,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from ..auth import (
     current_user_id,
+    generate_email_verification_token,
     generate_invite_token,
     generate_reset_token,
     hash_password,
@@ -14,6 +15,7 @@ from ..auth import (
     log_user_out,
     login_required,
     normalize_email,
+    verify_email_verification_token,
     verify_invite_token,
     verify_password,
     verify_reset_token,
@@ -67,7 +69,16 @@ def register():
             user = create_user(email, password)
             db.session.commit()
             log_user_in(user.id)
-            flash("Account created.", "success")
+            try:
+                from flask import current_app
+                from ..emails import send_email_verification
+                token = generate_email_verification_token(user.id)
+                base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
+                verify_url = f"{base_url}{url_for('account.verify_email', token=token)}"
+                send_email_verification(user.email, verify_url)
+            except Exception:
+                pass
+            flash("Account created. Check your email to verify your address.", "success")
             return redirect(url_for("leagues.new"))
 
     return render_template("account_register.html", form=form)
@@ -343,3 +354,67 @@ def accept_invite(token):
     db.session.commit()
     flash(f"Welcome to {league.name}! You joined as {data['role']}.", "success")
     return redirect(url_for("leagues.dashboard", league_ref=league.url_ref))
+
+
+@account_bp.get("/verify-email/<token>")
+def verify_email(token):
+    user_id = verify_email_verification_token(token)
+    if user_id is None:
+        flash("That verification link is invalid or has expired.", "error")
+        return redirect(url_for("account.settings") if current_user_id() else url_for("account.login"))
+
+    if not db_ready():
+        flash("Account database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from ..db_models import User, utc_now
+
+    user = db.session.get(User, user_id)
+    if user is None or user.disabled_at is not None:
+        flash("That verification link is invalid or has expired.", "error")
+        return redirect(url_for("public.home"))
+
+    if user.email_verified_at is not None:
+        flash("Your email address is already verified.", "info")
+        return redirect(url_for("account.settings"))
+
+    user.email_verified_at = utc_now()
+    db.session.commit()
+    flash("Email address verified.", "success")
+    return redirect(url_for("account.settings"))
+
+
+@account_bp.post("/resend-verification")
+@login_required
+def resend_verification():
+    if not db_ready():
+        flash("Account database is not available.", "error")
+        return redirect(url_for("account.settings"))
+
+    from flask import current_app
+
+    from ..db_models import User
+    from ..emails import MailNotConfiguredError, send_email_verification
+
+    user = db.session.get(User, current_user_id())
+    if user is None:
+        flash("User not found.", "error")
+        return redirect(url_for("account.settings"))
+
+    if user.email_verified_at is not None:
+        flash("Your email address is already verified.", "info")
+        return redirect(url_for("account.settings"))
+
+    try:
+        token = generate_email_verification_token(user.id)
+        base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
+        verify_url = f"{base_url}{url_for('account.verify_email', token=token)}"
+        send_email_verification(user.email, verify_url)
+        flash("Verification email sent. Check your inbox.", "success")
+    except MailNotConfiguredError:
+        flash("Could not send verification email. Please try again later.", "error")
+    except Exception:
+        current_app.logger.exception("Failed to send verification email to %s", user.email)
+        flash("Could not send verification email. Please try again later.", "error")
+
+    return redirect(url_for("account.settings"))

@@ -23,6 +23,17 @@ def verify_reset_token(token: str, max_age: int = 3600) -> str | None:
         return None
 
 
+def generate_email_verification_token(user_id: str) -> str:
+    return _serializer().dumps(user_id, salt="email-verify")
+
+
+def verify_email_verification_token(token: str, max_age: int = 86400) -> str | None:
+    try:
+        return _serializer().loads(token, salt="email-verify", max_age=max_age)
+    except (SignatureExpired, BadSignature):
+        return None
+
+
 def generate_invite_token(league_id: str, email: str, role: str, invited_by_user_id: str) -> str:
     return _serializer().dumps(
         {"league_id": league_id, "email": email, "role": role, "invited_by": invited_by_user_id},

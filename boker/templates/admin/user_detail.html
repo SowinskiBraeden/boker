@@ -31,6 +31,17 @@
             <dd>{% if user.last_login_at %}{{ user.last_login_at.strftime('%b %d, %Y at %H:%M UTC') }}{% else %}<span style="color:var(--faintest)">Never</span>{% endif %}</dd>
         </div>
         <div class="adm-kv-row">
+            <dt>Email verified</dt>
+            <dd>
+                {% if user.email_verified_at %}
+                    <span class="adm-pill adm-pill--active">Yes</span>
+                    <span style="color:var(--faintest);font-size:12px;margin-left:6px;">{{ user.email_verified_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+                {% else %}
+                    <span class="adm-pill adm-pill--warn">No</span>
+                {% endif %}
+            </dd>
+        </div>
+        <div class="adm-kv-row">
             <dt>Status</dt>
             <dd>
                 {% if user.disabled_at %}
@@ -80,6 +91,18 @@
             <div class="adm-reset-box__url">{{ reset_url }}</div>
         </div>
         {% endif %}
+    </div>
+
+    <div class="adm-section" style="margin-bottom:20px;">
+        <div class="adm-section__title" style="margin-bottom:8px;">Email verification</div>
+        <div class="adm-actions">
+            <form class="adm-inline-form" method="post" action="{{ url_for('site_admin.send_verification', user_id=user.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="adm-btn adm-btn--ghost" type="submit"{% if user.disabled_at or user.email_verified_at %} disabled title="{% if user.email_verified_at %}Already verified{% else %}Account is disabled{% endif %}"{% endif %}>
+                    Send verification email
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="adm-section" style="margin-bottom:20px;">

@@ -283,6 +283,43 @@ def send_reset(user_id: str):
     return redirect(url_for("site_admin.user_detail", user_id=user_id, show_reset="1"))
 
 
+@site_admin_bp.post("/users/<user_id>/send-verification")
+@site_admin_required
+def send_verification(user_id: str):
+    from flask import current_app
+
+    from ..auth import generate_email_verification_token
+    from ..db_models import User
+    from ..emails import MailNotConfiguredError, send_email_verification
+
+    user = db.session.get(User, user_id)
+    if user is None:
+        flash("User not found.", "error")
+        return redirect(url_for("site_admin.users"))
+
+    if user.disabled_at is not None:
+        flash("Cannot send a verification email to a disabled account.", "error")
+        return redirect(url_for("site_admin.user_detail", user_id=user_id))
+
+    if user.email_verified_at is not None:
+        flash("That account's email is already verified.", "error")
+        return redirect(url_for("site_admin.user_detail", user_id=user_id))
+
+    try:
+        token = generate_email_verification_token(user.id)
+        base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
+        verify_url = f"{base_url}{url_for('account.verify_email', token=token)}"
+        send_email_verification(user.email, verify_url)
+        flash(f"Verification email sent to {user.email}.", "success")
+    except MailNotConfiguredError:
+        flash("Email not sent (mail not configured).", "error")
+    except Exception:
+        current_app.logger.exception("Failed to send verification email to %s", user.email)
+        flash("Email not sent (mail not configured).", "error")
+
+    return redirect(url_for("site_admin.user_detail", user_id=user_id))
+
+
 @site_admin_bp.post("/users/<user_id>/disable")
 @site_admin_required
 def disable_user(user_id: str):

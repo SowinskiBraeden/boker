@@ -44,9 +44,11 @@ class Config:
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
     MAIL_USE_TLS: bool = os.getenv("MAIL_USE_TLS", "true").lower() in ("true", "1", "yes")
+    MAIL_USE_SSL: bool = os.getenv("MAIL_USE_SSL", "false").lower() in ("true", "1", "yes")
     MAIL_USERNAME: str | None = os.getenv("MAIL_USERNAME") or None
     MAIL_PASSWORD: str | None = os.getenv("MAIL_PASSWORD") or None
     MAIL_DEFAULT_SENDER: str = os.getenv("MAIL_DEFAULT_SENDER", "noreply@myboker.org")
+    MAIL_SEND_TIMEOUT: float = float(os.getenv("MAIL_SEND_TIMEOUT", "5"))
 
 
 class ProductionConfig(Config):

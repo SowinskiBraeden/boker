@@ -3359,3 +3359,44 @@ select.control { cursor: pointer; }
 .card-menu__item:hover { background: var(--field); color: var(--text); }
 .card-menu__item--warn { color: var(--neg); }
 .card-menu__item--warn:hover { background: var(--neg-tint); color: var(--neg); }
+
+/* ================================================================
+   EMAIL VERIFICATION
+   ================================================================ */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  background: var(--warn-tint);
+  border-bottom: 1px solid var(--warn-tint-bd);
+  font: 400 13px/1.4 var(--font-ui);
+  color: var(--warn);
+  flex-wrap: wrap;
+}
+.verify-banner__btn {
+  all: unset;
+  cursor: pointer;
+  font: 400 13px/1.4 var(--font-ui);
+  color: var(--warn);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.verify-banner__btn:hover { opacity: .8; }
+
+.verify-status {
+  font: 400 12px/1 var(--font-ui);
+  margin: 0 0 4px;
+  letter-spacing: .02em;
+}
+.verify-status--ok  { color: var(--pos); }
+.verify-status--warn { color: var(--warn); }
+
+.link-btn {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+}
+.link-btn:hover { opacity: .8; }

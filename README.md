@@ -85,9 +85,11 @@ All variables are read from `.env` at startup. Copy `.env.example` as a starting
 | `MAIL_SERVER` | No | _(empty)_ | SMTP server hostname. Email features are disabled if left blank. |
 | `MAIL_PORT` | No | `587` | SMTP port. |
 | `MAIL_USE_TLS` | No | `true` | Set to `false` to disable STARTTLS. |
+| `MAIL_USE_SSL` | No | `false` | Set to `true` for implicit TLS SMTP, commonly port `465`. |
 | `MAIL_USERNAME` | No | _(empty)_ | SMTP username / API key. |
 | `MAIL_PASSWORD` | No | _(empty)_ | SMTP password / API key secret. |
 | `MAIL_DEFAULT_SENDER` | No | `noreply@myboker.org` | From address on outgoing mail. |
+| `MAIL_SEND_TIMEOUT` | No | `5` | Maximum seconds to wait on an SMTP send attempt. |
 | `FLASK_DEBUG` | No | `0` | Set to `1` to enable the Flask reloader and debugger. |
 
 ## Running tests

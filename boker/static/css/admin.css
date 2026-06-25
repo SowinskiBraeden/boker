@@ -372,6 +372,7 @@
 .adm-pill--manager { background: var(--warn-tint);    color: var(--warn);   border: 1px solid var(--warn-tint-bd); }
 .adm-pill--viewer  { background: var(--surface-raised); color: var(--faintest); border: 1px solid var(--border); }
 .adm-pill--archived{ background: var(--surface-raised); color: var(--faintest-2); border: 1px solid var(--border); }
+.adm-pill--warn    { background: var(--warn-tint);     color: var(--warn);   border: 1px solid var(--warn-tint-bd); }
 
 /* ---- search bar ---- */
 .adm-search {

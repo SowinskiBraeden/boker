@@ -1,10 +1,41 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+import socket
+
 from flask import current_app
 from flask_mail import Message
 
 from .extensions import mail
+
+
+class MailNotConfiguredError(RuntimeError):
+    pass
+
+
+@contextmanager
+def _mail_socket_timeout() -> Iterator[None]:
+    timeout = current_app.config.get("MAIL_SEND_TIMEOUT")
+    if timeout is None:
+        yield
+        return
+
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(float(timeout))
+    try:
+        yield
+    finally:
+        socket.setdefaulttimeout(previous_timeout)
+
+
+def _send(msg: Message) -> None:
+    if not str(current_app.config.get("MAIL_SERVER", "")).strip():
+        raise MailNotConfiguredError("MAIL_SERVER is not configured.")
+
+    with _mail_socket_timeout():
+        mail.send(msg)
 
 
 def send_password_reset(to_email: str, reset_url: str) -> None:
@@ -19,7 +50,22 @@ def send_password_reset(to_email: str, reset_url: str) -> None:
         ),
         sender=current_app.config.get("MAIL_DEFAULT_SENDER"),
     )
-    mail.send(msg)
+    _send(msg)
+
+
+def send_email_verification(to_email: str, verify_url: str) -> None:
+    msg = Message(
+        subject="Verify your myboker.org email address",
+        recipients=[to_email],
+        body=(
+            f"Thanks for signing up for myboker.org!\n\n"
+            f"Please verify your email address by clicking the link below:\n\n"
+            f"{verify_url}\n\n"
+            f"This link expires in 24 hours. If you did not create an account, you can ignore this email."
+        ),
+        sender=current_app.config.get("MAIL_DEFAULT_SENDER"),
+    )
+    _send(msg)
 
 
 def send_league_invite(to_email: str, league_name: str, invite_url: str, invited_by_email: str) -> None:
@@ -34,4 +80,4 @@ def send_league_invite(to_email: str, league_name: str, invite_url: str, invited
         ),
         sender=current_app.config.get("MAIL_DEFAULT_SENDER"),
     )
-    mail.send(msg)
+    _send(msg)

@@ -63,6 +63,16 @@
             {% endif %}
         {% endwith %}
 
+        {% if is_logged_in and email_verified is not none and not email_verified %}
+        <div class="verify-banner">
+            <span>Your email address hasn't been verified.</span>
+            <form method="post" action="{{ url_for('account.resend_verification') }}" style="margin:0;display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="verify-banner__btn" type="submit">Resend verification email</button>
+            </form>
+        </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
 
         <footer class="site-footer" aria-label="Site footer">
