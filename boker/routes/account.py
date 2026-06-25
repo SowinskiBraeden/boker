@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from auth import (
+from ..auth import (
     current_user_id,
     generate_invite_token,
     generate_reset_token,
@@ -18,8 +18,8 @@ from auth import (
     verify_password,
     verify_reset_token,
 )
-from db import database_extensions_available, db
-from extensions import limiter
+from ..db import database_extensions_available, db
+from ..extensions import limiter
 
 account_bp = Blueprint("account", __name__, url_prefix="/account")
 
@@ -49,7 +49,7 @@ def register():
     }
 
     if request.method == "POST":
-        from league_repositories import create_user, find_user_by_email
+        from ..repositories.leagues import create_user, find_user_by_email
 
         email = normalize_email(form["email"])
         password = request.form.get("password", "")
@@ -88,7 +88,7 @@ def login():
     }
 
     if request.method == "POST":
-        from league_repositories import find_user_by_email
+        from ..repositories.leagues import find_user_by_email
 
         user = find_user_by_email(form["email"])
         password = request.form.get("password", "")
@@ -122,7 +122,7 @@ def settings():
         flash("Account database is not available.", "error")
         return redirect(url_for("leagues.index"))
 
-    from db_models import User
+    from ..db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -139,7 +139,7 @@ def update_email():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import User
+    from ..db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -154,7 +154,7 @@ def update_email():
     elif not verify_password(user.password_hash, current_password):
         flash("Current password is incorrect.", "error")
     else:
-        from league_repositories import find_user_by_email
+        from ..repositories.leagues import find_user_by_email
 
         existing = find_user_by_email(new_email)
         if existing and existing.id != user.id:
@@ -174,7 +174,7 @@ def update_password():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import User
+    from ..db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -206,7 +206,7 @@ def delete_account():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import League, User, utc_now
+    from ..db_models import League, User, utc_now
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -246,9 +246,10 @@ def forgot_password():
             flash("Account database is not available.", "error")
             return redirect(url_for("account.forgot_password"))
 
-        from emails import send_password_reset
         from flask import current_app
-        from league_repositories import find_user_by_email
+
+        from ..emails import send_password_reset
+        from ..repositories.leagues import find_user_by_email
 
         email = normalize_email(request.form.get("email", ""))
         user = find_user_by_email(email)
@@ -282,7 +283,7 @@ def reset_password(token):
         flash("Account database is not available.", "error")
         return redirect(url_for("account.login"))
 
-    from db_models import User
+    from ..db_models import User
 
     user = db.session.get(User, user_id)
     if user is None or user.disabled_at is not None:
@@ -320,8 +321,8 @@ def accept_invite(token):
         flash("Account database is not available.", "error")
         return redirect(url_for("leagues.index"))
 
-    from db_models import User
-    from league_repositories import add_league_member, find_league_by_id, find_membership
+    from ..db_models import User
+    from ..repositories.leagues import add_league_member, find_league_by_id, find_membership
 
     user = db.session.get(User, current_user_id())
     if user is None or user.email != data.get("email"):

@@ -5,13 +5,13 @@ import secrets
 import string
 from datetime import date
 
-from auth import hash_password, normalize_email
-from db import db
+from ..auth import hash_password, normalize_email
+from ..db import db
 
 if db is None:  # pragma: no cover - imported only when DB dependencies exist.
     raise RuntimeError("Database dependencies are not installed.")
 
-from db_models import (  # noqa: E402
+from ..db_models import (  # noqa: E402
     LedgerEvent,
     League,
     LeagueMembership,
@@ -24,7 +24,7 @@ from db_models import (  # noqa: E402
     make_user,
     normalize_lookup,
 )
-from utils import slugify
+from ..utils import slugify
 
 PUBLIC_KEY_ALPHABET = string.ascii_lowercase + string.digits
 
@@ -223,7 +223,7 @@ def set_session_status(session: PokerSession, status: str) -> PokerSession:
     if status not in {"open", "closed"}:
         raise ValueError(f"Unsupported session status: {status}")
 
-    from db_models import utc_now
+    from ..db_models import utc_now
 
     session.status = status
     if status == "open":
@@ -313,7 +313,7 @@ def add_league_member(
 
 
 def remove_league_member(league_id: str, user_id: str) -> None:
-    from db_models import utc_now
+    from ..db_models import utc_now
 
     membership = LeagueMembership.query.filter_by(
         league_id=league_id,

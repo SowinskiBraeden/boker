@@ -16,16 +16,16 @@ from flask import (
     url_for,
 )
 
-from auth import is_admin
-from services import (
+from ..auth import is_admin
+from ..services import (
     build_session_summaries,
     next_session_id,
     pending_payout_carry_items,
     prunable_empty_session_ids,
     unique_player_names,
 )
-from storage import CSV_HEADERS, append_event, load_events, write_events
-from utils import cents_to_dollars, session_label
+from ..storage import CSV_HEADERS, append_event, load_events, write_events
+from ..utils import cents_to_dollars, session_label
 
 admin_bp = Blueprint("admin", __name__)
 

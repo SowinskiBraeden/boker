@@ -9,12 +9,12 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, url_for
 
-from auth import current_user_id, login_required, normalize_email
-from charts import cumulative_profit_series, player_session_series
-from db import database_extensions_available, db
-from models import SessionSummary
-from services import apply_rank_changes, build_leaderboard, build_session_summaries, session_events
-from utils import cents_to_dollars, session_label, session_sort_key
+from ..auth import current_user_id, login_required, normalize_email
+from ..charts import cumulative_profit_series, player_session_series
+from ..db import database_extensions_available, db
+from ..models import SessionSummary
+from ..services import apply_rank_changes, build_leaderboard, build_session_summaries, session_events
+from ..utils import cents_to_dollars, session_label, session_sort_key
 
 leagues_bp = Blueprint("leagues", __name__)
 
@@ -48,7 +48,7 @@ def split_league_ref(league_ref: str) -> tuple[str, str]:
 
 
 def require_league(league_ref: str, allowed_roles: set[str]):
-    from league_repositories import find_league_by_public_key, user_has_league_role
+    from ..repositories.leagues import find_league_by_public_key, user_has_league_role
 
     _slug, public_key = split_league_ref(league_ref)
     league = find_league_by_public_key(public_key)
@@ -64,7 +64,7 @@ def require_league(league_ref: str, allowed_roles: set[str]):
 
 def get_league_with_visibility_gate(league_ref: str):
     """Load league; if private, enforce login + membership. Returns (league, None) or (None, redirect)."""
-    from league_repositories import find_league_by_public_key, user_has_league_role
+    from ..repositories.leagues import find_league_by_public_key, user_has_league_role
 
     _slug, public_key = split_league_ref(league_ref)
     league = find_league_by_public_key(public_key)
@@ -99,8 +99,8 @@ def empty_session_summary(session) -> SessionSummary:
 
 
 def session_ref_map(league_id: str) -> dict[str, str]:
-    from ledger_repositories import session_event_ref
-    from league_repositories import list_sessions_for_league
+    from ..repositories.ledger import session_event_ref
+    from ..repositories.leagues import list_sessions_for_league
 
     return {session_event_ref(session): session.id for session in list_sessions_for_league(league_id)}
 
@@ -112,8 +112,8 @@ def index():
         flash("League database is not available.", "error")
         return render_template("leagues_index.html", leagues=[])
 
-    from league_repositories import list_leagues_for_user
-    from ledger_repositories import list_event_rows_for_league
+    from ..repositories.leagues import list_leagues_for_user
+    from ..repositories.ledger import list_event_rows_for_league
 
     memberships = list_leagues_for_user(current_user_id() or "")
     league_summaries = []
@@ -190,8 +190,8 @@ def new():
     }
 
     if request.method == "POST":
-        from db_models import User
-        from league_repositories import create_league, unique_league_slug
+        from ..db_models import User
+        from ..repositories.leagues import create_league, unique_league_slug
 
         owner = db.session.get(User, current_user_id())
         if owner is None:
@@ -221,7 +221,7 @@ def dashboard(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import league_counts, user_has_league_role
+    from ..repositories.leagues import league_counts, user_has_league_role
 
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
@@ -242,7 +242,7 @@ def legacy_dashboard_redirect(league_id: str, league_slug: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import find_league_by_id, user_has_league_role
+    from ..repositories.leagues import find_league_by_id, user_has_league_role
 
     league = find_league_by_id(league_id)
     if league is None:
@@ -259,9 +259,9 @@ def leaderboard(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from config import ELIGIBLE_MIN_SESSIONS
-    from ledger_repositories import list_event_rows_for_league
-    from league_repositories import list_players_for_league, user_has_league_role
+    from ..config import ELIGIBLE_MIN_SESSIONS
+    from ..repositories.ledger import list_event_rows_for_league
+    from ..repositories.leagues import list_players_for_league, user_has_league_role
 
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
@@ -366,12 +366,12 @@ def ledger(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import (
+    from ..repositories.ledger import (
         append_ledger_event,
         list_all_event_rows_for_league,
         list_event_rows_for_league,
     )
-    from league_repositories import (
+    from ..repositories.leagues import (
         find_player_for_league,
         find_session_for_league,
         list_players_for_league,
@@ -506,7 +506,7 @@ def void_event(league_ref: str, event_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import void_ledger_event
+    from ..repositories.ledger import void_ledger_event
 
     league = require_league(league_ref, {"owner"})
     reason = request.form.get("void_reason", "").strip()
@@ -529,8 +529,8 @@ def player_detail(league_ref: str, player_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import list_event_rows_for_league
-    from league_repositories import find_player_for_league, user_has_league_role
+    from ..repositories.ledger import list_event_rows_for_league
+    from ..repositories.leagues import find_player_for_league, user_has_league_role
 
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
@@ -588,7 +588,7 @@ def players(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import (
+    from ..repositories.leagues import (
         create_player,
         list_players_for_league,
         player_name_exists,
@@ -627,7 +627,7 @@ def players(league_ref: str):
             flash("Player added.", "success")
             return redirect(url_for("leagues.players", **league_url_values(league)))
 
-    from ledger_repositories import list_event_rows_for_league
+    from ..repositories.ledger import list_event_rows_for_league
 
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
     board = build_leaderboard(all_sessions)
@@ -661,7 +661,7 @@ def update_player_status(league_ref: str, player_id: str, status: str, message: 
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import find_player_for_league, set_player_status
+    from ..repositories.leagues import find_player_for_league, set_player_status
 
     league = require_league(league_ref, {"owner", "manager"})
     player = find_player_for_league(league.id, player_id)
@@ -681,7 +681,7 @@ def edit_player(league_ref: str, player_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import find_player_for_league, player_name_taken, update_player
+    from ..repositories.leagues import find_player_for_league, player_name_taken, update_player
 
     league = require_league(league_ref, {"owner", "manager"})
     player = find_player_for_league(league.id, player_id)
@@ -709,8 +709,8 @@ def sessions(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import append_ledger_event
-    from league_repositories import (
+    from ..repositories.ledger import append_ledger_event
+    from ..repositories.leagues import (
         create_poker_session,
         list_sessions_for_league,
         user_has_league_role,
@@ -747,7 +747,7 @@ def sessions(league_ref: str):
             session.label = form["label"] or None
             session.notes = form["notes"] or None
             if status == "open":
-                from league_repositories import set_session_status
+                from ..repositories.leagues import set_session_status
 
                 set_session_status(session, "open")
 
@@ -765,8 +765,8 @@ def sessions(league_ref: str):
             flash(f"Created {session.display_label}.", "success")
             return redirect(url_for("leagues.sessions", **league_url_values(league)))
 
-    from db_models import LedgerEvent
-    from ledger_repositories import list_event_rows_for_league
+    from ..db_models import LedgerEvent
+    from ..repositories.ledger import list_event_rows_for_league
 
     all_sessions = list_sessions_for_league(league.id)
     summaries = build_session_summaries(list_event_rows_for_league(league.id))
@@ -803,8 +803,8 @@ def prune_empty_sessions(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from db_models import LedgerEvent, PokerSession
-    from league_repositories import list_sessions_for_league
+    from ..db_models import LedgerEvent, PokerSession
+    from ..repositories.leagues import list_sessions_for_league
 
     league = require_league(league_ref, {"owner", "manager"})
 
@@ -839,7 +839,7 @@ def delete_session(league_ref: str, session_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import find_session_for_league
+    from ..repositories.leagues import find_session_for_league
 
     league = require_league(league_ref, {"owner"})
     session = find_session_for_league(league.id, session_id)
@@ -859,7 +859,7 @@ def edit_session(league_ref: str, session_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import find_session_for_league
+    from ..repositories.leagues import find_session_for_league
 
     league = require_league(league_ref, {"owner", "manager"})
     session = find_session_for_league(league.id, session_id)
@@ -877,7 +877,7 @@ def edit_session(league_ref: str, session_id: str):
         return redirect(url_for("leagues.session_detail", league_ref=league.url_ref, session_id=session_id))
 
     if new_date != session.session_date:
-        from db_models import PokerSession as _PS
+        from ..db_models import PokerSession as _PS
         max_seq = db.session.query(db.func.max(_PS.sequence_on_date)).filter(
             _PS.league_id == league.id,
             _PS.session_date == new_date,
@@ -900,8 +900,8 @@ def session_detail(league_ref: str, session_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import append_ledger_event, list_all_event_rows_for_session, list_event_rows_for_session
-    from league_repositories import (
+    from ..repositories.ledger import append_ledger_event, list_all_event_rows_for_session, list_event_rows_for_session
+    from ..repositories.leagues import (
         find_session_for_league,
         list_players_for_league,
         user_has_league_role,
@@ -989,9 +989,9 @@ def session_public_view(league_ref: str, session_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from charts import session_breakdown_series
-    from ledger_repositories import list_event_rows_for_league, list_event_rows_for_session
-    from league_repositories import find_league_by_public_key, find_session_for_league, list_sessions_for_league, user_has_league_role
+    from ..charts import session_breakdown_series
+    from ..repositories.ledger import list_event_rows_for_league, list_event_rows_for_session
+    from ..repositories.leagues import find_league_by_public_key, find_session_for_league, list_sessions_for_league, user_has_league_role
 
     _slug, public_key = split_league_ref(league_ref)
     league = find_league_by_public_key(public_key)
@@ -1062,8 +1062,8 @@ def update_session_status(league_ref: str, session_id: str, status: str, message
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import append_ledger_event
-    from league_repositories import find_session_for_league, set_session_status
+    from ..repositories.ledger import append_ledger_event
+    from ..repositories.leagues import find_session_for_league, set_session_status
 
     league = require_league(league_ref, {"owner", "manager"})
     session = find_session_for_league(league.id, session_id)
@@ -1114,7 +1114,7 @@ def league_settings(league_ref: str):
         elif form["visibility"] not in ("private", "public"):
             flash("Invalid visibility value.", "error")
         else:
-            from utils import slugify
+            from ..utils import slugify
 
             league.name = form["name"]
             league.slug = slugify(form["name"])
@@ -1124,7 +1124,7 @@ def league_settings(league_ref: str):
             flash("League settings saved.", "success")
             return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
 
-    from league_repositories import list_members_for_league
+    from ..repositories.leagues import list_members_for_league
 
     members = list_members_for_league(league.id)
     return render_template("league_settings.html", league=league, form=form, is_owner=True, members=members)
@@ -1137,10 +1137,11 @@ def invite_member(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from auth import generate_invite_token
-    from emails import send_league_invite
     from flask import current_app
-    from league_repositories import find_membership, find_user_by_email
+
+    from ..auth import generate_invite_token
+    from ..emails import send_league_invite
+    from ..repositories.leagues import find_membership, find_user_by_email
 
     league = require_league(league_ref, {"owner"})
     email = normalize_email(request.form.get("email", ""))
@@ -1181,7 +1182,7 @@ def remove_member(league_ref: str, user_id: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from league_repositories import remove_league_member
+    from ..repositories.leagues import remove_league_member
 
     league = require_league(league_ref, {"owner"})
 
@@ -1202,7 +1203,7 @@ def archive_league(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from db_models import utc_now
+    from ..db_models import utc_now
 
     league = require_league(league_ref, {"owner"})
     confirm_name = request.form.get("confirm_name", "").strip()
@@ -1224,8 +1225,8 @@ def export_ledger_csv(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from ledger_repositories import list_event_rows_for_league
-    from storage import CSV_HEADERS
+    from ..repositories.ledger import list_event_rows_for_league
+    from ..storage import CSV_HEADERS
 
     league = require_league(league_ref, {"owner", "manager", "viewer"})
     rows = list_event_rows_for_league(league.id)
@@ -1250,14 +1251,14 @@ def import_ledger_csv(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from db_models import CANONICAL_EVENT_TYPES, canonical_event_type
-    from ledger_repositories import (
+    from ..db_models import CANONICAL_EVENT_TYPES, canonical_event_type
+    from ..repositories.ledger import (
         append_ledger_event,
         list_ledger_events_for_league,
         session_event_ref,
     )
-    from league_repositories import list_players_for_league, list_sessions_for_league
-    from storage import CSV_HEADERS
+    from ..repositories.leagues import list_players_for_league, list_sessions_for_league
+    from ..storage import CSV_HEADERS
 
     league = require_league(league_ref, {"owner", "manager"})
 

@@ -4,16 +4,16 @@ from __future__ import annotations
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask import current_app
 
-from charts import cumulative_profit_series, player_session_series, session_breakdown_series
-from config import ELIGIBLE_MIN_SESSIONS
-from services import (
+from ..charts import cumulative_profit_series, player_session_series, session_breakdown_series
+from ..config import ELIGIBLE_MIN_SESSIONS
+from ..services import (
     apply_rank_changes,
     build_leaderboard,
     build_session_summaries,
     session_events,
 )
-from storage import load_events
-from utils import session_label, session_sort_key
+from ..storage import load_events
+from ..utils import session_label, session_sort_key
 
 public_bp = Blueprint("public", __name__)
 
@@ -30,9 +30,9 @@ def help():
 
 @public_bp.get("/explore")
 def explore():
-    from auth import is_logged_in
-    from db import database_extensions_available
-    from league_repositories import league_counts, list_public_leagues
+    from ..auth import is_logged_in
+    from ..db import database_extensions_available
+    from ..repositories.leagues import league_counts, list_public_leagues
 
     q = request.args.get("q", "").strip()
     leagues = list_public_leagues(q) if database_extensions_available() else []

@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import current_app
 from flask_mail import Message
 
-from extensions import mail
+from .extensions import mail
 
 
 def send_password_reset(to_email: str, reset_url: str) -> None:

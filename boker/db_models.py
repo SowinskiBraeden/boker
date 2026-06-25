@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
-from db import db
+from .db import db
 
 if db is None:  # pragma: no cover - imported only when DB dependencies exist.
     raise RuntimeError("Database dependencies are not installed.")

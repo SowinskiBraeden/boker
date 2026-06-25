@@ -7,7 +7,7 @@ import re
 
 from markupsafe import Markup
 
-from models import SessionEntry, SessionSummary
+from .models import SessionEntry, SessionSummary
 
 BREAK_EVEN_TOLERANCE_CENTS = 100
 

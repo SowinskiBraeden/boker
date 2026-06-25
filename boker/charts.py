@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from models import SessionEntry, SessionSummary
-from utils import net_result_bucket, session_chart_label, session_sort_key
+from .models import SessionEntry, SessionSummary
+from .utils import net_result_bucket, session_chart_label, session_sort_key
 
 PLAYER_PALETTE = [
     "#9b8cf0",  # --line-1 violet

@@ -4,12 +4,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 
 ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.3.1"
 
 
 def load_local_env(env_path: Path) -> None:

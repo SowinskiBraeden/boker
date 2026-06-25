@@ -1,6 +1,7 @@
 import unittest
 
-from stats import SessionEntry, SessionSummary, build_leaderboard
+from boker.models import SessionEntry, SessionSummary
+from boker.services import build_leaderboard
 
 
 class CashInAccountingTest(unittest.TestCase):
@@ -78,7 +79,7 @@ class CashInAccountingTest(unittest.TestCase):
 
         self.assertEqual(player.total_buy_in_cents, 2500)
         self.assertEqual(player.total_front_collected_cents, 0)
-        self.assertEqual(player.total_cash_in_cents, 3000)
+        self.assertEqual(player.total_real_cash_in_cents, 2500)
 
 
 if __name__ == "__main__":
