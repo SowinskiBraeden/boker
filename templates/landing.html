@@ -3,9 +3,10 @@
 {% block page_class %}page--landing{% endblock %}
 {% block content %}
 
+<!-- ── Hero ──────────────────────────────────────────────────── -->
 <div class="lp-hero">
     <div class="lp-hero__content">
-        <span class="lp-eyebrow">Home poker tracking</span>
+        <p class="lp-kicker">Home Poker Tracking</p>
         <h1 class="lp-h1">
             <span class="lp-h1__line">Your</span>
             <span class="lp-h1__line">league,</span>
@@ -37,71 +38,99 @@
         <div class="lp-demo__card">
             <div class="lp-demo__head">
                 <div>
-                    <span class="lp-demo__kicker">Friday Night Poker</span>
-                    <span class="lp-demo__title">Leaderboard · Eligible</span>
+                    <span class="lp-demo__kicker">Friday Night Poker · Session #006</span>
+                    <span class="lp-demo__title">Live event log <span class="lp-live-dot">● live</span></span>
                 </div>
-                <span class="lp-demo__meta">18 sessions · 5 players</span>
+                <span class="lp-demo__meta">Jun 21 · 5 players</span>
             </div>
-            <div class="lp-demo__table">
-                <div class="lp-demo__thead lp-demo__thead--lb">
-                    <span class="lp-demo__th">#</span>
-                    <span class="lp-demo__th">Player</span>
-                    <span class="lp-demo__th">Δ</span>
-                    <span class="lp-demo__th">Net</span>
-                    <span class="lp-demo__th">Win%</span>
-                    <span class="lp-demo__th">ROI</span>
+            <div class="lp-feed__rows">
+                <div class="lp-feed__row">
+                    <span class="lp-feed__time">10:14</span>
+                    <span class="lp-feed__player">Rivera</span>
+                    <span class="lp-feed__pill lp-feed__pill--buyin">buy-in</span>
+                    <span class="lp-feed__amt">$100</span>
                 </div>
-                <div class="lp-demo__row lp-demo__row--lb">
-                    <span class="lp-demo__rank lp-demo__rank--1">1</span>
-                    <span class="lp-demo__player">Rivera</span>
-                    <span class="lp-demo__delta lp-demo__delta--up">▲1</span>
-                    <span class="lp-demo__num lp-demo__num--pos">+$1,420</span>
-                    <span class="lp-demo__num lp-demo__num--pos">72%</span>
-                    <span class="lp-demo__num lp-demo__num--pos">+46%</span>
+                <div class="lp-feed__row">
+                    <span class="lp-feed__time">10:22</span>
+                    <span class="lp-feed__player">Chen</span>
+                    <span class="lp-feed__pill lp-feed__pill--buyin">buy-in</span>
+                    <span class="lp-feed__amt">$50</span>
                 </div>
-                <div class="lp-demo__row lp-demo__row--lb">
-                    <span class="lp-demo__rank lp-demo__rank--2">2</span>
-                    <span class="lp-demo__player">Chen</span>
-                    <span class="lp-demo__delta">—</span>
-                    <span class="lp-demo__num lp-demo__num--pos">+$640</span>
-                    <span class="lp-demo__num lp-demo__num--pos">56%</span>
-                    <span class="lp-demo__num lp-demo__num--pos">+18%</span>
+                <div class="lp-feed__row">
+                    <span class="lp-feed__time">10:41</span>
+                    <span class="lp-feed__player">Okafor</span>
+                    <span class="lp-feed__pill lp-feed__pill--buyin">buy-in</span>
+                    <span class="lp-feed__amt">$50</span>
                 </div>
-                <div class="lp-demo__row lp-demo__row--lb">
-                    <span class="lp-demo__rank lp-demo__rank--3">3</span>
-                    <span class="lp-demo__player">Okafor</span>
-                    <span class="lp-demo__delta lp-demo__delta--down">▼1</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−$210</span>
-                    <span class="lp-demo__num lp-demo__num--neg">43%</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−7%</span>
+                <div class="lp-feed__row">
+                    <span class="lp-feed__time">11:56</span>
+                    <span class="lp-feed__player">Novak</span>
+                    <span class="lp-feed__pill lp-feed__pill--cashout">cashout</span>
+                    <span class="lp-feed__amt lp-demo__num--pos">$160</span>
                 </div>
-                <div class="lp-demo__row lp-demo__row--lb lp-demo__row--fade">
-                    <span class="lp-demo__rank">4</span>
-                    <span class="lp-demo__player">Walsh</span>
-                    <span class="lp-demo__delta">—</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−$850</span>
-                    <span class="lp-demo__num lp-demo__num--neg">31%</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−27%</span>
+                <div class="lp-feed__row">
+                    <span class="lp-feed__time">12:02</span>
+                    <span class="lp-feed__player">Rivera</span>
+                    <span class="lp-feed__pill lp-feed__pill--rebuy">re-buy</span>
+                    <span class="lp-feed__amt">$50</span>
                 </div>
-                <div class="lp-demo__row lp-demo__row--lb lp-demo__row--fade2">
-                    <span class="lp-demo__rank">5</span>
-                    <span class="lp-demo__player">Novak</span>
-                    <span class="lp-demo__delta lp-demo__delta--down">▼2</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−$1,000</span>
-                    <span class="lp-demo__num lp-demo__num--neg">25%</span>
-                    <span class="lp-demo__num lp-demo__num--neg">−42%</span>
+                <div class="lp-feed__row lp-demo__row--fade">
+                    <span class="lp-feed__time">12:08</span>
+                    <span class="lp-feed__player">Walsh</span>
+                    <span class="lp-feed__pill lp-feed__pill--cashout">cashout</span>
+                    <span class="lp-feed__amt lp-demo__num--neg">$30</span>
+                </div>
+            </div>
+            <div class="lp-feed__summary">
+                <div class="lp-feed__summary-cell">
+                    <span class="lp-recon-label">Cash in</span>
+                    <span class="lp-recon-val">$350</span>
+                </div>
+                <div class="lp-feed__summary-cell">
+                    <span class="lp-recon-label">Paid out</span>
+                    <span class="lp-recon-val lp-demo__num--pos">$190</span>
+                </div>
+                <div class="lp-feed__summary-cell">
+                    <span class="lp-recon-label">House holds</span>
+                    <span class="lp-recon-val lp-demo__num--neg">$160</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Features -->
+<!-- ── Stats bar ──────────────────────────────────────────────── -->
+<div class="lp-stats-bar">
+    <div class="lp-stats-bar__inner">
+        <div class="lp-stats-bar__item">
+            <span class="lp-stats-bar__val">$0</span>
+            <span class="lp-stats-bar__lbl">Platform fee, always</span>
+        </div>
+        <span class="lp-stats-bar__sep"></span>
+        <div class="lp-stats-bar__item">
+            <span class="lp-stats-bar__val">∞</span>
+            <span class="lp-stats-bar__lbl">Sessions &amp; players</span>
+        </div>
+        <span class="lp-stats-bar__sep"></span>
+        <div class="lp-stats-bar__item">
+            <span class="lp-stats-bar__val">Append-only</span>
+            <span class="lp-stats-bar__lbl">Tamper-proof ledger</span>
+        </div>
+        <span class="lp-stats-bar__sep"></span>
+        <div class="lp-stats-bar__item">
+            <span class="lp-stats-bar__val">Private</span>
+            <span class="lp-stats-bar__lbl">Your data, your league</span>
+        </div>
+    </div>
+</div>
+
+<!-- ── Features ──────────────────────────────────────────────── -->
 <section class="lp-features">
     <div class="lp-features__inner">
         <div class="lp-sec-head">
             <span class="lp-eyebrow">What's included</span>
             <h2 class="lp-sec-title">No spreadsheets. No Venmo math. No guessing.</h2>
+            <p class="lp-sec-sub">Everything your group needs to run a real poker league — built from the ground up for home games.</p>
         </div>
         <div class="lp-feat-grid">
             <div class="lp-feat">
@@ -140,13 +169,13 @@
     </div>
 </section>
 
-<!-- App demos -->
+<!-- ── App showcase ───────────────────────────────────────────── -->
 <section class="lp-showcase">
     <div class="lp-showcase__inner">
         <div class="lp-sec-head">
             <span class="lp-eyebrow">In the app</span>
-            <h2 class="lp-sec-title">Sessions and results</h2>
-            <p class="lp-sec-sub">Every number your group tracks, in one place.</p>
+            <h2 class="lp-sec-title">Your game. Your data. Always in sync.</h2>
+            <p class="lp-sec-sub">Every number your group tracks, in one place — from the moment chips hit the table.</p>
         </div>
         <div class="lp-showcase__grid" aria-hidden="true">
 
@@ -287,6 +316,85 @@
     </div>
 </section>
 
+<!-- ── Leaderboard callout ────────────────────────────────────── -->
+<section class="lp-callout">
+    <div class="lp-callout__inner">
+        <div class="lp-callout__text">
+            <span class="lp-eyebrow">Leaderboards</span>
+            <h2 class="lp-callout__title">Rankings built on raw data, not trust.</h2>
+            <p class="lp-callout__body">Every leaderboard stat is computed directly from the same append-only ledger that records each buy-in and cashout. Net profit, ROI, and win rate update the moment a session closes — no manual entry, no formulas to break.</p>
+            <ul class="lp-callout__list">
+                <li>Set a session minimum before a player earns a rank</li>
+                <li>Track rank movement with live ▲▼ deltas</li>
+                <li>Multiple sort modes: net, ROI, win rate, recent form</li>
+                <li>Provisional players shown separately until they qualify</li>
+            </ul>
+        </div>
+        <div class="lp-callout__demo" aria-hidden="true">
+            <div class="lp-demo__card">
+                <div class="lp-demo__head">
+                    <div>
+                        <span class="lp-demo__kicker">Friday Night Poker</span>
+                        <span class="lp-demo__title">Leaderboard · Sort: Net</span>
+                    </div>
+                    <span class="lp-demo__meta">18 sessions · eligible</span>
+                </div>
+                <div class="lp-demo__table">
+                    <div class="lp-demo__thead lp-demo__thead--lb">
+                        <span class="lp-demo__th">#</span>
+                        <span class="lp-demo__th">Player</span>
+                        <span class="lp-demo__th">Δ</span>
+                        <span class="lp-demo__th">Net</span>
+                        <span class="lp-demo__th">Win%</span>
+                        <span class="lp-demo__th">ROI</span>
+                    </div>
+                    <div class="lp-demo__row lp-demo__row--lb">
+                        <span class="lp-demo__rank lp-demo__rank--1">1</span>
+                        <span class="lp-demo__player">Rivera</span>
+                        <span class="lp-demo__delta lp-demo__delta--up">▲1</span>
+                        <span class="lp-demo__num lp-demo__num--pos">+$1,420</span>
+                        <span class="lp-demo__num lp-demo__num--pos">72%</span>
+                        <span class="lp-demo__num lp-demo__num--pos">+46%</span>
+                    </div>
+                    <div class="lp-demo__row lp-demo__row--lb">
+                        <span class="lp-demo__rank lp-demo__rank--2">2</span>
+                        <span class="lp-demo__player">Chen</span>
+                        <span class="lp-demo__delta">—</span>
+                        <span class="lp-demo__num lp-demo__num--pos">+$640</span>
+                        <span class="lp-demo__num lp-demo__num--pos">56%</span>
+                        <span class="lp-demo__num lp-demo__num--pos">+18%</span>
+                    </div>
+                    <div class="lp-demo__row lp-demo__row--lb">
+                        <span class="lp-demo__rank lp-demo__rank--3">3</span>
+                        <span class="lp-demo__player">Okafor</span>
+                        <span class="lp-demo__delta lp-demo__delta--down">▼1</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−$210</span>
+                        <span class="lp-demo__num lp-demo__num--neg">43%</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−7%</span>
+                    </div>
+                    <div class="lp-demo__row lp-demo__row--lb lp-demo__row--fade">
+                        <span class="lp-demo__rank">4</span>
+                        <span class="lp-demo__player">Walsh</span>
+                        <span class="lp-demo__delta">—</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−$850</span>
+                        <span class="lp-demo__num lp-demo__num--neg">31%</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−27%</span>
+                    </div>
+                    <div class="lp-demo__row lp-demo__row--lb lp-demo__row--fade2">
+                        <span class="lp-demo__rank">5</span>
+                        <span class="lp-demo__player">Novak</span>
+                        <span class="lp-demo__delta lp-demo__delta--down">▼2</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−$1,000</span>
+                        <span class="lp-demo__num lp-demo__num--neg">25%</span>
+                        <span class="lp-demo__num lp-demo__num--neg">−42%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Bottom CTA ─────────────────────────────────────────────── -->
 {% if not is_logged_in %}
 <section class="lp-bottom-cta">
     <div class="lp-bottom-cta__inner">
