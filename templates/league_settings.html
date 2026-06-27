@@ -71,7 +71,7 @@
             </div>
             {% endfor %}
         </div>
-        <form class="form-card" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}" style="padding:16px 20px 20px;border-top:1px solid var(--border);">
+        <form class="form-card" id="invite-member-form" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}" style="padding:16px 20px 20px;border-top:1px solid var(--border);">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <p class="kicker" style="margin-bottom:10px;">Invite by email</p>
             <div class="session-create-row" style="align-items:flex-end;gap:10px;">
@@ -177,6 +177,17 @@
     document.querySelectorAll('.modal-confirm-input').forEach(inp => {
         inp.addEventListener('input', () => checkConfirmInput(inp));
     });
+
+    const inviteForm = document.getElementById('invite-member-form');
+    if (inviteForm) {
+        inviteForm.addEventListener('submit', () => {
+            const btn = inviteForm.querySelector('button[type="submit"]');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            inviteForm.setAttribute('aria-busy', 'true');
+        });
+    }
 })();
 </script>
 

@@ -1204,6 +1204,7 @@ def invite_member(league_ref: str):
     from auth import generate_invite_token
     from emails import send_league_invite
     from flask import current_app
+    from db_models import User
     from league_repositories import find_membership, find_user_by_email
 
     league = require_league(league_ref, {"owner"})
@@ -1228,10 +1229,12 @@ def invite_member(league_ref: str):
     token = generate_invite_token(league.id, email, role, current_user_id() or "")
     base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
     invite_url = f"{base_url}{url_for('account.accept_invite', token=token)}"
+    inviter = db.session.get(User, current_user_id() or "")
+    inviter_email = inviter.email if inviter is not None else "A league owner"
 
     try:
-        send_league_invite(email, league.name, invite_url, current_user_id() or "")
-        flash(f"Invitation sent to {email}.", "success")
+        send_league_invite(email, league.name, invite_url, inviter_email, role)
+        flash(f"{role.title()} invitation sent to {email}.", "success")
     except Exception:
         flash("Failed to send invitation email. Check your mail configuration.", "error")
 

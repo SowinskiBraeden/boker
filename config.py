@@ -9,7 +9,7 @@ DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 
 ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "2.5.4"
+APP_VERSION = "2.5.5"
 
 
 def load_local_env(env_path: Path) -> None:
@@ -44,9 +44,14 @@ class Config:
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
     MAIL_USE_TLS: bool = os.getenv("MAIL_USE_TLS", "true").lower() in ("true", "1", "yes")
+    MAIL_USE_SSL: bool = os.getenv(
+        "MAIL_USE_SSL",
+        "true" if MAIL_PORT == 465 else "false",
+    ).lower() in ("true", "1", "yes")
     MAIL_USERNAME: str | None = os.getenv("MAIL_USERNAME") or None
     MAIL_PASSWORD: str | None = os.getenv("MAIL_PASSWORD") or None
     MAIL_DEFAULT_SENDER: str = os.getenv("MAIL_DEFAULT_SENDER", "noreply@myboker.org")
+    MAIL_TIMEOUT: float = float(os.getenv("MAIL_TIMEOUT", "5"))
 
 
 class ProductionConfig(Config):
