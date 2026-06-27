@@ -72,7 +72,12 @@ def _html_email(title: str, intro: str, cta_label: str | None = None, cta_url: s
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#202129;border:1px solid #313442;border-radius:10px;overflow:hidden;">
             <tr>
               <td style="padding:28px 32px 10px;">
-                <div style="font:800 18px Arial,sans-serif;color:#f5f7fb;">myboker<span style="color:#9b8cf0;">.org</span></div>
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td width="32" height="32" style="background:#1e1533;border:1px solid #3d3260;border-radius:7px;text-align:center;vertical-align:middle;font-size:15px;color:#9b8cf0;font-family:Arial,sans-serif;">&#9830;</td>
+                    <td style="padding-left:10px;vertical-align:middle;font:700 17px/1 Arial,sans-serif;color:#f5f7fb;letter-spacing:-0.3px;">myboker<span style="color:#9b8cf0;">.org</span></td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
