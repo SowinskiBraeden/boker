@@ -51,7 +51,7 @@
             <span>Leaderboard</span>
         </a>
 
-        {% if is_logged_in %}
+        {% if can_manage is defined and can_manage %}
         <a class="sidebar__link {{ 'is-active' if request.endpoint == 'leagues.ledger' }}"
            href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">

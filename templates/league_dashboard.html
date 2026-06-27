@@ -307,6 +307,7 @@
         <span class="db-nav-tile__arrow">→</span>
     </a>
 
+    {% if can_manage %}
     <a class="db-nav-tile db-nav-tile--ledger" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">
         <div class="db-nav-tile__icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -322,6 +323,7 @@
         </div>
         <span class="db-nav-tile__arrow">→</span>
     </a>
+    {% endif %}
 
 </div>
 

@@ -227,6 +227,7 @@ def dashboard(league_ref: str):
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
         return resp
+    can_manage = user_has_league_role(current_user_id() or "", league.id, {"owner", "manager"})
     is_owner = user_has_league_role(current_user_id() or "", league.id, {"owner"})
 
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
@@ -275,6 +276,7 @@ def dashboard(league_ref: str):
         "league_dashboard.html",
         league=league,
         counts=league_counts(league.id),
+        can_manage=can_manage,
         is_owner=is_owner,
         cash_stats=cash_stats,
     )
@@ -310,6 +312,7 @@ def leaderboard(league_ref: str):
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
         return resp
+    can_manage = user_has_league_role(current_user_id() or "", league.id, {"owner", "manager"})
     is_owner = user_has_league_role(current_user_id() or "", league.id, {"owner"})
     eligible_min_sessions = league.eligible_min_sessions
     break_even_cents = league.break_even_cents
@@ -401,6 +404,7 @@ def leaderboard(league_ref: str):
             player.display_name: player.id
             for player in list_players_for_league(league.id)
         },
+        can_manage=can_manage,
         is_owner=is_owner,
     )
 
@@ -424,10 +428,7 @@ def ledger(league_ref: str):
         user_has_league_role,
     )
 
-    league = require_league(
-        league_ref,
-        {"owner", "manager"} if request.method == "POST" else {"owner", "manager", "viewer"},
-    )
+    league = require_league(league_ref, {"owner", "manager"})
     can_manage = user_has_league_role(current_user_id() or "", league.id, {"owner", "manager"})
     is_owner = user_has_league_role(current_user_id() or "", league.id, {"owner"})
 
@@ -953,10 +954,7 @@ def session_detail(league_ref: str, session_id: str):
         user_has_league_role,
     )
 
-    league = require_league(
-        league_ref,
-        {"owner", "manager"} if request.method == "POST" else {"owner", "manager", "viewer"},
-    )
+    league = require_league(league_ref, {"owner", "manager"})
     session = find_session_for_league(league.id, session_id)
     if session is None:
         abort(404)
@@ -1051,6 +1049,10 @@ def session_public_view(league_ref: str, session_id: str):
         if not user_has_league_role(user_id, league.id, {"owner", "manager", "viewer"}):
             abort(403)
 
+    user_id = current_user_id() or ""
+    can_manage = user_has_league_role(user_id, league.id, {"owner", "manager"})
+    is_owner = user_has_league_role(user_id, league.id, {"owner"})
+
     session = find_session_for_league(league.id, session_id)
     if session is None:
         abort(404)
@@ -1087,7 +1089,8 @@ def session_public_view(league_ref: str, session_id: str):
         session_label=session_label,
         prev_session_id=ref_to_db_id.get(prev_summary.session_id) if prev_summary else None,
         next_session_id=ref_to_db_id.get(next_summary.session_id) if next_summary else None,
-        is_owner=False,
+        can_manage=can_manage,
+        is_owner=is_owner,
     )
 
 
@@ -1324,7 +1327,7 @@ def export_ledger_csv(league_ref: str):
     from ledger_repositories import list_event_rows_for_league
     from storage import CSV_HEADERS
 
-    league = require_league(league_ref, {"owner", "manager", "viewer"})
+    league = require_league(league_ref, {"owner", "manager"})
     rows = list_event_rows_for_league(league.id)
 
     buf = io.StringIO()

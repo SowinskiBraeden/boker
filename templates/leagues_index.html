@@ -111,7 +111,9 @@
                     <a class="btn btn--primary btn--sm" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">Open league</a>
                     <a class="li-action-link" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Sessions</a>
                     <a class="li-action-link" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">Leaderboard</a>
+                    {% if membership.role in ('owner', 'manager') %}
                     <a class="li-action-link" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">Ledger</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

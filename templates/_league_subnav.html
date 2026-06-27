@@ -7,7 +7,7 @@
             <a class="subnav__link {{ 'is-active' if request.endpoint in ('leagues.sessions', 'leagues.session_detail') }}" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Sessions</a>
             <a class="subnav__link {{ 'is-active' if request.endpoint in ('leagues.players', 'leagues.player_detail') }}" href="{{ url_for('leagues.players', league_ref=league.url_ref) }}">Players</a>
             <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.leaderboard' }}" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">Leaderboard</a>
-            {% if is_logged_in %}
+            {% if can_manage is defined and can_manage %}
             <a class="subnav__link {{ 'is-active' if request.endpoint == 'leagues.ledger' }}" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">Ledger</a>
             {% endif %}
             {% if is_owner is defined and is_owner %}
