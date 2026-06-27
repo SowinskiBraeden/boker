@@ -589,7 +589,7 @@ def player_detail(league_ref: str, player_id: str):
         abort(404)
 
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
-    board = build_leaderboard(all_sessions)
+    board = build_leaderboard(all_sessions, league.break_even_cents)
     player_stats = next(
         (player for player in board if player.player_name == player_record.display_name),
         None,
@@ -619,7 +619,7 @@ def player_detail(league_ref: str, player_id: str):
         player_record=player_record,
         player=player_stats,
         player_rank=player_rank,
-        chart_data=player_session_series(all_sessions, player_record.display_name),
+        chart_data=player_session_series(all_sessions, player_record.display_name, league.break_even_cents),
         player_sessions=player_sessions,
         session_label=session_label,
         session_ids=session_ref_map(league.id),
@@ -676,7 +676,7 @@ def players(league_ref: str):
     from ledger_repositories import list_event_rows_for_league
 
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
-    board = build_leaderboard(all_sessions)
+    board = build_leaderboard(all_sessions, league.break_even_cents)
     stats_by_name = {p.player_name: p for p in board}
 
     return render_template(
@@ -1083,7 +1083,7 @@ def session_public_view(league_ref: str, session_id: str):
         session=summary,
         session_number=session_number,
         raw_events=session_events(rows, summary.session_id),
-        chart_data=session_breakdown_series(summary),
+        chart_data=session_breakdown_series(summary, league.break_even_cents),
         session_label=session_label,
         prev_session_id=ref_to_db_id.get(prev_summary.session_id) if prev_summary else None,
         next_session_id=ref_to_db_id.get(next_summary.session_id) if next_summary else None,
