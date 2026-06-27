@@ -119,14 +119,51 @@
         <div class="panel__body">
             <div class="danger-row">
                 <div>
+                    <strong class="danger-row__title">Transfer ownership</strong>
+                    <p class="muted-text">Choose an existing member to become the league owner. Your role will change to manager.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-transfer-owner" {% if members|length <= 1 %}disabled{% endif %}>Transfer ownership</button>
+            </div>
+            <div class="danger-row">
+                <div>
                     <strong class="danger-row__title">Archive league</strong>
                     <p class="muted-text">Removes this league from your dashboard. All players, sessions, and ledger data are preserved.</p>
                 </div>
-                <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-archive">Archive league</button>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-archive">Archive league</button>
             </div>
         </div>
     </div>
 
+</div>
+
+<div class="modal-backdrop" id="modal-transfer-owner" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-transfer-owner-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Ownership</span>
+            <h2 class="panel__title" id="modal-transfer-owner-title">Transfer ownership</h2>
+        </div>
+        <p class="modal-card__text">The selected member will become the owner of <strong>{{ league.name }}</strong>. Your role will change to manager.</p>
+        <form method="post" action="{{ url_for('leagues.transfer_ownership', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 16px;gap:12px;">
+                <label>
+                    <span>New owner</span>
+                    <select name="new_owner_user_id" id="transfer-owner-select" required>
+                        <option value="">Select a member</option>
+                        {% for membership, member_user in members %}
+                        {% if membership.role != 'owner' %}
+                        <option value="{{ member_user.id }}">{{ member_user.email }} · {{ membership.role }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Transfer ownership</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="modal-backdrop" id="modal-member-role" hidden>
@@ -193,7 +230,6 @@
         </form>
     </div>
 </div>
-
 <script>
 (function () {
     function openModal(id) {

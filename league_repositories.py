@@ -348,3 +348,30 @@ def set_league_member_role(league_id: str, user_id: str, role: str) -> LeagueMem
 
     membership.role = role
     return membership
+
+
+def transfer_league_ownership(
+    league: League,
+    current_owner_user_id: str,
+    new_owner_user_id: str,
+) -> tuple[LeagueMembership, LeagueMembership] | None:
+    if current_owner_user_id == new_owner_user_id:
+        return None
+
+    current_owner = LeagueMembership.query.filter_by(
+        league_id=league.id,
+        user_id=current_owner_user_id,
+        disabled_at=None,
+    ).one_or_none()
+    new_owner = LeagueMembership.query.filter_by(
+        league_id=league.id,
+        user_id=new_owner_user_id,
+        disabled_at=None,
+    ).one_or_none()
+    if current_owner is None or current_owner.role != "owner" or new_owner is None:
+        return None
+
+    current_owner.role = "manager"
+    new_owner.role = "owner"
+    league.created_by_user_id = new_owner_user_id
+    return current_owner, new_owner

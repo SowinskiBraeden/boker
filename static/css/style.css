@@ -1372,7 +1372,19 @@ td a:hover { color: var(--accent); }
 .btn--ghost:hover { border-color: var(--border-hi); color: var(--text-strong); }
 .btn--outline { background: var(--accent-tint); color: var(--accent); border: 1px solid var(--accent-chip-bd); }
 .btn--outline:hover { background: var(--accent-chip); }
+.btn--warning {
+  background: var(--warn-tint);
+  color: var(--warn);
+  border: 1px solid var(--warn-tint-bd);
+  font-weight: 700;
+}
+.btn--warning:hover {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 54%, transparent);
+  color: var(--warn);
+}
 .btn--sm { padding: 7px 13px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
 
 /* legacy button classes mapped to new */
 .primary-button {
@@ -2300,11 +2312,25 @@ select.control { cursor: pointer; }
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.danger-row + .danger-row {
+  padding-top: 18px;
+}
+.danger-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 .danger-row__title {
   display: block;
   color: var(--text-strong);
   margin-bottom: 4px;
+}
+.danger-row__btn {
+  width: 168px;
+  justify-content: center;
+  text-align: center;
 }
 
 /* Danger button */
@@ -5199,4 +5225,5 @@ select.control { cursor: pointer; }
   font-weight: 600;
   color: var(--accent);
   transition: gap .15s;
+
 }
