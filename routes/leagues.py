@@ -1603,6 +1603,29 @@ def archive_league(league_ref: str):
     return redirect(url_for("leagues.index"))
 
 
+@leagues_bp.post("/l/<league_ref>/delete")
+@login_required
+def delete_league_route(league_ref: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import delete_league
+
+    league = require_league(league_ref, {"owner"})
+    confirm_name = request.form.get("confirm_name", "").strip()
+
+    if confirm_name != league.name:
+        flash("League name did not match. Deletion cancelled.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league_ref))
+
+    league_name = league.name
+    delete_league(league)
+    db.session.commit()
+    flash(f'"{league_name}" and all its data have been permanently deleted.', "success")
+    return redirect(url_for("leagues.index"))
+
+
 @leagues_bp.get("/l/<league_ref>/ledger/export")
 @login_required
 def export_ledger_csv(league_ref: str):

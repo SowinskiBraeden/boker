@@ -420,6 +420,16 @@ def delete_season(season: Season) -> None:
     db.session.delete(season)
 
 
+def delete_league(league: League) -> None:
+    from db_models import LedgerEvent, LeagueMembership, Player, PokerSession, Season
+    LedgerEvent.query.filter_by(league_id=league.id).delete(synchronize_session=False)
+    PokerSession.query.filter_by(league_id=league.id).delete(synchronize_session=False)
+    Player.query.filter_by(league_id=league.id).delete(synchronize_session=False)
+    Season.query.filter_by(league_id=league.id).delete(synchronize_session=False)
+    LeagueMembership.query.filter_by(league_id=league.id).delete(synchronize_session=False)
+    db.session.delete(league)
+
+
 def auto_assign_sessions_to_seasons(league_id: str) -> int:
     """Assign unassigned sessions to seasons based on date ranges.
 

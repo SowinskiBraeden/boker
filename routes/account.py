@@ -352,6 +352,42 @@ def update_password():
     return redirect(url_for("account.settings"))
 
 
+@account_bp.post("/disable")
+@login_required
+def disable_account():
+    if not db_ready():
+        flash("Account database is not available.", "error")
+        return redirect(url_for("account.settings"))
+
+    from db_models import League, User, utc_now
+
+    user = db.session.get(User, current_user_id())
+    if user is None:
+        flash("User not found.", "error")
+        return redirect(url_for("account.settings"))
+
+    confirm = request.form.get("confirm", "").strip()
+    current_password = request.form.get("current_password", "")
+
+    if confirm != "DISABLE":
+        flash("Confirmation text did not match.", "error")
+        return redirect(url_for("account.settings"))
+
+    if not verify_password(user.password_hash, current_password):
+        flash("Password is incorrect.", "error")
+        return redirect(url_for("account.settings"))
+
+    owned_leagues = League.query.filter_by(created_by_user_id=user.id, archived_at=None).all()
+    for league in owned_leagues:
+        league.archived_at = utc_now()
+
+    user.disabled_at = utc_now()
+    db.session.commit()
+    log_user_out()
+    flash("Your account has been disabled.", "success")
+    return redirect(url_for("public.home"))
+
+
 @account_bp.post("/delete")
 @login_required
 def delete_account():
@@ -359,7 +395,8 @@ def delete_account():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import League, User, utc_now
+    from db_models import League, LeagueMembership, User, utc_now
+    from league_repositories import delete_league
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -377,14 +414,14 @@ def delete_account():
         flash("Password is incorrect.", "error")
         return redirect(url_for("account.settings"))
 
-    owned_leagues = League.query.filter_by(created_by_user_id=user.id, archived_at=None).all()
-    for league in owned_leagues:
-        league.archived_at = utc_now()
+    for league in League.query.filter_by(created_by_user_id=user.id).all():
+        delete_league(league)
 
-    user.disabled_at = utc_now()
+    LeagueMembership.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    db.session.delete(user)
     db.session.commit()
     log_user_out()
-    flash("Your account has been deleted.", "success")
+    flash("Your account and all data have been permanently deleted.", "success")
     return redirect(url_for("public.home"))
 
 

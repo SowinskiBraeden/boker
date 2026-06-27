@@ -131,6 +131,13 @@
                 </div>
                 <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-archive">Archive league</button>
             </div>
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Delete league</strong>
+                    <p class="muted-text">Permanently deletes this league and all players, sessions, and ledger data. This cannot be undone.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-delete-league">Delete league</button>
+            </div>
         </div>
     </div>
 
@@ -231,6 +238,37 @@
         </form>
     </div>
 </div>
+<div class="modal-backdrop" id="modal-delete-league" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Danger zone</span>
+            <h2 class="panel__title">Delete league</h2>
+        </div>
+        <p class="modal-card__text">
+            <strong>{{ league.name }}</strong> and all its players, sessions, and ledger data will be <strong>permanently deleted</strong>. This cannot be undone.<br><br>
+            Type the league name to confirm:
+        </p>
+        <form method="post" action="{{ url_for('leagues.delete_league_route', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;">
+                <input
+                    class="modal-confirm-input"
+                    type="text"
+                    name="confirm_name"
+                    placeholder="{{ league.name }}"
+                    autocomplete="off"
+                    data-match="{{ league.name }}"
+                    data-target="delete-league-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="delete-league-confirm-btn" type="submit" disabled>Permanently delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 (function () {
     function openModal(id) {
