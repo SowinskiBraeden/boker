@@ -117,6 +117,7 @@ def register():
         email = normalize_email(form["email"])
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        existing_user = find_user_by_email(email)
 
         if not email or "@" not in email:
             flash("Enter a valid email address.", "error")
@@ -124,10 +125,18 @@ def register():
             flash("Password must be at least 8 characters.", "error")
         elif password != confirm_password:
             flash("Passwords do not match.", "error")
-        elif find_user_by_email(email):
+        elif existing_user and existing_user.disabled_at is None:
             flash("An account already exists for that email.", "error")
         else:
-            user = create_user(email, password)
+            if existing_user:
+                user = existing_user
+                user.password_hash = hash_password(password)
+                user.disabled_at = None
+                user.email_verified_at = None
+                user.email_verification_code_hash = None
+                user.email_verification_sent_at = None
+            else:
+                user = create_user(email, password)
             db.session.flush()
             return redirect(_start_email_verification(user, safe_next_url(url_for("leagues.new"))))
 
