@@ -120,7 +120,7 @@
                     </div>
                 </div>
                 {% if result_total > 0 %}
-                <div class="result-mix__note">±$1.00 counts as even</div>
+                <div class="result-mix__note">±${{ "%.2f"|format(league.break_even_cents / 100) }} counts as even</div>
                 {% endif %}
             </div>
         </div>
