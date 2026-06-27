@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ session_model.display_label }} · {{ league.name }} · myboker.org{% endblock %}
-{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
-{% block page_class %}page--session{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
 {% block content %}
 
 <div class="breadcrumb">

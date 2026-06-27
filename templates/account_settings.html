@@ -2,14 +2,13 @@
 {% block title %}Account settings · myboker.org{% endblock %}
 {% block content %}
 
-<div class="hero" style="padding-bottom:18px;">
-    <p class="hero__kicker">Account</p>
-    <h1 class="hero__title">Settings</h1>
-    <p class="hero__sub">Manage your email address, password, and account.</p>
-</div>
-
-<div class="toolbar">
-    <div class="toolbar__left">
+<div class="settings-profile">
+    <div class="settings-avatar">{{ user.email[0] | upper }}</div>
+    <div class="settings-profile__meta">
+        <h1 class="settings-profile__title">Account Settings</h1>
+        <p class="settings-profile__email">{{ user.email }}</p>
+    </div>
+    <div style="margin-left:auto;">
         <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.index') }}">My leagues</a>
     </div>
 </div>

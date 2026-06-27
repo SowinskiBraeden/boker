@@ -222,16 +222,61 @@ def dashboard(league_ref: str):
         return redirect(url_for("public.home"))
 
     from league_repositories import league_counts, user_has_league_role
+    from ledger_repositories import list_event_rows_for_league
 
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
         return resp
     is_owner = user_has_league_role(current_user_id() or "", league.id, {"owner"})
+
+    all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
+    closed_sessions = [s for s in all_sessions if not s.is_open]
+    closed_count = len(closed_sessions)
+
+    total_cash_in = sum(s.total_real_cash_in_cents for s in closed_sessions)
+    total_paid_out = sum(s.total_paid_out_cents for s in closed_sessions)
+    total_fronts = sum(s.total_front_cents for s in all_sessions)
+    closed_entries = sum(len(s.entries) for s in closed_sessions)
+    all_entries = sum(len(s.entries) for s in all_sessions)
+
+    # Avg sessions per month since the first session
+    session_date_strs = [s.session_date[:10] for s in all_sessions if s.session_date]
+    avg_sessions_per_month = 0.0
+    if session_date_strs:
+        first_date = date.fromisoformat(min(session_date_strs))
+        today_d = date.today()
+        months_elapsed = (today_d.year - first_date.year) * 12 + (today_d.month - first_date.month) + 1
+        avg_sessions_per_month = round(len(all_sessions) / months_elapsed, 1)
+
+    # Session calendar data: date → count of sessions on that date
+    sessions_by_date: dict[str, int] = {}
+    for s in all_sessions:
+        if s.session_date:
+            d = s.session_date[:10]
+            sessions_by_date[d] = sessions_by_date.get(d, 0) + 1
+    first_session_year = int(min(sessions_by_date)[:4]) if sessions_by_date else date.today().year
+
+    cash_stats = {
+        "total_cash_in": total_cash_in,
+        "total_paid_out": total_paid_out,
+        "total_fronts": total_fronts,
+        "avg_pot": total_cash_in // closed_count if closed_count else 0,
+        "avg_players": round(all_entries / len(all_sessions)) if all_sessions else 0,
+        "avg_buyin": sum(s.total_buy_in_cents for s in closed_sessions) // closed_entries if closed_entries else 0,
+        "biggest_pot": max((s.total_real_cash_in_cents for s in all_sessions), default=0),
+        "avg_sessions_per_month": avg_sessions_per_month,
+        "session_map": sessions_by_date,
+        "first_session_year": first_session_year,
+        "has_data": closed_count > 0,
+        "has_sessions": bool(all_sessions),
+    }
+
     return render_template(
         "league_dashboard.html",
         league=league,
         counts=league_counts(league.id),
         is_owner=is_owner,
+        cash_stats=cash_stats,
     )
 
 

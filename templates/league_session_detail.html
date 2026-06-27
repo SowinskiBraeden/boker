@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ session_model.display_label }} · {{ league.name }} · myboker.org{% endblock %}
-{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
 {% block content %}
 
 <div class="hero" style="padding-top:0;padding-bottom:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;">

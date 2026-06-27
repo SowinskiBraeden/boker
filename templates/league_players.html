@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Players · {{ league.name }} · myboker.org{% endblock %}
-{% block subnav %}{% include "_league_subnav.html" %}{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
 {% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Players</h1>
+        <p class="page-header__sub">Roster for {{ league.name }}</p>
+    </div>
+</div>
 
 {% if can_manage %}
 <form class="panel form-card" method="post" style="margin-bottom:20px;">

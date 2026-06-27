@@ -1,27 +1,68 @@
 {% extends "base.html" %}
-{% block title %}Login · myboker.org{% endblock %}
+{% block title %}Sign in · myboker.org{% endblock %}
+{% block page_class %}page--auth{% endblock %}
 {% block content %}
 
-<div class="form-shell narrow">
-    <form class="panel form-card" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div>
-            <p class="eyebrow">Owner access</p>
-            <h1 style="font-size:28px;margin-bottom:8px;">Account login</h1>
-            <p class="muted-text" style="margin-bottom:8px;">Manage leagues, players, sessions, and ledger entries.</p>
+<div class="auth-split">
+    <div class="auth-split__form-col">
+        <div class="auth-split__form-inner">
+            <a class="auth-split__brand" href="{{ url_for('public.home') }}">
+                <div class="auth-split__brand-mark"></div>
+                <span class="auth-split__brand-name">myboker<span class="auth-split__brand-tld">.org</span></span>
+            </a>
+
+            <h1 class="auth-split__title">Welcome back.</h1>
+            <p class="auth-split__sub">Sign in to manage your leagues, sessions, and ledger.</p>
+
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" name="email" autocomplete="email"
+                           value="{{ form.email or '' }}" placeholder="you@example.com" required>
+                </div>
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" name="password"
+                           autocomplete="current-password" placeholder="••••••••" required>
+                </div>
+                <div class="auth-links">
+                    <a href="{{ url_for('account.forgot_password') }}">Forgot password?</a>
+                </div>
+                <button class="btn btn--primary auth-submit" type="submit">Sign in →</button>
+            </form>
+
+            <p class="auth-alt">No account yet? <a href="{{ url_for('account.register') }}">Create one</a></p>
         </div>
-        <label>
-            <span>Email</span>
-            <input type="email" name="email" autocomplete="email" value="{{ form.email or '' }}" required>
-        </label>
-        <label>
-            <span>Password</span>
-            <input type="password" name="password" autocomplete="current-password" required>
-        </label>
-        <button class="btn btn--primary" type="submit">Login</button>
-        <a class="btn btn--ghost" href="{{ url_for('account.register') }}">Create account</a>
-        <a style="font:400 12px/1 var(--font-ui);color:var(--text-3);text-align:center;margin-top:4px;" href="{{ url_for('account.forgot_password') }}">Forgot password?</a>
-    </form>
+    </div>
+
+    <div class="auth-split__visual" aria-hidden="true">
+        <div class="auth-visual__body">
+            <div class="auth-visual__icon">
+                <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                    <path d="M13 2L22 7.5V18.5L13 24L4 18.5V7.5L13 2Z" stroke="rgba(155,140,240,.65)" stroke-width="1.4" fill="none"/>
+                    <path d="M13 8L18 11V17L13 20L8 17V11L13 8Z" fill="rgba(155,140,240,.25)" stroke="rgba(155,140,240,.55)" stroke-width="1"/>
+                </svg>
+            </div>
+            <p class="auth-visual__title">Track every chip.</p>
+            <p class="auth-visual__sub">Sessions, leaderboards, and debts — all in one place for your private poker league.</p>
+            <div class="auth-visual__preview">
+                <div class="auth-visual__preview-kicker">Live leaderboard</div>
+                <div class="auth-visual__preview-row">
+                    <span>Rivera</span>
+                    <strong style="color:var(--pos);">+$1,420</strong>
+                </div>
+                <div class="auth-visual__preview-row">
+                    <span>Chen</span>
+                    <strong style="color:var(--pos);">+$640</strong>
+                </div>
+                <div class="auth-visual__preview-row" style="opacity:.5">
+                    <span>Okafor</span>
+                    <strong style="color:var(--neg);">-$210</strong>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

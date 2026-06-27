@@ -1,34 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
   /* ---- surfaces (darkest → lightest) ---- */
-  --bg:            #0f0f12;
-  --surface:       #16161c;
-  --surface-raised:#1a1a20;
-  --surface-head:  #1c1c24;
-  --surface-sunk:  #131318;
-  --field:         #1f1f27;
-  --field-alt:     #20202a;
+  --bg:            #0a0a0d;
+  --surface:       #111115;
+  --surface-raised:#16161c;
+  --surface-head:  #18181f;
+  --surface-sunk:  #0d0d11;
+  --field:         #1a1a22;
+  --field-alt:     #1c1c25;
 
   /* ---- borders / dividers ---- */
-  --border:        #26262f;
-  --border-strong: #2e2e38;
-  --border-hi:     #34343f;
-  --divider:       #1d1d25;
-  --slash:         #3a3a45;
+  --border:        #22222b;
+  --border-strong: #2a2a34;
+  --border-hi:     #32323d;
+  --divider:       #191921;
+  --slash:         #383843;
 
   /* ---- text ---- */
-  --text:          #f3f1f8;
-  --text-strong:   #ecebf1;
-  --text-body:     #e7e5ec;
-  --text-2:        #bcbac6;
-  --num:           #b0aeba;
-  --muted:         #8f8d99;
-  --muted-2:       #84828e;
-  --faint:         #7d7b87;
-  --faint-2:       #757380;
-  --faintest:      #66646f;
-  --faintest-2:    #57555f;
+  --text:          #f4f2f9;
+  --text-strong:   #edeaf5;
+  --text-body:     #e8e6ef;
+  --text-2:        #bdbbc8;
+  --num:           #b2b0bb;
+  --muted:         #8c8a96;
+  --muted-2:       #82808c;
+  --faint:         #7a7885;
+  --faint-2:       #72707d;
+  --faintest:      #64626d;
+  --faintest-2:    #55535e;
 
-  /* ---- accent (violet) ---- */
+  /* ---- accent ---- */
+  /* To swap brand color later: edit these 7 vars only */
   --accent:        #9b8cf0;
   --accent-ink:    #12101e;
   --accent-tint:   #1f1d2e;
@@ -65,12 +68,22 @@
   --line-1: #9b8cf0; --line-2: #6fc093; --line-3: #e0b15c;
   --line-4: #cf6f86; --line-5: #8f93c2;
 
+  /* ---- elevation shadows ---- */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.22);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.34), 0 2px 6px rgba(0,0,0,.24);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,.42), 0 4px 12px rgba(0,0,0,.28);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,.52), 0 8px 24px rgba(0,0,0,.32);
+
+  /* ---- glass panel effect ---- */
+  --glass-border: 1px solid rgba(255,255,255,.055);
+  --glass-bg:     rgba(255,255,255,.02);
+
   /* ---- spacing scale (4pt) ---- */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px;
   --s6:24px; --s8:32px; --s10:40px; --s12:48px;
 
   /* ---- radii ---- */
-  --r-pill:6px; --r-sm:9px; --r-md:11px; --r-lg:14px;
+  --r-pill:6px; --r-sm:9px; --r-md:12px; --r-lg:16px;
 
   /* ---- containers ---- */
   --w-public:1320px;
@@ -79,6 +92,6 @@
   --gutter: clamp(16px, 4vw, 40px);
 
   /* ---- Chart.js backward compat (read as raw strings by JS) ---- */
-  --text-muted: #bcbac6;
-  --line: #26262f;
+  --text-muted: #bdbbc8;
+  --line: #22222b;
 }

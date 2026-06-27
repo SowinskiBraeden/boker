@@ -15,7 +15,7 @@
         <div class="topbar__inner">
             <a class="brand" href="{{ url_for('public.home') }}">
                 <span class="brand__mark"></span>
-                <span class="brand__name">myboker.org</span>
+                <span class="brand__name">myboker<span class="brand__tld">.org</span></span>
             </a>
             <button class="nav-toggle" type="button" aria-controls="mainnav" aria-expanded="false" aria-label="Open navigation">
                 <span></span>
@@ -51,8 +51,10 @@
             {% endif %}
         </div>
     </header>
-    {% block subnav %}{% endblock %}
+    <div class="app-shell">
+    {% block sidebar %}{% endblock %}
     <main class="page {% block page_class %}page--public{% endblock %}">
+    {% block subnav %}{% endblock %}
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-stack">
@@ -66,11 +68,22 @@
         {% block content %}{% endblock %}
 
         <footer class="site-footer" aria-label="Site footer">
-            <span>&copy; 2026 myboker.org</span>
-            <span>Version {{ app_version }}</span>
-            <span><a href="{{ url_for('public.help') }}" style="color:inherit;text-decoration:none;">Help</a> · cedarline.digital</span>
+            <div class="site-footer__copy">
+                <span>&copy; 2026 <strong>myboker.org</strong></span>
+                <span class="site-footer__version">v{{ app_version }}</span>
+            </div>
+            <nav class="site-footer__links" aria-label="Footer links">
+                <a href="{{ url_for('public.help') }}">Help</a>
+                <a href="#">Contact</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </nav>
+            <div class="site-footer__brand">
+                <a href="https://cedarline.digital" target="_blank" rel="noopener">cedarline.digital</a>
+            </div>
         </footer>
     </main>
+    </div><!-- /.app-shell -->
     <script>
     (() => {
         const toggle = document.querySelector('.nav-toggle');
