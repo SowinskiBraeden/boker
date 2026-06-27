@@ -2239,12 +2239,11 @@ select.control { cursor: pointer; }
   gap: 12px;
   text-decoration: none;
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
 .player-card:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
-  transform: translateY(-2px);
 }
 .player-card--archived { opacity: 0.5; }
 .player-card__head {
