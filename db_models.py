@@ -93,6 +93,8 @@ class League(TimestampMixin, db.Model):
         index=True,
     )
     archived_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    eligible_min_sessions = db.Column(db.Integer, nullable=False, default=3)
+    break_even_cents = db.Column(db.Integer, nullable=False, default=100)
 
     __table_args__ = (
         db.CheckConstraint(

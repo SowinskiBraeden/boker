@@ -28,6 +28,20 @@
                 <option value="public" {{ 'selected' if form.visibility == 'public' else '' }}>Public — leaderboard is visible to anyone</option>
             </select>
         </label>
+        <div style="margin-top:8px;padding-top:20px;border-top:1px solid var(--border);">
+            <p class="eyebrow">Leaderboard</p>
+            <p class="muted-text" style="margin-top:4px;margin-bottom:0;font-size:.82rem;">Controls how players qualify and how sessions are classified.</p>
+        </div>
+        <div class="session-create-row" style="grid-template-columns:1fr 1fr;">
+            <label>
+                <span>Sessions to rank <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Minimum number of sessions a player must have played to appear on the ranked leaderboard. Players below this threshold are shown as provisional.</span></span></span>
+                <input type="number" name="eligible_min_sessions" value="{{ form.eligible_min_sessions }}" min="1" max="100" step="1" required>
+            </label>
+            <label>
+                <span>Break-even threshold ($) <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">A session within ±this amount of $0 is counted as a break-even rather than a win or loss. Default is $1.00.</span></span></span>
+                <input type="number" name="break_even_dollars" value="{{ form.break_even_dollars }}" min="0" max="100" step="0.50" required>
+            </label>
+        </div>
         <div>
             <button class="btn btn--primary" type="submit">Save changes</button>
         </div>

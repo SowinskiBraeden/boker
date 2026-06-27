@@ -82,9 +82,9 @@ def entry_sort_key(entry: SessionEntry) -> tuple[str, int, str]:
     )
 
 
-def net_result_bucket(value_cents: int) -> str:
-    if value_cents > BREAK_EVEN_TOLERANCE_CENTS:
+def net_result_bucket(value_cents: int, tolerance_cents: int = BREAK_EVEN_TOLERANCE_CENTS) -> str:
+    if value_cents > tolerance_cents:
         return "win"
-    if value_cents < -BREAK_EVEN_TOLERANCE_CENTS:
+    if value_cents < -tolerance_cents:
         return "loss"
     return "even"

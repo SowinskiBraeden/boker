@@ -304,7 +304,6 @@ def leaderboard(league_ref: str):
         flash("League database is not available.", "error")
         return redirect(url_for("public.home"))
 
-    from config import ELIGIBLE_MIN_SESSIONS
     from ledger_repositories import list_event_rows_for_league
     from league_repositories import list_players_for_league, user_has_league_role
 
@@ -312,6 +311,8 @@ def leaderboard(league_ref: str):
     if resp:
         return resp
     is_owner = user_has_league_role(current_user_id() or "", league.id, {"owner"})
+    eligible_min_sessions = league.eligible_min_sessions
+    break_even_cents = league.break_even_cents
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
     ordered_sessions = sorted(all_sessions, key=session_sort_key)
 
@@ -337,11 +338,11 @@ def leaderboard(league_ref: str):
         previous_sessions = []
 
     board = apply_rank_changes(
-        build_leaderboard(filtered_sessions),
-        build_leaderboard(previous_sessions),
+        build_leaderboard(filtered_sessions, break_even_cents),
+        build_leaderboard(previous_sessions, break_even_cents),
     )
     eligible_count = sum(
-        1 for player in board if player.sessions_played >= ELIGIBLE_MIN_SESSIONS
+        1 for player in board if player.sessions_played >= eligible_min_sessions
     )
     all_count = len(board)
     recent_sessions_slice = filtered_sessions[-5:]
@@ -352,18 +353,18 @@ def leaderboard(league_ref: str):
     })
 
     if mode == "recent":
-        main_board = build_leaderboard(recent_sessions_slice)
+        main_board = build_leaderboard(recent_sessions_slice, break_even_cents)
         provisional_board = []
     elif mode == "eligible":
         main_board = [
             player
             for player in board
-            if player.sessions_played >= ELIGIBLE_MIN_SESSIONS
+            if player.sessions_played >= eligible_min_sessions
         ]
         provisional_board = [
             player
             for player in board
-            if player.sessions_played < ELIGIBLE_MIN_SESSIONS
+            if player.sessions_played < eligible_min_sessions
         ]
     else:
         main_board = board
@@ -381,7 +382,7 @@ def leaderboard(league_ref: str):
         eligible_count=eligible_count,
         all_count=all_count,
         recent_count=recent_count,
-        eligible_min_sessions=ELIGIBLE_MIN_SESSIONS,
+        eligible_min_sessions=eligible_min_sessions,
         session_count=len(filtered_sessions),
         total_session_count=len(all_sessions),
         cash_paid_out_cents=cash_paid_out_cents,
@@ -1146,28 +1147,46 @@ def league_settings(league_ref: str):
         "name": league.name,
         "description": league.description or "",
         "visibility": league.visibility,
+        "eligible_min_sessions": league.eligible_min_sessions,
+        "break_even_dollars": f"{league.break_even_cents / 100:.2f}",
     }
 
     if request.method == "POST":
+        raw_eligible = request.form.get("eligible_min_sessions", "3").strip()
+        raw_break_even = request.form.get("break_even_dollars", "1.00").strip()
         form = {
             "name": request.form.get("name", "").strip(),
             "description": request.form.get("description", "").strip(),
             "visibility": request.form.get("visibility", "private").strip(),
+            "eligible_min_sessions": raw_eligible,
+            "break_even_dollars": raw_break_even,
         }
-        if len(form["name"]) < 2:
-            flash("League name must be at least 2 characters.", "error")
-        elif form["visibility"] not in ("private", "public"):
-            flash("Invalid visibility value.", "error")
+        try:
+            eligible_min = int(raw_eligible)
+            break_even_cents = round(float(raw_break_even) * 100)
+        except (ValueError, TypeError):
+            flash("Eligible sessions and break-even threshold must be valid numbers.", "error")
         else:
-            from utils import slugify
+            if len(form["name"]) < 2:
+                flash("League name must be at least 2 characters.", "error")
+            elif form["visibility"] not in ("private", "public"):
+                flash("Invalid visibility value.", "error")
+            elif eligible_min < 1 or eligible_min > 100:
+                flash("Eligible minimum must be between 1 and 100.", "error")
+            elif break_even_cents < 0 or break_even_cents > 10000:
+                flash("Break-even threshold must be between $0.00 and $100.00.", "error")
+            else:
+                from utils import slugify
 
-            league.name = form["name"]
-            league.slug = slugify(form["name"])
-            league.description = form["description"] or None
-            league.visibility = form["visibility"]
-            db.session.commit()
-            flash("League settings saved.", "success")
-            return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+                league.name = form["name"]
+                league.slug = slugify(form["name"])
+                league.description = form["description"] or None
+                league.visibility = form["visibility"]
+                league.eligible_min_sessions = eligible_min
+                league.break_even_cents = break_even_cents
+                db.session.commit()
+                flash("League settings saved.", "success")
+                return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
 
     from league_repositories import list_members_for_league
 
