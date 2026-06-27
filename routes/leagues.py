@@ -324,7 +324,7 @@ def leaderboard(league_ref: str):
     ordered_sessions = sorted(all_sessions, key=session_sort_key)
 
     # Season filter: restrict to sessions belonging to a specific season.
-    seasons = list_seasons_for_league(league.id)
+    seasons = list_seasons_for_league(league.id, include_archived=True)
     selected_season_id = request.args.get("season", "").strip()
     selected_season = None
     if selected_season_id:
@@ -868,7 +868,7 @@ def sessions(league_ref: str):
         for sm in summaries
         if sm.session_id in ref_to_db_id
     }
-    seasons = list_seasons_for_league(league.id)
+    seasons = list_seasons_for_league(league.id, include_archived=True)
     season_map = {s.id: s for s in seasons}
 
     selected_season_id = request.args.get("season", "").strip()
@@ -1078,7 +1078,7 @@ def session_detail(league_ref: str, session_id: str):
     summary = summaries[0] if summaries else empty_session_summary(session)
     all_rows = list_all_event_rows_for_session(league.id, session.id)
 
-    seasons = list_seasons_for_league(league.id)
+    seasons = list_seasons_for_league(league.id, include_archived=True)
     return render_template(
         "league_session_detail.html",
         league=league,
