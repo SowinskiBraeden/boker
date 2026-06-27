@@ -302,6 +302,16 @@ def add_league_member(
     role: str,
     invited_by_user_id: str,
 ) -> LeagueMembership:
+    existing = LeagueMembership.query.filter_by(
+        league_id=league_id,
+        user_id=user_id,
+    ).one_or_none()
+    if existing is not None:
+        existing.role = role
+        existing.invited_by_user_id = invited_by_user_id or None
+        existing.disabled_at = None
+        return existing
+
     membership = LeagueMembership(
         league_id=league_id,
         user_id=user_id,
@@ -322,3 +332,19 @@ def remove_league_member(league_id: str, user_id: str) -> None:
     ).one_or_none()
     if membership and membership.role != "owner":
         membership.disabled_at = utc_now()
+
+
+def set_league_member_role(league_id: str, user_id: str, role: str) -> LeagueMembership | None:
+    if role not in {"manager", "viewer"}:
+        raise ValueError(f"Unsupported member role: {role}")
+
+    membership = LeagueMembership.query.filter_by(
+        league_id=league_id,
+        user_id=user_id,
+        disabled_at=None,
+    ).one_or_none()
+    if membership is None or membership.role == "owner":
+        return None
+
+    membership.role = role
+    return membership

@@ -47,7 +47,7 @@
         </div>
     </form>
 
-    <div class="panel">
+    <div class="panel access-panel">
         <div class="panel__head">
             <div>
                 <p class="kicker" style="margin:0;">Access</p>
@@ -55,40 +55,58 @@
             </div>
             <span class="panel__tag">{{ members|length }} member{{ 's' if members|length != 1 else '' }}</span>
         </div>
-        <div class="panel__body" style="padding-bottom:0;">
-            {% for membership, member_user in members %}
-            <div class="member-row">
-                <div>
-                    <strong>{{ member_user.email }}</strong>
-                    <span class="kicker" style="margin-left:8px;text-transform:capitalize;">{{ membership.role }}</span>
+        <div class="access-panel__grid">
+            <div class="access-panel__members" aria-label="League members">
+                {% for membership, member_user in members %}
+                <div class="member-row">
+                    <div class="member-row__identity">
+                        <strong>{{ member_user.email }}</strong>
+                        <span class="member-role member-role--{{ membership.role }}">{{ membership.role }}</span>
+                    </div>
+                    {% if membership.role != 'owner' and member_user.id != current_user_id %}
+                    <div class="member-row__actions">
+                        {% if membership.role == 'viewer' %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="promote"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-role="manager"
+                            data-member-url="{{ url_for('leagues.update_member_role', league_ref=league.url_ref, user_id=member_user.id) }}">Promote</button>
+                        {% elif membership.role == 'manager' %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="demote"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-role="viewer"
+                            data-member-url="{{ url_for('leagues.update_member_role', league_ref=league.url_ref, user_id=member_user.id) }}">Demote</button>
+                        {% endif %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="remove"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-url="{{ url_for('leagues.remove_member', league_ref=league.url_ref, user_id=member_user.id) }}">Remove</button>
+                    </div>
+                    {% endif %}
                 </div>
-                {% if membership.role != 'owner' %}
-                <form method="post" action="{{ url_for('leagues.remove_member', league_ref=league.url_ref, user_id=member_user.id) }}" style="margin:0;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn--ghost btn--sm" type="submit">Remove</button>
-                </form>
-                {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
-        <form class="form-card" id="invite-member-form" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}" style="padding:16px 20px 20px;border-top:1px solid var(--border);">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <p class="kicker" style="margin-bottom:10px;">Invite by email</p>
-            <div class="session-create-row" style="align-items:flex-end;gap:10px;">
-                <label style="flex:1 1 200px;">
+            <form class="access-panel__invite form-card" id="invite-member-form" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div>
+                    <p class="kicker" style="margin:0 0 4px;">Invite by email</p>
+                    <h3 class="access-panel__invite-title">Add a member</h3>
+                </div>
+                <label>
                     <span>Email</span>
                     <input type="email" name="email" placeholder="friend@example.com" required>
                 </label>
-                <label style="flex:0 0 130px;">
+                <label>
                     <span>Role</span>
                     <select name="role">
                         <option value="manager">Manager</option>
                         <option value="viewer">Viewer</option>
                     </select>
                 </label>
-                <button class="btn btn--primary btn--sm" type="submit" style="flex:0 0 auto;margin-bottom:1px;">Send invite</button>
-            </div>
-        </form>
+                <button class="btn btn--primary btn--sm" type="submit">Send invite</button>
+            </form>
+        </div>
     </div>
 
     <div class="panel">
@@ -109,6 +127,41 @@
         </div>
     </div>
 
+</div>
+
+<div class="modal-backdrop" id="modal-member-role" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-member-role-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Access</span>
+            <h2 class="panel__title" id="modal-member-role-title">Change member role?</h2>
+        </div>
+        <p class="modal-card__text" id="modal-member-role-text"></p>
+        <form id="member-role-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="role" id="member-role-input" value="">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" id="member-role-confirm" type="submit">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modal-member-remove" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-member-remove-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Access</span>
+            <h2 class="panel__title" id="modal-member-remove-title">Remove member?</h2>
+        </div>
+        <p class="modal-card__text" id="modal-member-remove-text"></p>
+        <form id="member-remove-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--danger btn--sm" type="submit">Remove member</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="modal-backdrop" id="modal-archive" hidden>
@@ -176,6 +229,42 @@
     });
     document.querySelectorAll('.modal-confirm-input').forEach(inp => {
         inp.addEventListener('input', () => checkConfirmInput(inp));
+    });
+
+    const roleModal = document.getElementById('modal-member-role');
+    const roleForm = document.getElementById('member-role-form');
+    const roleInput = document.getElementById('member-role-input');
+    const roleTitle = document.getElementById('modal-member-role-title');
+    const roleText = document.getElementById('modal-member-role-text');
+    const roleConfirm = document.getElementById('member-role-confirm');
+    const removeModal = document.getElementById('modal-member-remove');
+    const removeForm = document.getElementById('member-remove-form');
+    const removeTitle = document.getElementById('modal-member-remove-title');
+    const removeText = document.getElementById('modal-member-remove-text');
+
+    document.querySelectorAll('[data-member-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.memberAction;
+            const email = btn.dataset.memberEmail;
+
+            if (action === 'remove') {
+                removeForm.action = btn.dataset.memberUrl;
+                removeTitle.textContent = 'Remove ' + email + '?';
+                removeText.textContent = 'This member will lose access to ' + {{ league.name|tojson }} + '. Their league data and ledger history will stay intact.';
+                removeModal.removeAttribute('hidden');
+                removeModal.querySelector('[data-close-modal]')?.focus();
+                return;
+            }
+
+            const nextRole = btn.dataset.memberRole;
+            roleForm.action = btn.dataset.memberUrl;
+            roleInput.value = nextRole;
+            roleTitle.textContent = (action === 'promote' ? 'Promote ' : 'Demote ') + email + '?';
+            roleText.textContent = email + ' will become a ' + nextRole + ' for ' + {{ league.name|tojson }} + '.';
+            roleConfirm.textContent = action === 'promote' ? 'Promote member' : 'Demote member';
+            roleModal.removeAttribute('hidden');
+            roleModal.querySelector('[data-close-modal]')?.focus();
+        });
     });
 
     const inviteForm = document.getElementById('invite-member-form');

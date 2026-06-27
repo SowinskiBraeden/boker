@@ -1262,6 +1262,36 @@ def remove_member(league_ref: str, user_id: str):
     return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
 
 
+@leagues_bp.post("/l/<league_ref>/settings/members/<user_id>/role")
+@login_required
+def update_member_role(league_ref: str, user_id: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import set_league_member_role
+
+    league = require_league(league_ref, {"owner"})
+    role = request.form.get("role", "").strip()
+
+    if user_id == current_user_id():
+        flash("You cannot change your own league role.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+    if role not in {"manager", "viewer"}:
+        flash("Invalid member role.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+    membership = set_league_member_role(league.id, user_id, role)
+    if membership is None:
+        flash("That member cannot be updated.", "error")
+        return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+    db.session.commit()
+    flash(f"Member changed to {role}.", "success")
+    return redirect(url_for("leagues.league_settings", league_ref=league.url_ref))
+
+
 @leagues_bp.post("/l/<league_ref>/archive")
 @login_required
 def archive_league(league_ref: str):
