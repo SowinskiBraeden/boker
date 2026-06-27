@@ -48,7 +48,7 @@
                 <h2 class="panel__title">All sessions</h2>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-                <span class="panel__tag">{{ sessions|length }} total</span>
+                <span class="panel__tag" id="sess-count-label">{{ sessions|length }} total</span>
                 {% if can_manage and empty_count > 0 %}
                 <form method="post" action="{{ url_for('leagues.prune_empty_sessions', league_ref=league.url_ref) }}" style="margin:0;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -58,10 +58,21 @@
             </div>
         </div>
         {% if sessions %}
+        <div class="sessions-search-bar">
+            <svg class="sessions-search-bar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input class="sessions-search-bar__input" id="sess-search" type="search" placeholder="Search by name, date, or notes…" autocomplete="off">
+        </div>
+        <div id="sess-empty-search" class="empty-panel" style="display:none;">
+            <p class="muted-text">No sessions match your search.</p>
+        </div>
         <div>
             {% for session in sessions %}
             {% set sm = db_id_to_summary.get(session.id) %}
-            <div class="session-row session-row--{{ session.status }}">
+            <div class="session-row session-row--{{ session.status }}"
+                 data-search="{{ (session.display_label ~ ' ' ~ session.session_date.isoformat() ~ ' ' ~ session.session_date.strftime('%B %Y') ~ ' ' ~ (session.notes or '')) | lower }}">
                 <div class="session-row__info">
                     <div class="session-date-block">
                         <span class="session-date-block__mon">{{ session.session_date.strftime('%b') }}</span>
@@ -152,6 +163,26 @@ document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
 reopenModal && reopenModal.addEventListener('click', function(e) {
     if (e.target === this) this.setAttribute('hidden', '');
 });
+
+(function () {
+    var input = document.getElementById('sess-search');
+    var countLabel = document.getElementById('sess-count-label');
+    var emptyMsg = document.getElementById('sess-empty-search');
+    if (!input) return;
+    var total = {{ sessions|length }};
+    input.addEventListener('input', function () {
+        var q = this.value.toLowerCase().trim();
+        var rows = document.querySelectorAll('.session-row[data-search]');
+        var visible = 0;
+        rows.forEach(function (row) {
+            var match = !q || row.dataset.search.includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        if (countLabel) countLabel.textContent = q ? visible + ' of ' + total : total + ' total';
+        if (emptyMsg) emptyMsg.style.display = (q && visible === 0) ? '' : 'none';
+    });
+})();
 </script>
 
 {% endblock %}

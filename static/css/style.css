@@ -2346,6 +2346,29 @@ select.control { cursor: pointer; }
 }
 
 /* Session create form — horizontal 3-col grid */
+.sessions-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunk);
+}
+.sessions-search-bar__icon {
+  color: var(--faintest);
+  flex-shrink: 0;
+}
+.sessions-search-bar__input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: .85rem;
+  color: var(--text);
+  font-family: inherit;
+}
+.sessions-search-bar__input::placeholder { color: var(--faintest); }
+
 .session-create-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
