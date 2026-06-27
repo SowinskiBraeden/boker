@@ -21,7 +21,7 @@
 <div class="hero" style="padding-top:0;">
     <p class="hero__kicker session-number">Session #{{ "%03d"|format(session_number) }}</p>
     <h1 class="hero__title">{{ session_model.display_label }}</h1>
-    <p class="hero__sub">{{ session.entries|length }} player{{ 's' if session.entries|length != 1 else '' }} · <span class="status-badge status-{{ session_model.status }}">{{ session_model.status }}</span></p>
+    <p class="hero__sub">{{ session.entries|length }} player{{ 's' if session.entries|length != 1 else '' }} · <span class="status-badge status-{{ session_model.status }}">{{ session_model.status }}</span>{% if season %} · <a class="season-tag" href="{{ url_for('leagues.sessions', league_ref=league.url_ref, season=session_model.season_id) }}">{{ season.name }}</a>{% endif %}</p>
 </div>
 
 <!-- Recon cards -->

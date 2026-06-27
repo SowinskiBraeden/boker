@@ -271,6 +271,17 @@
                     <span>Date</span>
                     <input type="date" name="session_date" value="{{ session_model.session_date.isoformat() }}" required>
                 </label>
+                {% if seasons %}
+                <label>
+                    <span>Season <span class="form-opt-hint">(optional)</span></span>
+                    <select name="season_id">
+                        <option value="">No season</option>
+                        {% for s in seasons %}
+                        <option value="{{ s.id }}" {{ 'selected' if session_model.season_id == s.id else '' }}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% endif %}
                 <label>
                     <span>Label <span class="form-opt-hint">(optional)</span></span>
                     <input type="text" name="label" value="{{ session_model.label or '' }}" placeholder="e.g. Main table">

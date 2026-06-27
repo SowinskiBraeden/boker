@@ -307,6 +307,22 @@
         <span class="db-nav-tile__arrow">→</span>
     </a>
 
+    <a class="db-nav-tile db-nav-tile--seasons" href="{{ url_for('leagues.seasons', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M12 7v5l3.5 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">Seasons</strong>
+            </div>
+            <p class="db-nav-tile__desc">Browse sessions by season, view season standings, and manage date ranges.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+
     {% if can_manage %}
     <a class="db-nav-tile db-nav-tile--ledger" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">
         <div class="db-nav-tile__icon">

@@ -64,8 +64,20 @@
         </p>
     </div>
     <div class="toolbar__right">
+        {% if seasons %}
+        <form class="session-filter-form" method="get" style="margin-right:8px;">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <select class="session-filter-select" name="season" onchange="this.form.submit()">
+                <option value="">All seasons</option>
+                {% for s in seasons %}
+                <option value="{{ s.id }}" {{ 'selected' if selected_season_id == s.id else '' }}>{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
         <form class="session-filter-form" method="get">
             <input type="hidden" name="mode" value="{{ mode }}">
+            {% if selected_season_id %}<input type="hidden" name="season" value="{{ selected_season_id }}">{% endif %}
             <select class="session-filter-select" name="through_session" onchange="this.form.submit()">
                 <option value="">Latest session</option>
                 {% for s in available_sessions %}

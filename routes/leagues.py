@@ -307,7 +307,11 @@ def leaderboard(league_ref: str):
         return redirect(url_for("public.home"))
 
     from ledger_repositories import list_event_rows_for_league
-    from league_repositories import list_players_for_league, user_has_league_role
+    from league_repositories import (
+        list_players_for_league,
+        list_seasons_for_league,
+        user_has_league_role,
+    )
 
     league, resp = get_league_with_visibility_gate(league_ref)
     if resp:
@@ -318,6 +322,25 @@ def leaderboard(league_ref: str):
     break_even_cents = league.break_even_cents
     all_sessions = build_session_summaries(list_event_rows_for_league(league.id))
     ordered_sessions = sorted(all_sessions, key=session_sort_key)
+
+    # Season filter: restrict to sessions belonging to a specific season.
+    seasons = list_seasons_for_league(league.id)
+    selected_season_id = request.args.get("season", "").strip()
+    selected_season = None
+    if selected_season_id:
+        from league_repositories import find_season, list_sessions_for_league
+        selected_season = find_season(league.id, selected_season_id)
+        if selected_season:
+            from ledger_repositories import session_event_ref
+            season_db_sessions = list_sessions_for_league(league.id)
+            season_refs = {
+                session_event_ref(s)
+                for s in season_db_sessions
+                if s.season_id == selected_season_id
+            }
+            ordered_sessions = [s for s in ordered_sessions if s.session_id in season_refs]
+        else:
+            selected_season_id = ""
 
     session_ids = [session.session_id for session in ordered_sessions]
     selected_session_id = request.args.get("through_session", "").strip()
@@ -390,7 +413,7 @@ def leaderboard(league_ref: str):
         total_session_count=len(all_sessions),
         cash_paid_out_cents=cash_paid_out_cents,
         chart_data=chart_data,
-        available_sessions=all_sessions,
+        available_sessions=ordered_sessions,
         selected_session_id=selected_session_id,
         selected_session_label=(label if selected_session_id else "Latest session"),
         selected_session_date=(
@@ -406,6 +429,9 @@ def leaderboard(league_ref: str):
         },
         can_manage=can_manage,
         is_owner=is_owner,
+        seasons=seasons,
+        selected_season=selected_season,
+        selected_season_id=selected_season_id,
     )
 
 
@@ -759,6 +785,7 @@ def sessions(league_ref: str):
     from ledger_repositories import append_ledger_event
     from league_repositories import (
         create_poker_session,
+        list_seasons_for_league,
         list_sessions_for_league,
         user_has_league_role,
     )
@@ -777,6 +804,7 @@ def sessions(league_ref: str):
         "label": request.form.get("label", "").strip(),
         "notes": request.form.get("notes", "").strip(),
         "status": request.form.get("status", "open").strip(),
+        "season_id": request.form.get("season_id", "").strip(),
     }
 
     if request.method == "POST":
@@ -786,9 +814,23 @@ def sessions(league_ref: str):
             flash("Session date must be a valid date.", "error")
         else:
             status = "closed" if form["status"] == "closed" else "open"
+            season_id = form["season_id"] or None
+            if season_id is None:
+                from league_repositories import auto_assign_sessions_to_seasons as _auto
+                # try auto-assign: create the session first, then let the
+                # function match it; we pass a temporary session date check inline
+                from league_repositories import list_seasons_for_league as _ls
+                eligible = [
+                    s for s in _ls(league.id, include_archived=False)
+                    if s.start_date and s.end_date
+                    and s.start_date <= session_date <= s.end_date
+                ]
+                if len(eligible) == 1:
+                    season_id = eligible[0].id
             session = create_poker_session(
                 league.id,
                 session_date,
+                season_id=season_id,
                 status=status,
             )
             session.label = form["label"] or None
@@ -826,6 +868,17 @@ def sessions(league_ref: str):
         for sm in summaries
         if sm.session_id in ref_to_db_id
     }
+    seasons = list_seasons_for_league(league.id)
+    season_map = {s.id: s for s in seasons}
+
+    selected_season_id = request.args.get("season", "").strip()
+    selected_season = season_map.get(selected_season_id) if selected_season_id else None
+    if selected_season:
+        display_sessions = [s for s in all_sessions if s.season_id == selected_season_id]
+    else:
+        selected_season_id = ""
+        display_sessions = all_sessions
+
     empty_count = sum(
         1 for s in all_sessions
         if s.id not in db_id_to_summary or not db_id_to_summary[s.id].entries
@@ -834,12 +887,17 @@ def sessions(league_ref: str):
     return render_template(
         "league_sessions.html",
         league=league,
-        sessions=all_sessions,
+        sessions=display_sessions,
+        all_session_count=len(all_sessions),
         db_id_to_summary=db_id_to_summary,
         form=form,
         can_manage=can_manage,
         is_owner=is_owner,
         empty_count=empty_count,
+        seasons=seasons,
+        season_map=season_map,
+        selected_season=selected_season,
+        selected_season_id=selected_season_id,
     )
 
 
@@ -916,6 +974,7 @@ def edit_session(league_ref: str, session_id: str):
     new_label = request.form.get("label", "").strip() or None
     new_notes = request.form.get("notes", "").strip() or None
     new_date_str = request.form.get("session_date", "").strip()
+    new_season_id = request.form.get("season_id", "").strip() or None
 
     try:
         new_date = date.fromisoformat(new_date_str)
@@ -933,8 +992,14 @@ def edit_session(league_ref: str, session_id: str):
         session.sequence_on_date = int(max_seq or 0) + 1
         session.session_date = new_date
 
+    if new_season_id is not None:
+        from league_repositories import find_season
+        valid = find_season(league.id, new_season_id)
+        new_season_id = valid.id if valid else None
+
     session.label = new_label
     session.notes = new_notes
+    session.season_id = new_season_id
     db.session.commit()
     flash("Session updated.", "success")
     return redirect(url_for("leagues.session_detail", league_ref=league.url_ref, session_id=session_id))
@@ -951,6 +1016,7 @@ def session_detail(league_ref: str, session_id: str):
     from league_repositories import (
         find_session_for_league,
         list_players_for_league,
+        list_seasons_for_league,
         user_has_league_role,
     )
 
@@ -1012,6 +1078,7 @@ def session_detail(league_ref: str, session_id: str):
     summary = summaries[0] if summaries else empty_session_summary(session)
     all_rows = list_all_event_rows_for_session(league.id, session.id)
 
+    seasons = list_seasons_for_league(league.id)
     return render_template(
         "league_session_detail.html",
         league=league,
@@ -1024,6 +1091,7 @@ def session_detail(league_ref: str, session_id: str):
         can_manage=can_manage,
         is_owner=is_owner,
         session_label=session_label,
+        seasons=seasons,
     )
 
 
@@ -1035,7 +1103,7 @@ def session_public_view(league_ref: str, session_id: str):
 
     from charts import session_breakdown_series
     from ledger_repositories import list_event_rows_for_league, list_event_rows_for_session
-    from league_repositories import find_league_by_public_key, find_session_for_league, list_sessions_for_league, user_has_league_role
+    from league_repositories import find_league_by_public_key, find_season, find_session_for_league, list_sessions_for_league, user_has_league_role
 
     _slug, public_key = split_league_ref(league_ref)
     league = find_league_by_public_key(public_key)
@@ -1078,6 +1146,8 @@ def session_public_view(league_ref: str, session_id: str):
     prev_summary = all_sessions[chrono_idx - 1] if chrono_idx > 0 else None
     next_summary = all_sessions[chrono_idx + 1] if chrono_idx < len(all_sessions) - 1 else None
 
+    season = find_season(league.id, session.season_id) if session.season_id else None
+
     return render_template(
         "league_session_view.html",
         league=league,
@@ -1091,6 +1161,7 @@ def session_public_view(league_ref: str, session_id: str):
         next_session_id=ref_to_db_id.get(next_summary.session_id) if next_summary else None,
         can_manage=can_manage,
         is_owner=is_owner,
+        season=season,
     )
 
 
@@ -1135,6 +1206,193 @@ def update_session_status(league_ref: str, session_id: str, status: str, message
     db.session.commit()
     flash(message, "success")
     return redirect(url_for("leagues.sessions", **league_url_values(league)))
+
+
+@leagues_bp.route("/l/<league_ref>/seasons", methods=["GET", "POST"])
+def seasons(league_ref: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import (
+        create_season,
+        list_seasons_for_league,
+        user_has_league_role,
+    )
+
+    if request.method == "POST":
+        league = require_league(league_ref, {"owner", "manager"})
+    else:
+        league, resp = get_league_with_visibility_gate(league_ref)
+        if resp:
+            return resp
+
+    user_id = current_user_id() or ""
+    can_manage = user_has_league_role(user_id, league.id, {"owner", "manager"})
+    is_owner = user_has_league_role(user_id, league.id, {"owner"})
+
+    name = request.form.get("name", "").strip()
+    start_raw = request.form.get("start_date", "").strip()
+    end_raw = request.form.get("end_date", "").strip()
+
+    if request.method == "POST":
+        if not name:
+            flash("Season name is required.", "error")
+        else:
+            try:
+                start_date = date.fromisoformat(start_raw) if start_raw else None
+                end_date = date.fromisoformat(end_raw) if end_raw else None
+            except ValueError:
+                flash("Invalid date format.", "error")
+                start_date = end_date = None
+            else:
+                existing = list_seasons_for_league(league.id, include_archived=True)
+                create_season(
+                    league.id,
+                    name,
+                    start_date=start_date,
+                    end_date=end_date,
+                    sort_order=len(existing),
+                )
+                db.session.commit()
+                flash(f"Season \"{name}\" created.", "success")
+                return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    active_seasons = list_seasons_for_league(league.id, include_archived=False)
+    archived_seasons = list_seasons_for_league(league.id, include_archived=True)
+    archived_seasons = [s for s in archived_seasons if s.archived_at is not None]
+    return render_template(
+        "league_seasons.html",
+        league=league,
+        active_seasons=active_seasons,
+        archived_seasons=archived_seasons,
+        form={
+            "name": name if request.method == "POST" else "",
+            "start_date": start_raw if request.method == "POST" else "",
+            "end_date": end_raw if request.method == "POST" else "",
+        },
+        can_manage=can_manage,
+        is_owner=is_owner,
+    )
+
+
+@leagues_bp.post("/l/<league_ref>/seasons/auto-assign")
+@login_required
+def auto_assign_seasons(league_ref: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import auto_assign_sessions_to_seasons
+
+    league = require_league(league_ref, {"owner", "manager"})
+    count = auto_assign_sessions_to_seasons(league.id)
+    db.session.commit()
+    if count:
+        flash(f"Assigned {count} session{'s' if count != 1 else ''} to seasons.", "success")
+    else:
+        flash("No sessions could be auto-assigned. Check that your seasons have start and end dates set, and that unassigned sessions fall within exactly one season.", "info")
+    return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+
+@leagues_bp.post("/l/<league_ref>/seasons/<season_id>/update")
+@login_required
+def update_season(league_ref: str, season_id: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import find_season, update_season as repo_update_season
+
+    league = require_league(league_ref, {"owner", "manager"})
+    season = find_season(league.id, season_id)
+    if season is None:
+        flash("Season not found.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    name = request.form.get("name", "").strip()
+    start_raw = request.form.get("start_date", "").strip()
+    end_raw = request.form.get("end_date", "").strip()
+
+    if not name:
+        flash("Season name is required.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    try:
+        start_date = date.fromisoformat(start_raw) if start_raw else None
+        end_date = date.fromisoformat(end_raw) if end_raw else None
+    except ValueError:
+        flash("Invalid date format.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    repo_update_season(season, name, start_date=start_date, end_date=end_date)
+    db.session.commit()
+    flash(f"Season \"{name}\" updated.", "success")
+    return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+
+@leagues_bp.post("/l/<league_ref>/seasons/<season_id>/archive")
+@login_required
+def archive_season(league_ref: str, season_id: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import archive_season as repo_archive, find_season
+
+    league = require_league(league_ref, {"owner", "manager"})
+    season = find_season(league.id, season_id)
+    if season is None:
+        flash("Season not found.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    repo_archive(season)
+    db.session.commit()
+    flash(f"Season \"{season.name}\" archived.", "success")
+    return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+
+@leagues_bp.post("/l/<league_ref>/seasons/<season_id>/unarchive")
+@login_required
+def unarchive_season(league_ref: str, season_id: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import find_season, unarchive_season as repo_unarchive
+
+    league = require_league(league_ref, {"owner", "manager"})
+    season = find_season(league.id, season_id)
+    if season is None:
+        flash("Season not found.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    repo_unarchive(season)
+    db.session.commit()
+    flash(f"Season \"{season.name}\" restored.", "success")
+    return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+
+@leagues_bp.post("/l/<league_ref>/seasons/<season_id>/delete")
+@login_required
+def delete_season(league_ref: str, season_id: str):
+    if not db_ready():
+        flash("League database is not available.", "error")
+        return redirect(url_for("public.home"))
+
+    from league_repositories import delete_season as repo_delete, find_season
+
+    league = require_league(league_ref, {"owner", "manager"})
+    season = find_season(league.id, season_id)
+    if season is None:
+        flash("Season not found.", "error")
+        return redirect(url_for("leagues.seasons", **league_url_values(league)))
+
+    name = season.name
+    repo_delete(season)
+    db.session.commit()
+    flash(f"Season \"{name}\" deleted. Sessions in this season were unassigned.", "success")
+    return redirect(url_for("leagues.seasons", **league_url_values(league)))
 
 
 @leagues_bp.route("/l/<league_ref>/settings", methods=["GET", "POST"])
@@ -1194,7 +1452,7 @@ def league_settings(league_ref: str):
     from league_repositories import list_members_for_league
 
     members = list_members_for_league(league.id)
-    return render_template("league_settings.html", league=league, form=form, is_owner=True, members=members)
+    return render_template("league_settings.html", league=league, form=form, is_owner=True, can_manage=True, members=members)
 
 
 @leagues_bp.post("/l/<league_ref>/settings/invite")

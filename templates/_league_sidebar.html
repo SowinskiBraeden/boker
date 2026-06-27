@@ -51,6 +51,15 @@
             <span>Leaderboard</span>
         </a>
 
+        <a class="sidebar__link {{ 'is-active' if request.endpoint == 'leagues.seasons' }}"
+           href="{{ url_for('leagues.seasons', league_ref=league.url_ref) }}">
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Seasons</span>
+        </a>
+
         {% if can_manage is defined and can_manage %}
         <a class="sidebar__link {{ 'is-active' if request.endpoint == 'leagues.ledger' }}"
            href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">

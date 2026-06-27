@@ -2449,6 +2449,21 @@ select.control { cursor: pointer; }
   background: var(--field);
 }
 
+.season-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
 /* Session list row with left accent */
 .session-row {
   display: flex;
@@ -4813,6 +4828,16 @@ select.control { cursor: pointer; }
   color: var(--warn);
 }
 .db-nav-tile--ledger:hover { border-left-color: rgba(224,177,92,.5); }
+
+.db-nav-tile--seasons {
+  border-left: 3px solid rgba(155,140,240,.28);
+}
+.db-nav-tile--seasons .db-nav-tile__icon {
+  background: rgba(155,140,240,.1);
+  border: 1px solid rgba(155,140,240,.24);
+  color: var(--accent);
+}
+.db-nav-tile--seasons:hover { border-left-color: rgba(155,140,240,.55); }
 
 /* Live tile overrides the sessions color */
 .db-nav-tile--sessions.db-nav-tile--live {

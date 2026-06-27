@@ -375,3 +375,76 @@ def transfer_league_ownership(
     new_owner.role = "owner"
     league.created_by_user_id = new_owner_user_id
     return current_owner, new_owner
+
+
+# ---------------------------------------------------------------------------
+# Seasons
+# ---------------------------------------------------------------------------
+
+def list_seasons_for_league(league_id: str, include_archived: bool = False) -> list[Season]:
+    q = Season.query.filter_by(league_id=league_id)
+    if not include_archived:
+        q = q.filter(Season.archived_at.is_(None))
+    return q.order_by(Season.sort_order.asc(), Season.created_at.asc()).all()
+
+
+def find_season(league_id: str, season_id: str) -> Season | None:
+    return Season.query.filter_by(league_id=league_id, id=season_id).one_or_none()
+
+
+def update_season(
+    season: Season,
+    name: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> Season:
+    season.name = name.strip()
+    season.start_date = start_date
+    season.end_date = end_date
+    return season
+
+
+def archive_season(season: Season) -> Season:
+    from datetime import datetime, timezone
+    season.archived_at = datetime.now(timezone.utc)
+    return season
+
+
+def unarchive_season(season: Season) -> Season:
+    season.archived_at = None
+    return season
+
+
+def delete_season(season: Season) -> None:
+    PokerSession.query.filter_by(season_id=season.id).update({"season_id": None})
+    db.session.delete(season)
+
+
+def auto_assign_sessions_to_seasons(league_id: str) -> int:
+    """Assign unassigned sessions to seasons based on date ranges.
+
+    Only seasons with both start_date and end_date set are considered.
+    Sessions with exactly one matching season are assigned; sessions that
+    match zero or multiple seasons are left untouched (caller decides).
+    Returns the number of sessions assigned.
+    """
+    eligible_seasons = [
+        s for s in list_seasons_for_league(league_id, include_archived=False)
+        if s.start_date is not None and s.end_date is not None
+    ]
+    if not eligible_seasons:
+        return 0
+
+    unassigned = PokerSession.query.filter_by(
+        league_id=league_id, season_id=None
+    ).all()
+    assigned = 0
+    for session in unassigned:
+        matches = [
+            s for s in eligible_seasons
+            if s.start_date <= session.session_date <= s.end_date
+        ]
+        if len(matches) == 1:
+            session.season_id = matches[0].id
+            assigned += 1
+    return assigned
