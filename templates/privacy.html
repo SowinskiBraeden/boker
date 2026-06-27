@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - myboker.org{% endblock %}
+{% block page_class %}page--public{% endblock %}
+{% block content %}
+
+<div class="legal-doc">
+    <header class="legal-doc__header">
+        <p class="lp-kicker">Legal</p>
+        <h1 class="legal-doc__title">Privacy Policy</h1>
+        <p class="legal-doc__meta">Effective June 27, 2026. Operated by <strong>cedarline.digital</strong>, British Columbia, Canada.</p>
+    </header>
+
+    <div class="legal-doc__body">
+
+        <h2>1. Who we are</h2>
+        <p>myboker.org is operated by <strong>cedarline.digital</strong>, a sole proprietorship registered in British Columbia, Canada. "We," "us," and "our" refer to cedarline.digital. By using myboker.org, you agree to the collection and use of information as described in this policy.</p>
+        <p>This policy is governed by the <em>Personal Information Protection and Electronic Documents Act</em> (PIPEDA) and the BC <em>Personal Information Protection Act</em> (PIPA).</p>
+
+        <h2>2. Information we collect</h2>
+
+        <h3>Account information</h3>
+        <ul>
+            <li>Your <strong>email address</strong>, required to create and verify your account.</li>
+            <li>Your <strong>password</strong>, stored exclusively as a one-way bcrypt hash. We never store or have access to your plaintext password.</li>
+            <li>Timestamps for account creation, email verification, and most recent login.</li>
+        </ul>
+
+        <h3>League and gameplay data</h3>
+        <ul>
+            <li>League names, descriptions, visibility settings (private or public), and configuration you create.</li>
+            <li>Player display names and optional notes within your leagues.</li>
+            <li>Session records: dates, labels, open/close timestamps, and session notes.</li>
+            <li>Ledger events: buy-ins, cash-outs, fronts, payouts, rollovers, debt repayments, and write-offs. All amounts are recorded in cents with a full append-only audit trail.</li>
+            <li>The account that created or voided each ledger event.</li>
+        </ul>
+
+        <h3>Membership data</h3>
+        <ul>
+            <li>Your role within each league you belong to (owner, manager, or viewer).</li>
+            <li>Which account invited you and when.</li>
+        </ul>
+
+        <h2>3. What we do not collect</h2>
+        <ul>
+            <li><strong>Real names.</strong> Player display names are arbitrary labels chosen by league managers and are not required to correspond to real legal identities.</li>
+            <li><strong>Payment information.</strong> We do not process, hold, or transfer money of any kind.</li>
+            <li>Location or GPS data.</li>
+            <li>Browser fingerprints or device identifiers.</li>
+            <li>Advertising IDs or third-party tracking identifiers.</li>
+            <li>Analytics data. There are no third-party analytics scripts (no Google Analytics, Mixpanel, or similar) on myboker.org.</li>
+        </ul>
+
+        <h2>4. Cookies and transient data</h2>
+        <p>We set <strong>one cookie</strong>: <code>poker_portal_session</code>. This is a functional authentication cookie that keeps you signed in. It contains only an encrypted reference to your session. We do not use advertising cookies, tracking cookies, or any third-party cookies.</p>
+        <p>Our rate-limiting system temporarily processes your IP address in memory to prevent abuse. IP addresses are not written to disk or retained once the request completes.</p>
+        <p>Password-reset and league-invitation links are cryptographically signed tokens that expire automatically (1 hour for resets, 7 days for invitations). They are stateless and not stored in our database.</p>
+
+        <h2>5. How we use your information</h2>
+        <ul>
+            <li>To authenticate you and maintain a secure session.</li>
+            <li>To store and display your league, session, and player data to you and the members of your leagues.</li>
+            <li>To send transactional emails: account verification, password reset, and league invitations.</li>
+            <li>To enforce rate limits and protect the service from abuse.</li>
+        </ul>
+        <p>We do not sell, rent, share, or otherwise disclose your personal information to third parties for advertising or marketing purposes.</p>
+
+        <h2>6. Third-party services</h2>
+        <p>We use a third-party SMTP provider to deliver transactional emails. This provider receives only the recipient email address and the message content required to deliver your email. No other personal data is shared with this provider.</p>
+        <p>We have no other third-party integrations, analytics platforms, or data processors.</p>
+        <p>Servers hosting myboker.org are located in <strong>North America</strong> (primarily Canada; potentially the United States). Data is not intentionally transferred to the European Union, though no geographic restriction is technically enforced at the network level.</p>
+
+        <h2>7. Player display names</h2>
+        <p>Player profiles in a league use display names set by the league manager. These names do not need to be real legal names; they are arbitrary labels for tracking purposes. All leagues are <strong>private by default</strong>, meaning player data is only visible to members of that specific league.</p>
+        <p>If you are a league manager adding players, you are responsible for ensuring that players whose results you track have agreed to participate in your league and have their results recorded.</p>
+
+        <h2>8. Data retention and deletion</h2>
+        <p>We retain your data for as long as your account is active. You have two options for removing your data:</p>
+        <ul>
+            <li><strong>Account deletion:</strong> available in account settings. This is immediate and permanent. Your account, all leagues you own, and all associated session history are irreversibly removed.</li>
+            <li><strong>League deletion:</strong> league owners can permanently delete a league, which removes all its sessions, players, and ledger events. Archiving a league preserves data while hiding the league from active views.</li>
+        </ul>
+        <p>We do not have automated data expiry periods. Data remains until you delete it. As the user base grows, we may introduce formal retention policies and will update this policy accordingly.</p>
+
+        <h2>9. Your rights</h2>
+        <p>Under PIPEDA and BC PIPA, you have the right to:</p>
+        <ul>
+            <li>Know what personal information we hold about you.</li>
+            <li>Request corrections to inaccurate information.</li>
+            <li>Request deletion of your personal information (fulfilled via in-app hard delete or by emailing us).</li>
+            <li>Withdraw consent, subject to legal or contractual limitations.</li>
+        </ul>
+        <p>To exercise any of these rights, contact us at <a href="mailto:support@cedarline.digital">support@cedarline.digital</a>. We will respond within 30 days.</p>
+        <p>If you are a resident of the European Union, additional rights may apply under the GDPR. myboker.org is not specifically directed at EU residents, but we will honour GDPR deletion and access requests made in writing.</p>
+
+        <h2>10. Age requirement</h2>
+        <p>You must be <strong>at least 18 years old</strong> to create an account on myboker.org. By registering, you confirm you meet this requirement. If we become aware that an account was created by someone under 18, we will permanently delete that account.</p>
+
+        <h2>11. Security</h2>
+        <p>We apply standard security measures including encrypted connections (TLS in transit), bcrypt password hashing, CSRF protection, and rate limiting. No method of data transmission or storage is 100% secure. We cannot guarantee absolute security but take reasonable precautions to protect your information.</p>
+
+        <h2>12. Changes to this policy</h2>
+        <p>We may update this Privacy Policy from time to time. When we do, we will update the effective date at the top of this page. Continued use of myboker.org after changes are posted constitutes your acceptance of the revised policy.</p>
+
+        <h2>13. Contact</h2>
+        <p>Questions or requests regarding this policy:</p>
+        <p>
+            <strong>cedarline.digital</strong><br>
+            British Columbia, Canada<br>
+            <a href="mailto:support@cedarline.digital">support@cedarline.digital</a>
+        </p>
+
+    </div><!-- /.legal-doc__body -->
+</div><!-- /.legal-doc -->
+
+{% endblock %}

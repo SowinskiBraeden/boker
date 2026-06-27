@@ -25,7 +25,17 @@ def home():
 
 @public_bp.get("/help")
 def help():
-    return render_template("docs.html")
+    return render_template("support.html")
+
+
+@public_bp.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@public_bp.get("/terms")
+def terms():
+    return render_template("terms.html")
 
 
 @public_bp.get("/explore")
