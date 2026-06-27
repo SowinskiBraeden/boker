@@ -41,6 +41,20 @@ def send_password_reset(to_email: str, reset_url: str) -> None:
     _send_message(msg)
 
 
+def send_email_verification_code(to_email: str, code: str) -> None:
+    msg = Message(
+        subject="Your myboker.org verification code",
+        recipients=[to_email],
+        body=(
+            "Verify your myboker.org account with this code:\n\n"
+            f"{code}\n\n"
+            "This code expires in 15 minutes. If you did not create an account, you can ignore this email."
+        ),
+        sender=current_app.config.get("MAIL_DEFAULT_SENDER"),
+    )
+    _send_message(msg)
+
+
 def send_league_invite(to_email: str, league_name: str, invite_url: str, invited_by_email: str, role: str) -> None:
     role_label = role.strip().lower() if role else "member"
     msg = Message(

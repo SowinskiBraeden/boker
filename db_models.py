@@ -73,6 +73,8 @@ class User(TimestampMixin, db.Model):
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     email_verified_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    email_verification_code_hash = db.Column(db.String(255), nullable=True)
+    email_verification_sent_at = db.Column(db.DateTime(timezone=True), nullable=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
     disabled_at = db.Column(db.DateTime(timezone=True), nullable=True)
 

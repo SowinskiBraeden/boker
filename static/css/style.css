@@ -5467,6 +5467,34 @@ select.control { cursor: pointer; }
   color: var(--faintest-2);
 }
 
+.auth-field--code {
+  margin-bottom: 18px;
+}
+
+.auth-code-input {
+  text-align: center;
+  font-family: var(--font-mono) !important;
+  font-size: 30px !important;
+  font-weight: 800 !important;
+  letter-spacing: .38em;
+}
+
+.auth-resend-form {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.auth-link-button {
+  all: unset;
+  cursor: pointer;
+  color: var(--muted);
+  font: 600 13px/1.2 var(--font-ui);
+}
+.auth-link-button:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .auth-links {
   margin: -8px 0 16px;
   text-align: right;

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import secrets
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session as flask_session, url_for
 
 from auth import (
     current_user_id,
@@ -22,6 +24,7 @@ from db import database_extensions_available, db
 from extensions import limiter
 
 account_bp = Blueprint("account", __name__, url_prefix="/account")
+EMAIL_VERIFICATION_TTL = timedelta(minutes=15)
 
 
 def db_ready() -> bool:
@@ -39,6 +42,53 @@ def safe_next_url(default: str) -> str:
     if not next_url.startswith("/"):
         return default
     return next_url
+
+
+def _verification_next(default: str) -> str:
+    next_url = flask_session.get("pending_verification_next")
+    if isinstance(next_url, str) and next_url.startswith("/") and not urlsplit(next_url).netloc:
+        return next_url
+    return default
+
+
+def _verification_sent_at_valid(sent_at) -> bool:
+    if sent_at is None:
+        return False
+    if sent_at.tzinfo is None:
+        sent_at = sent_at.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - sent_at <= EMAIL_VERIFICATION_TTL
+
+
+def _new_verification_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _issue_verification_code(user) -> str:
+    from db_models import utc_now
+
+    code = _new_verification_code()
+    user.email_verification_code_hash = hash_password(code)
+    user.email_verification_sent_at = utc_now()
+    return code
+
+
+def _send_verification_code(user) -> None:
+    from emails import send_email_verification_code
+
+    code = _issue_verification_code(user)
+    db.session.commit()
+    send_email_verification_code(user.email, code)
+
+
+def _start_email_verification(user, next_url: str) -> str:
+    flask_session["pending_verification_user_id"] = user.id
+    flask_session["pending_verification_next"] = next_url
+    try:
+        _send_verification_code(user)
+        flash("Check your email for a verification code.", "success")
+    except Exception:
+        flash("Account created, but we could not send a verification code. Try resending it.", "error")
+    return url_for("account.verify_email")
 
 
 @account_bp.get("/")
@@ -78,10 +128,8 @@ def register():
             flash("An account already exists for that email.", "error")
         else:
             user = create_user(email, password)
-            db.session.commit()
-            log_user_in(user.id)
-            flash("Account created.", "success")
-            return redirect(safe_next_url(url_for("leagues.new")))
+            db.session.flush()
+            return redirect(_start_email_verification(user, safe_next_url(url_for("leagues.new"))))
 
     return render_template("account_register.html", form=form)
 
@@ -110,6 +158,15 @@ def login():
             flash("Invalid email or password.", "error")
         elif user.disabled_at is not None:
             flash("That account is disabled.", "error")
+        elif user.email_verified_at is None:
+            flask_session["pending_verification_user_id"] = user.id
+            flask_session["pending_verification_next"] = safe_next_url(url_for("leagues.index"))
+            try:
+                _send_verification_code(user)
+                flash("Verify your email to continue. We sent you a new code.", "success")
+            except Exception:
+                flash("Verify your email to continue. We could not send a new code.", "error")
+            return redirect(url_for("account.verify_email"))
         else:
             log_user_in(user.id)
             next_url = safe_next_url(url_for("leagues.index"))
@@ -117,6 +174,82 @@ def login():
             return redirect(next_url)
 
     return render_template("account_login.html", form=form)
+
+
+@account_bp.route("/verify-email", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
+def verify_email():
+    if current_user_id():
+        return redirect(safe_next_url(url_for("leagues.index")))
+
+    if not db_ready():
+        flash("Account database is not available.", "error")
+        return redirect(url_for("account.login"))
+
+    from db_models import User, utc_now
+
+    user_id = flask_session.get("pending_verification_user_id")
+    user = db.session.get(User, user_id) if user_id else None
+    if user is None or user.disabled_at is not None:
+        flask_session.pop("pending_verification_user_id", None)
+        flask_session.pop("pending_verification_next", None)
+        flash("Start again to verify your email.", "error")
+        return redirect(url_for("account.register"))
+
+    if user.email_verified_at is not None:
+        log_user_in(user.id)
+        next_url = _verification_next(url_for("leagues.index"))
+        flask_session.pop("pending_verification_user_id", None)
+        flask_session.pop("pending_verification_next", None)
+        return redirect(next_url)
+
+    if request.method == "POST":
+        code = "".join(ch for ch in request.form.get("code", "") if ch.isdigit())
+        if len(code) != 6:
+            flash("Enter the six-digit verification code.", "error")
+        elif not _verification_sent_at_valid(user.email_verification_sent_at):
+            flash("That code has expired. Request a new one.", "error")
+        elif not user.email_verification_code_hash or not verify_password(user.email_verification_code_hash, code):
+            flash("That verification code is not correct.", "error")
+        else:
+            user.email_verified_at = utc_now()
+            user.email_verification_code_hash = None
+            user.email_verification_sent_at = None
+            db.session.commit()
+            log_user_in(user.id)
+            next_url = _verification_next(url_for("leagues.index"))
+            flask_session.pop("pending_verification_user_id", None)
+            flask_session.pop("pending_verification_next", None)
+            flash("Email verified.", "success")
+            return redirect(next_url)
+
+    return render_template("account_verify_email.html", email=user.email)
+
+
+@account_bp.post("/verify-email/resend")
+@limiter.limit("3 per minute")
+def resend_verification_code():
+    if current_user_id():
+        return redirect(url_for("leagues.index"))
+
+    if not db_ready():
+        flash("Account database is not available.", "error")
+        return redirect(url_for("account.login"))
+
+    from db_models import User
+
+    user_id = flask_session.get("pending_verification_user_id")
+    user = db.session.get(User, user_id) if user_id else None
+    if user is None or user.disabled_at is not None:
+        flash("Start again to verify your email.", "error")
+        return redirect(url_for("account.register"))
+
+    try:
+        _send_verification_code(user)
+        flash("A new verification code has been sent.", "success")
+    except Exception:
+        flash("We could not send a new code. Check your mail configuration.", "error")
+    return redirect(url_for("account.verify_email"))
 
 
 @account_bp.post("/logout")
