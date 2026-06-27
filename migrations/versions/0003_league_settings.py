@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision = "0003_league_settings"
-down_revision = "0002_league_public_key"
+down_revision = "0003_site_admin"
 branch_labels = None
 depends_on = None
 
