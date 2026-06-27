@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from auth import (
@@ -26,6 +28,19 @@ def db_ready() -> bool:
     return database_extensions_available() and db is not None
 
 
+def safe_next_url(default: str) -> str:
+    next_url = request.args.get("next", "").strip()
+    if not next_url:
+        return default
+
+    parsed = urlsplit(next_url)
+    if parsed.scheme or parsed.netloc:
+        return default
+    if not next_url.startswith("/"):
+        return default
+    return next_url
+
+
 @account_bp.get("/")
 @login_required
 def home():
@@ -36,14 +51,14 @@ def home():
 @limiter.limit("10 per minute")
 def register():
     if current_user_id():
-        return redirect(url_for("leagues.index"))
+        return redirect(safe_next_url(url_for("leagues.index")))
 
     if not db_ready():
         flash("Account database is not available.", "error")
         return render_template("account_register.html", form={})
 
     form = {
-        "email": request.form.get("email", "").strip(),
+        "email": (request.form.get("email") or request.args.get("email") or "").strip(),
     }
 
     if request.method == "POST":
@@ -66,7 +81,7 @@ def register():
             db.session.commit()
             log_user_in(user.id)
             flash("Account created.", "success")
-            return redirect(url_for("leagues.new"))
+            return redirect(safe_next_url(url_for("leagues.new")))
 
     return render_template("account_register.html", form=form)
 
@@ -75,7 +90,7 @@ def register():
 @limiter.limit("20 per minute")
 def login():
     if current_user_id():
-        return redirect(url_for("leagues.index"))
+        return redirect(safe_next_url(url_for("leagues.index")))
 
     if not db_ready():
         flash("Account database is not available.", "error")
@@ -97,7 +112,7 @@ def login():
             flash("That account is disabled.", "error")
         else:
             log_user_in(user.id)
-            next_url = request.args.get("next") or url_for("leagues.index")
+            next_url = safe_next_url(url_for("leagues.index"))
             flash("Logged in.", "success")
             return redirect(next_url)
 
@@ -309,18 +324,25 @@ def accept_invite(token):
         flash("That invitation link is invalid or has expired.", "error")
         return redirect(url_for("public.home"))
 
-    if not current_user_id():
-        return redirect(url_for("account.login", next=url_for("account.accept_invite", token=token)))
-
     if not db_ready():
         flash("Account database is not available.", "error")
         return redirect(url_for("leagues.index"))
 
     from db_models import User
-    from league_repositories import add_league_member, find_league_by_id, find_membership
+    from league_repositories import add_league_member, find_league_by_id, find_membership, find_user_by_email
+
+    invite_email = normalize_email(data.get("email", ""))
+    invite_next = url_for("account.accept_invite", token=token)
+    if not current_user_id():
+        if find_user_by_email(invite_email):
+            flash("Sign in to accept your invitation.", "info")
+            return redirect(url_for("account.login", next=invite_next))
+
+        flash("Create an account to accept your invitation.", "info")
+        return redirect(url_for("account.register", next=invite_next, email=invite_email))
 
     user = db.session.get(User, current_user_id())
-    if user is None or user.email != data.get("email"):
+    if user is None or user.email != invite_email:
         flash("This invitation was sent to a different email address.", "error")
         return redirect(url_for("leagues.index"))
 
