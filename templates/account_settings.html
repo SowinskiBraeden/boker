@@ -80,7 +80,8 @@
 <div class="modal-backdrop" id="modal-delete-account" hidden>
     <div class="modal-card">
         <div class="modal-card__head">
-            <h2 style="font-size:18px;margin:0;">Delete account</h2>
+            <span class="kicker" style="margin:0;">Account</span>
+            <h2 class="panel__title">Delete account</h2>
         </div>
         <p class="modal-card__text">
             Your account will be <strong>permanently disabled</strong> and all leagues you own will be archived. This cannot be undone.<br><br>
@@ -88,7 +89,7 @@
         </p>
         <form method="post" action="{{ url_for('account.delete_account') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div style="padding:0 20px 16px;display:grid;gap:10px;">
+            <div class="form-card" style="padding:0 20px 4px;gap:10px;">
                 <input
                     class="modal-confirm-input"
                     type="text"

@@ -204,7 +204,8 @@
 <div class="modal-backdrop" id="modal-archive" hidden>
     <div class="modal-card">
         <div class="modal-card__head">
-            <h2 style="font-size:18px;margin:0;">Archive league</h2>
+            <span class="kicker" style="margin:0;">Danger zone</span>
+            <h2 class="panel__title">Archive league</h2>
         </div>
         <p class="modal-card__text">
             <strong>{{ league.name }}</strong> will be hidden from your dashboard. All data is preserved and can be recovered by contacting support. This does not delete any sessions or ledger events.<br><br>
@@ -212,7 +213,7 @@
         </p>
         <form method="post" action="{{ url_for('leagues.archive_league', league_ref=league.url_ref) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div style="padding:0 20px 16px;">
+            <div class="form-card" style="padding:0 20px 4px;">
                 <input
                     class="modal-confirm-input"
                     type="text"

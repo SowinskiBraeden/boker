@@ -167,30 +167,28 @@
 <div class="modal-backdrop" id="modal-edit-season" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-edit-season-title">
         <div class="modal-card__head">
-            <h2 class="modal-card__title" id="modal-edit-season-title">Edit season</h2>
-            <button class="modal-card__close" type="button" data-close-modal aria-label="Close">&times;</button>
+            <span class="kicker" style="margin:0;">Season</span>
+            <h2 class="panel__title" id="modal-edit-season-title">Edit season</h2>
         </div>
         <form method="post" id="form-edit-season" action="">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-card__body">
-                <div class="form-card" style="padding:0;gap:14px;">
-                    <label>
-                        <span>Name</span>
-                        <input type="text" name="name" id="edit-season-name" required>
-                    </label>
-                    <label>
-                        <span>Start date <span class="form-opt-hint">(optional)</span></span>
-                        <input type="date" name="start_date" id="edit-season-start">
-                    </label>
-                    <label>
-                        <span>End date <span class="form-opt-hint">(optional)</span></span>
-                        <input type="date" name="end_date" id="edit-season-end">
-                    </label>
-                </div>
+            <div class="form-card" style="padding:0 20px 4px;gap:12px;">
+                <label>
+                    <span>Name</span>
+                    <input type="text" name="name" id="edit-season-name" required>
+                </label>
+                <label>
+                    <span>Start date <span class="form-opt-hint">(optional)</span></span>
+                    <input type="date" name="start_date" id="edit-season-start">
+                </label>
+                <label>
+                    <span>End date <span class="form-opt-hint">(optional)</span></span>
+                    <input type="date" name="end_date" id="edit-season-end">
+                </label>
             </div>
-            <div class="modal-card__foot">
-                <button class="btn btn--primary" type="submit">Save changes</button>
-                <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Save changes</button>
             </div>
         </form>
     </div>
@@ -200,17 +198,15 @@
 <div class="modal-backdrop" id="modal-delete-season" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-delete-season-title">
         <div class="modal-card__head">
-            <h2 class="modal-card__title" id="modal-delete-season-title">Delete season</h2>
-            <button class="modal-card__close" type="button" data-close-modal aria-label="Close">&times;</button>
+            <span class="kicker" style="margin:0;">Season</span>
+            <h2 class="panel__title" id="modal-delete-season-title">Delete season</h2>
         </div>
-        <div class="modal-card__body">
-            <p>Permanently delete <strong id="delete-season-name"></strong>? Sessions assigned to this season will not be deleted — they will simply become unassigned. This cannot be undone.</p>
-        </div>
+        <p class="modal-card__text">Permanently delete <strong id="delete-season-name"></strong>? Sessions assigned to this season will not be deleted — they will simply become unassigned. This cannot be undone.</p>
         <form method="post" id="form-delete-season" action="">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-card__foot">
-                <button class="btn btn--destructive" type="submit">Delete season</button>
-                <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--destructive btn--sm" type="submit">Delete season</button>
             </div>
         </form>
     </div>
