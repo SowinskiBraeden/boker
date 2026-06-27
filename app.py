@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import click
-from flask import Flask
+from flask import Flask, render_template
 
 from auth import current_user_id, is_logged_in
 from config import Config
@@ -41,6 +41,14 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     app.register_blueprint(public_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(leagues_bp)
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template("404.html"), 404
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template("403.html"), 403
 
     @app.cli.command("init-db")
     def init_db_command() -> None:

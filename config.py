@@ -9,7 +9,7 @@ DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 
 ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "2.5.10"
+APP_VERSION = "2.5.11"
 
 
 def load_local_env(env_path: Path) -> None:
