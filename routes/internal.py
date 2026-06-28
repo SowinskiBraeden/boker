@@ -226,7 +226,7 @@ def _sessions_by_weekday() -> dict:
 
 def _growth_data(weeks: int = 8) -> dict:
     now = datetime.now(timezone.utc)
-    labels, user_signups, session_counts, cash_in_weekly = [], [], [], []
+    labels, user_signups, session_counts, league_counts = [], [], [], []
     for i in range(weeks - 1, -1, -1):
         start = now - timedelta(weeks=i + 1)
         end = now - timedelta(weeks=i)
@@ -240,22 +240,12 @@ def _growth_data(weeks: int = 8) -> dict:
                 PokerSession.session_date < end_date,
             ).count()
         )
-        cash = (
-            db.session.query(db.func.coalesce(db.func.sum(LedgerEvent.amount_cents), 0))
-            .filter(
-                LedgerEvent.event_type.in_(_CASH_IN_TYPES),
-                LedgerEvent.voided_at.is_(None),
-                LedgerEvent.created_at >= start,
-                LedgerEvent.created_at < end,
-            )
-            .scalar()
-        )
-        cash_in_weekly.append(round(int(cash or 0) / 100, 2))
+        league_counts.append(League.query.filter(League.created_at >= start, League.created_at < end).count())
     return {
         "labels": labels,
         "user_signups": user_signups,
         "session_counts": session_counts,
-        "cash_in_weekly": cash_in_weekly,
+        "league_counts": league_counts,
     }
 
 
@@ -276,7 +266,7 @@ def _trend_cards(growth: dict) -> list[dict]:
     labels = growth["labels"]
     user_series = growth["user_signups"]
     session_series = growth["session_counts"]
-    cash_series = growth["cash_in_weekly"]
+    league_series = growth["league_counts"]
     current_start = datetime.now(timezone.utc) - timedelta(days=7)
     previous_start = current_start - timedelta(days=7)
 
@@ -329,12 +319,12 @@ def _trend_cards(growth: dict) -> list[dict]:
             "series": [event_previous, event_current],
         },
         {
-            "key": "volume",
-            "label": "Recorded volume",
-            "value": f"${cash_series[-1]:,.0f}" if cash_series else "$0",
-            "delta": _trend_delta(cash_series[-1] if cash_series else 0, cash_series[-2] if len(cash_series) > 1 else 0),
+            "key": "leagues",
+            "label": "New leagues",
+            "value": league_series[-1] if league_series else 0,
+            "delta": _trend_delta(league_series[-1] if league_series else 0, league_series[-2] if len(league_series) > 1 else 0),
             "labels": labels,
-            "series": cash_series,
+            "series": league_series,
         },
     ]
 

@@ -40,7 +40,7 @@
         </div>
         <span class="int-hero-card__num">{{ stats.active_leagues }}</span>
         <span class="int-hero-card__label">Active leagues</span>
-        <span class="int-hero-card__sub">{{ stats.public_leagues }} public · {{ stats.archived_leagues }} archived · {{ '%.1f'|format(stats.avg_sessions_per_active_league) }} avg sessions</span>
+        <span class="int-hero-card__sub">{{ stats.public_leagues }} public · {{ stats.archived_leagues }} archived</span>
     </div>
     <div class="int-hero-card">
         <div class="int-hero-card__icon int-hero-card__icon--sessions">
@@ -62,7 +62,7 @@
         </div>
         <span class="int-hero-card__num">{{ stats.active_users_30d }}</span>
         <span class="int-hero-card__label">Active users · 30d</span>
-        <span class="int-hero-card__sub">{{ stats.returning_users_30d }} returning · {{ stats.unverified_users }} unverified</span>
+        <span class="int-hero-card__sub">{{ stats.users_in_leagues }} in leagues · {{ stats.orphan_users }} solo</span>
     </div>
 </div>
 
@@ -110,15 +110,15 @@
     </section>
 </div>
 
-<!-- Charts row 2: cash + weekday -->
+<!-- Charts row 2: leagues + weekday -->
 <div class="cards-2 int-section-grid">
     <section class="panel int-chart-panel">
         <div class="int-chart-head">
-            <p class="kicker" style="margin:0;">Recorded ledger volume</p>
-            <h2 class="panel__title">Buy-ins and collections · 8 weeks</h2>
+            <p class="kicker" style="margin:0;">Growth</p>
+            <h2 class="panel__title">New leagues per week · 8 weeks</h2>
         </div>
         <div class="int-chart-wrap">
-            <canvas id="chart-cash"></canvas>
+            <canvas id="chart-leagues"></canvas>
         </div>
     </section>
     <section class="panel int-chart-panel">
@@ -137,38 +137,25 @@
     <section class="panel">
         <div class="panel__head">
             <h2 class="panel__title">Activity breakdown</h2>
-            <span class="panel__tag">24h / 7d</span>
+            <span class="panel__tag">7d</span>
         </div>
         <div class="panel__body">
             <div class="int-breakdown-grid">
                 <div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">New users (24h)</span><span class="int-breakdown-row__val">{{ stats.new_users_24h }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">New users (7d)</span><span class="int-breakdown-row__val">{{ stats.new_users_7d }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Active users (24h)</span><span class="int-breakdown-row__val">{{ stats.active_users_24h }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Active users (7d)</span><span class="int-breakdown-row__val">{{ stats.active_users_7d }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Active users (30d)</span><span class="int-breakdown-row__val">{{ stats.active_users_30d }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Returning users (7d)</span><span class="int-breakdown-row__val">{{ stats.returning_users_7d }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Returning users (30d)</span><span class="int-breakdown-row__val">{{ stats.returning_users_30d }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Users in leagues</span><span class="int-breakdown-row__val">{{ stats.users_in_leagues }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">No-league signups</span><span class="int-breakdown-row__val">{{ stats.orphan_users }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Verified accounts</span><span class="int-breakdown-row__val">{{ stats.verified_users }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Unverified</span><span class="int-breakdown-row__val">{{ stats.unverified_users }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Disabled</span><span class="int-breakdown-row__val">{{ stats.disabled_users }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Site admins</span><span class="int-breakdown-row__val">{{ stats.site_admins }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Unverified accounts</span><span class="int-breakdown-row__val">{{ stats.unverified_users }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Disabled accounts</span><span class="int-breakdown-row__val">{{ stats.disabled_users }}</span></div>
                 </div>
                 <div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Sessions (24h)</span><span class="int-breakdown-row__val">{{ stats.sessions_24h }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Sessions (7d)</span><span class="int-breakdown-row__val">{{ stats.sessions_7d }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Open sessions</span><span class="int-breakdown-row__val">{{ stats.open_sessions }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Leagues active (7d)</span><span class="int-breakdown-row__val">{{ stats.leagues_active_7d }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Leagues with no sessions</span><span class="int-breakdown-row__val">{{ stats.leagues_without_sessions }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Sessions with no ledger records</span><span class="int-breakdown-row__val">{{ stats.sessions_without_events }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg players/session</span><span class="int-breakdown-row__val">{{ '%.1f'|format(stats.avg_players_per_session) }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Ledger events (24h)</span><span class="int-breakdown-row__val">{{ stats.ledger_events_24h }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg players / session</span><span class="int-breakdown-row__val">{{ '%.1f'|format(stats.avg_players_per_session) }}</span></div>
                     <div class="int-breakdown-row"><span class="int-breakdown-row__label">Ledger events (7d)</span><span class="int-breakdown-row__val">{{ stats.ledger_events_7d }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Total ledger events</span><span class="int-breakdown-row__val">{{ stats.ledger_events }}</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Voided ledger records</span><span class="int-breakdown-row__val">{{ stats.voided_events }} · {{ '%.1f'|format(stats.void_rate) }}%</span></div>
-                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg sessions / league</span><span class="int-breakdown-row__val">{{ stats.avg_sessions_per_active_league }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg sessions / league</span><span class="int-breakdown-row__val">{{ '%.1f'|format(stats.avg_sessions_per_active_league) }}</span></div>
                 </div>
             </div>
         </div>
@@ -204,15 +191,19 @@
 
 <section class="panel int-section-grid">
     <div class="panel__head">
-        <h2 class="panel__title">Recorded ledger volume</h2>
-        <span class="panel__tag">Not platform revenue</span>
+        <h2 class="panel__title">Totals at a glance</h2>
+        <span class="panel__tag">All time</span>
     </div>
     <div class="panel__body">
-        <div class="int-breakdown-grid">
-            <div class="int-breakdown-row"><span class="int-breakdown-row__label">Recorded buy-ins and collections</span><span class="int-breakdown-row__val">${{ '%.2f'|format(stats.cash_in_cents / 100) }}</span></div>
-            <div class="int-breakdown-row"><span class="int-breakdown-row__label">Recorded payouts</span><span class="int-breakdown-row__val">${{ '%.2f'|format(stats.cash_out_cents / 100) }}</span></div>
-            <div class="int-breakdown-row"><span class="int-breakdown-row__label">Average recorded volume / session</span><span class="int-breakdown-row__val">${{ '%.2f'|format(stats.avg_cash_in_per_session_cents / 100) }}</span></div>
-            <div class="int-breakdown-row"><span class="int-breakdown-row__label">Ledger records</span><span class="int-breakdown-row__val">{{ stats.ledger_events }}</span></div>
+        <div class="int-summary-grid">
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.users }}</span><span class="int-summary-item__label">Total users</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.leagues }}</span><span class="int-summary-item__label">Total leagues</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.sessions }}</span><span class="int-summary-item__label">Total sessions</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.ledger_events }}</span><span class="int-summary-item__label">Ledger events</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.cash_in_cents / 100) }}</span><span class="int-summary-item__label">Recorded buy-ins</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.cash_out_cents / 100) }}</span><span class="int-summary-item__label">Recorded payouts</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.avg_cash_in_per_session_cents / 100) }}</span><span class="int-summary-item__label">Avg volume / session</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.verified_users }}</span><span class="int-summary-item__label">Verified accounts</span></div>
         </div>
     </div>
 </section>
@@ -270,7 +261,7 @@
     const labels       = {{ growth.labels | tojson }};
     const userSignups  = {{ growth.user_signups | tojson }};
     const sessionData  = {{ growth.session_counts | tojson }};
-    const cashData     = {{ growth.cash_in_weekly | tojson }};
+    const leagueData   = {{ growth.league_counts | tojson }};
     const wdLabels     = {{ weekday_data.labels | tojson }};
     const wdData       = {{ weekday_data.data | tojson }};
     const trendCards   = {{ trend_cards | tojson }};
@@ -326,19 +317,13 @@
         options: baseOpts,
     });
 
-    new Chart(document.getElementById('chart-cash'), {
+    new Chart(document.getElementById('chart-leagues'), {
         type: 'bar',
         data: {
             labels,
-            datasets: [{ data: cashData, backgroundColor: 'rgba(120,180,240,.45)', borderColor: 'rgba(120,180,240,.9)', borderWidth: 1, borderRadius: 4 }]
+            datasets: [{ data: leagueData, backgroundColor: 'rgba(111,192,147,.45)', borderColor: 'rgba(111,192,147,.9)', borderWidth: 1, borderRadius: 4 }]
         },
-        options: {
-            ...baseOpts,
-            scales: {
-                x: axisStyle,
-                y: { ...axisStyle, beginAtZero: true, ticks: { ...axisStyle.ticks, callback: v => '$' + v } },
-            },
-        },
+        options: baseOpts,
     });
 
     new Chart(document.getElementById('chart-weekday'), {
