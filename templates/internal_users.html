@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Users · Admin · myboker.org{% endblock %}
+{% block sidebar %}{% include "_internal_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="db-header int-page-header">
+    <div>
+        <h1 class="db-header__title">Users</h1>
+        <p class="db-header__sub">Search accounts by email and inspect account status.</p>
+    </div>
+</div>
+
+<div class="admin-list-tools">
+    <form class="admin-searchbar" method="get" action="{{ url_for('internal.users') }}">
+        <input class="field-input" type="search" name="q" value="{{ q }}" placeholder="Search email">
+        <button class="btn btn--primary btn--sm" type="submit">Search</button>
+        {% if q %}<a class="btn btn--ghost btn--sm" href="{{ url_for('internal.users') }}">Clear</a>{% endif %}
+    </form>
+</div>
+
+<section class="panel admin-list-panel">
+    <div class="panel__head">
+        <h2 class="panel__title">Matching users</h2>
+        <span class="panel__tag">{{ pagination.start }}-{{ pagination.end }} of {{ pagination.total }}</span>
+    </div>
+    <div class="table-wrap">
+        <table class="tbl admin-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Verified</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td class="admin-table__primary">
+                            <a href="{{ url_for('internal.user_detail', user_id=user.id) }}">{{ user.email }}</a>
+                            {% if user.is_site_admin %}<span class="badge badge--paid">Admin</span>{% endif %}
+                        </td>
+                        <td>{% if user.disabled_at %}<span class="badge badge--closed">Disabled</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}</td>
+                        <td>{% if user.email_verified_at %}Yes{% else %}<span class="muted-text">No</span>{% endif %}</td>
+                        <td class="admin-table__muted">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
+                        <td class="tbl__actions"><a class="btn btn--ghost btn--sm" href="{{ url_for('internal.user_detail', user_id=user.id) }}">View</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="muted-text">No users found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if pagination.pages > 1 %}
+    <div class="pagination-row">
+        {% if pagination.has_prev %}
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('internal.users', q=q, page=pagination.prev_page) }}">Previous</a>
+        {% else %}
+            <span class="btn btn--ghost btn--sm is-disabled">Previous</span>
+        {% endif %}
+        <span class="pagination-row__label">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        {% if pagination.has_next %}
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('internal.users', q=q, page=pagination.next_page) }}">Next</a>
+        {% else %}
+            <span class="btn btn--ghost btn--sm is-disabled">Next</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+{% endblock %}

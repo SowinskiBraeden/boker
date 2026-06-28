@@ -127,6 +127,27 @@ def send_password_reset(to_email: str, reset_url: str) -> None:
     _send_message(msg)
 
 
+def send_temporary_password(to_email: str, temporary_password: str) -> None:
+    body = (
+        "A temporary password was created for your myboker.org account.\n\n"
+        f"Temporary password:\n\n{temporary_password}\n\n"
+        "Sign in with this password, then change it from account settings."
+    )
+    msg = Message(
+        subject="Temporary myboker.org password",
+        recipients=[to_email],
+        body=body,
+        html=_html_email(
+            "Temporary password",
+            "A site administrator created a temporary password for your myboker.org account.",
+            code=temporary_password,
+            note="Sign in with this password, then change it from account settings.",
+        ),
+        sender=current_app.config.get("MAIL_DEFAULT_SENDER"),
+    )
+    _send_message(msg)
+
+
 def send_email_verification_code(to_email: str, code: str) -> None:
     body = (
         "Verify your myboker.org account with this code:\n\n"

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ user.email }} · Admin · myboker.org{% endblock %}
+{% block sidebar %}{% include "_internal_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="db-header" style="margin-bottom:20px;">
+    <div>
+        <div class="db-header__chips">
+            <a class="badge" href="{{ url_for('internal.users') }}">← Users</a>
+            {% if user.disabled_at %}<span class="badge badge--closed">Disabled</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}
+            {% if user.is_site_admin %}<span class="badge badge--paid">Site admin</span>{% endif %}
+        </div>
+        <h1 class="db-header__title">{{ user.email }}</h1>
+        <p class="db-header__sub">Created {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'unknown' }}.</p>
+    </div>
+</div>
+
+<div class="db-stat-grid">
+    <div class="db-stat">
+        <span class="db-stat__num">{{ 'Yes' if user.email_verified_at else 'No' }}</span>
+        <span class="db-stat__label">Email verified</span>
+    </div>
+    <div class="db-stat">
+        <span class="db-stat__num">{{ memberships|length }}</span>
+        <span class="db-stat__label">League memberships</span>
+    </div>
+    <div class="db-stat">
+        <span class="db-stat__num">{{ owned_leagues|length }}</span>
+        <span class="db-stat__label">Owned leagues</span>
+    </div>
+    <div class="db-stat">
+        <span class="db-stat__num">{{ event_count }}</span>
+        <span class="db-stat__label">Ledger events created</span>
+    </div>
+</div>
+
+<div class="cards-2">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Account</h2>
+            <span class="panel__tag">Support tools</span>
+        </div>
+        <div class="panel__body form-stack">
+            <form method="post" action="{{ url_for('internal.update_user_email', user_id=user.id) }}" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="field-label" for="email">Email</label>
+                <div class="inline-form">
+                    <input class="field-input" id="email" type="email" name="email" value="{{ user.email }}" required>
+                    <button class="btn btn--primary btn--sm" type="submit">Update</button>
+                </div>
+            </form>
+
+            <div class="form-card">
+                <p class="muted-text">Last login: {{ user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}</p>
+                <div class="button-row">
+                    <form method="post" action="{{ url_for('internal.send_user_password_reset', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--ghost btn--sm" type="submit" {% if user.disabled_at %}disabled{% endif %}>Email reset link</button>
+                    </form>
+                    <form method="post" action="{{ url_for('internal.create_user_temporary_password', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--ghost btn--sm" type="submit" {% if user.disabled_at %}disabled{% endif %}>Email temp password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Danger zone</h2>
+            <span class="panel__tag">Account state</span>
+        </div>
+        <div class="panel__body form-stack">
+            {% if user.disabled_at %}
+                <form method="post" action="{{ url_for('internal.restore_user', user_id=user.id) }}" class="form-card">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--primary btn--sm" type="submit">Restore account</button>
+                </form>
+            {% else %}
+                <form method="post" action="{{ url_for('internal.disable_user', user_id=user.id) }}" class="form-card">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--warning btn--sm" type="submit" {% if user.id == current_admin_id %}disabled{% endif %}>Disable account</button>
+                </form>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('internal.delete_user', user_id=user.id) }}" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="field-label" for="confirm-delete-user">Type DELETE to permanently delete this account</label>
+                <div class="inline-form">
+                    <input class="field-input" id="confirm-delete-user" name="confirm" autocomplete="off">
+                    <button class="btn btn--danger btn--sm" type="submit" {% if user.id == current_admin_id %}disabled{% endif %}>Delete</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<div class="cards-2">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Memberships</h2>
+            <span class="panel__tag">{{ memberships|length }}</span>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>League</th><th>Role</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for membership, league in memberships %}
+                        <tr>
+                            <td><a href="{{ url_for('internal.league_detail', league_id=league.id) }}">{{ league.name }}</a></td>
+                            <td>{{ membership.role }}</td>
+                            <td>{% if membership.disabled_at %}<span class="badge badge--closed">Removed</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="3" class="muted-text">No memberships.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Owned leagues</h2>
+            <span class="panel__tag">{{ owned_leagues|length }}</span>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>League</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    {% for league in owned_leagues %}
+                        <tr>
+                            <td><a href="{{ url_for('internal.league_detail', league_id=league.id) }}">{{ league.name }}</a></td>
+                            <td>{% if league.archived_at %}<span class="badge badge--closed">Archived</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}</td>
+                            <td class="tbl__actions"><a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.league_settings', league_ref=league.url_ref) }}">Manage</a></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="3" class="muted-text">No owned leagues.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+{% endblock %}

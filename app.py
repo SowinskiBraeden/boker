@@ -4,11 +4,12 @@ from __future__ import annotations
 import click
 from flask import Flask, render_template
 
-from auth import current_user_id, is_logged_in, normalize_email
+from auth import current_user_id, is_logged_in, is_site_admin, normalize_email
 from config import Config
 from db import database_extensions_available, db, init_database
 from extensions import csrf, limiter, mail
 from routes.account import account_bp
+from routes.internal import internal_bp
 from routes.leagues import leagues_bp
 from routes.public import public_bp
 from storage import ensure_data_file
@@ -36,10 +37,12 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             "app_version": app.config["APP_VERSION"],
             "current_user_id": current_user_id(),
             "is_logged_in": is_logged_in(),
+            "current_user_is_site_admin": is_site_admin(),
         }
 
     app.register_blueprint(public_bp)
     app.register_blueprint(account_bp)
+    app.register_blueprint(internal_bp)
     app.register_blueprint(leagues_bp)
 
     @app.errorhandler(404)
