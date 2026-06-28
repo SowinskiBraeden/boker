@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import current_app, flash, redirect, request, session as flask_session, url_for
+from flask import abort, current_app, flash, redirect, request, session as flask_session, url_for
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -51,7 +51,6 @@ def normalize_email(email: str) -> str:
 
 
 def log_user_in(user_id: str) -> None:
-    flask_session.pop("is_admin", None)
     flask_session["user_id"] = user_id
 
 
@@ -68,12 +67,41 @@ def is_logged_in() -> bool:
     return current_user_id() is not None
 
 
+def is_site_admin() -> bool:
+    user_id = current_user_id()
+    if not user_id:
+        return False
+
+    from db import database_extensions_available
+
+    if not database_extensions_available():
+        return False
+
+    from db_models import User
+
+    user = User.query.filter_by(id=user_id, disabled_at=None).one_or_none()
+    return bool(user and user.is_site_admin)
+
+
 def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if not is_logged_in():
             flash("Login required.", "error")
             return redirect(url_for("account.login", next=request.full_path))
+        return view(*args, **kwargs)
+
+    return wrapped_view
+
+
+def site_admin_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not is_logged_in():
+            flash("Login required.", "error")
+            return redirect(url_for("account.login", next=request.full_path))
+        if not is_site_admin():
+            abort(403)
         return view(*args, **kwargs)
 
     return wrapped_view
