@@ -37,7 +37,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = "Lax"
-    SESSION_COOKIE_NAME: str = "poker_portal_session"
+    SESSION_COOKIE_NAME: str = "myboker_org_session"
     DATA_PATH: Path = DATA_PATH
     WTF_CSRF_TIME_LIMIT: int = 3600
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5000")

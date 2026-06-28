@@ -208,7 +208,7 @@
         });
     }
 
-    // Card menu: open with fixed positioning to escape overflow:hidden panels
+    // Keep the menu outside clipped card panels.
     document.querySelectorAll('.card-menu__trigger').forEach(function (trigger) {
         trigger.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -234,7 +234,6 @@
     });
     document.addEventListener('click', closeAllDropdowns);
 
-    // Edit player
     document.querySelectorAll('.card-menu__item[data-edit-action]').forEach(function (item) {
         item.addEventListener('click', function () {
             closeAllDropdowns();
@@ -246,7 +245,6 @@
         });
     });
 
-    // Archive player
     document.querySelectorAll('.card-menu__item[data-archive-action]').forEach(function (item) {
         item.addEventListener('click', function () {
             closeAllDropdowns();
@@ -256,7 +254,6 @@
         });
     });
 
-    // Modal close
     document.querySelectorAll('[data-close-modal]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             this.closest('.modal-backdrop').setAttribute('hidden', '');

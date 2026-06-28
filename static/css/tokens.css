@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* ---- surfaces (darkest → lightest) ---- */
+  /* Core surfaces */
   --bg:            #0a0a0d;
   --surface:       #111115;
   --surface-raised:#16161c;
@@ -30,8 +30,7 @@
   --faintest:      #64626d;
   --faintest-2:    #55535e;
 
-  /* ---- accent ---- */
-  /* To swap brand color later: edit these 7 vars only */
+  /* Brand accent */
   --accent:        #9b8cf0;
   --accent-ink:    #12101e;
   --accent-tint:   #1f1d2e;
@@ -68,11 +67,11 @@
   --line-1: #9b8cf0; --line-2: #6fc093; --line-3: #e0b15c;
   --line-4: #cf6f86; --line-5: #8f93c2;
 
-  /* ---- elevation shadows ---- */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.22);
-  --shadow-md: 0 4px 16px rgba(0,0,0,.34), 0 2px 6px rgba(0,0,0,.24);
-  --shadow-lg: 0 12px 36px rgba(0,0,0,.42), 0 4px 12px rgba(0,0,0,.28);
-  --shadow-xl: 0 24px 64px rgba(0,0,0,.52), 0 8px 24px rgba(0,0,0,.32);
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.28);
+  --shadow-md: 0 3px 12px rgba(0,0,0,.32), 0 1px 4px rgba(0,0,0,.24);
+  --shadow-lg: 0 10px 28px rgba(0,0,0,.38), 0 3px 10px rgba(0,0,0,.26);
+  --shadow-xl: 0 18px 48px rgba(0,0,0,.46), 0 6px 18px rgba(0,0,0,.30);
 
   /* ---- glass panel effect ---- */
   --glass-border: 1px solid rgba(255,255,255,.055);
@@ -83,7 +82,7 @@
   --s6:24px; --s8:32px; --s10:40px; --s12:48px;
 
   /* ---- radii ---- */
-  --r-pill:6px; --r-sm:9px; --r-md:12px; --r-lg:16px;
+  --r-pill:5px; --r-sm:7px; --r-md:9px; --r-lg:12px;
 
   /* ---- containers ---- */
   --w-public:1320px;

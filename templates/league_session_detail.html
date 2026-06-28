@@ -213,7 +213,6 @@
     </div>
 </div>
 
-<!-- Void event modal -->
 {% if is_owner %}
 <div class="modal-backdrop" id="modal-void-event" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-void-title">
@@ -238,7 +237,6 @@
 </div>
 {% endif %}
 
-<!-- Delete confirmation modal -->
 <div class="modal-backdrop" id="modal-delete-session" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
         <div class="modal-card__head">
@@ -256,7 +254,6 @@
     </div>
 </div>
 
-<!-- Edit session modal -->
 {% if can_manage %}
 <div class="modal-backdrop" id="modal-edit-session" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-edit-session-title">
@@ -300,7 +297,6 @@
 </div>
 {% endif %}
 
-<!-- Reopen confirmation modal -->
 <div class="modal-backdrop" id="modal-reopen-session" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-reopen-title">
         <div class="modal-card__head">
@@ -319,7 +315,6 @@
 </div>
 
 <script>
-// Player search — map display name → player id
 const playerMap = {
     {% for player in players %}"{{ player.display_name | replace('"', '\\"') }}": "{{ player.id }}"{% if not loop.last %},{% endif %}
     {% endfor %}
@@ -332,13 +327,11 @@ if (searchInput && idInput) {
     searchInput.addEventListener('input', function () {
         idInput.value = playerMap[this.value.trim()] || '';
     });
-    // Also handle datalist selection which fires change
     searchInput.addEventListener('change', function () {
         idInput.value = playerMap[this.value.trim()] || '';
     });
 }
 
-// Clear player field when event type is "note"
 if (eventTypeSelect && searchInput && idInput) {
     eventTypeSelect.addEventListener('change', function () {
         if (this.value === 'note') {
@@ -349,13 +342,11 @@ if (eventTypeSelect && searchInput && idInput) {
             searchInput.placeholder = 'Start typing a name…';
         }
     });
-    // Set initial placeholder if note is selected
     if (eventTypeSelect.value === 'note') {
         searchInput.placeholder = 'No player (session note)';
     }
 }
 
-// Modal logic
 document.querySelectorAll('[data-modal]').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var target = document.getElementById(this.dataset.modal);
@@ -373,7 +364,6 @@ document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
     });
 });
 
-// Void event modal
 document.querySelectorAll('[data-void-id]').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var player = this.dataset.voidPlayer;
