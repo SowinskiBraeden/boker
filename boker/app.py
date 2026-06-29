@@ -58,8 +58,14 @@ def create_app(config_overrides: dict | None = None) -> Flask:
             "seo_site_url": base_url,
             "seo_canonical_url": f"{base_url}{request.path}",
             "seo_default_description": (
-                "Free home poker league tracker for sessions, ledgers, leaderboards, "
-                "settlement, buy-ins, cashouts, and private game records."
+                "myboker.org is a free poker tracker and poker ledger for home games, "
+                "private leagues, player stats, profit and loss tracking, buy-ins, "
+                "cashouts, settlements, and bookkeeping records."
+            ),
+            "seo_default_keywords": (
+                "myboker, my boker, free poker tracker, poker ledger, poker stats, "
+                "poker profit tracker, poker loss tracker, home poker tracker, "
+                "poker bankroll tracker, poker bookkeeping, poker league tracker"
             ),
         }
 

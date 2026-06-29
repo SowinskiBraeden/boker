@@ -3,10 +3,14 @@
 <head>
     {% set page_title %}{% block title %}myboker.org{% endblock %}{% endset %}
     {% set page_description %}{% block meta_description %}{{ seo_default_description }}{% endblock %}{% endset %}
+    {% set page_keywords %}{% block meta_keywords %}{{ seo_default_keywords }}{% endblock %}{% endset %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page_title | trim }}</title>
     <meta name="description" content="{{ page_description | striptags | trim }}">
+    <meta name="keywords" content="{{ page_keywords | striptags | trim }}">
+    <meta name="application-name" content="myboker.org">
+    <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large{% endblock %}">
     <link rel="canonical" href="{{ seo_canonical_url }}">
     <meta property="og:site_name" content="myboker.org">
     <meta property="og:title" content="{{ page_title | trim }}">
