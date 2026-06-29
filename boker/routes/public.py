@@ -67,19 +67,6 @@ def sitemap_xml():
         _sitemap_url(url_for("public.terms"), "0.3", "yearly"),
     ]
 
-    from boker.db import database_extensions_available
-
-    if database_extensions_available():
-        try:
-            from boker.league_repositories import list_public_leagues
-
-            for league in list_public_leagues():
-                urls.append(_sitemap_url(url_for("leagues.dashboard", league_ref=league.url_ref), "0.6", "weekly"))
-                urls.append(_sitemap_url(url_for("leagues.leaderboard", league_ref=league.url_ref), "0.5", "weekly"))
-                urls.append(_sitemap_url(url_for("leagues.sessions", league_ref=league.url_ref), "0.5", "weekly"))
-        except SQLAlchemyError:
-            current_app.logger.warning("Sitemap public league query failed", exc_info=True)
-
     body = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -111,9 +98,18 @@ def explore():
     from boker.league_repositories import league_counts, list_public_leagues
 
     q = request.args.get("q", "").strip()
-    leagues = list_public_leagues(q) if database_extensions_available() else []
-    counts = {league.id: league_counts(league.id) for league in leagues}
-    return render_template("explore.html", leagues=leagues, counts=counts, q=q)
+    leagues = []
+    counts = {}
+    if q and database_extensions_available():
+        try:
+            leagues = list_public_leagues(q)
+            counts = {league.id: league_counts(league.id) for league in leagues}
+        except SQLAlchemyError as exc:
+            from boker.db import db
+
+            db.session.rollback()
+            current_app.logger.warning("Explore public league search failed: %s", exc.__class__.__name__)
+    return render_template("explore.html", leagues=leagues, counts=counts, q=q, has_searched=bool(q))
 
 
 @public_bp.get("/leaderboard")

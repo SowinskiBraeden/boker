@@ -10,7 +10,7 @@ DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 DEFAULT_SECRET_KEY = "change-this-before-deploying"
 
 ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "2.5.30"
+APP_VERSION = "2.5.31"
 
 
 def load_local_env(env_path: Path) -> None:
@@ -44,7 +44,11 @@ class Config:
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5000")
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
-    MAIL_USE_TLS: bool = os.getenv("MAIL_USE_TLS", "true").lower() in ("true", "1", "yes")
+    MAIL_USE_TLS: bool = os.getenv("MAIL_USE_TLS", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
     MAIL_USE_SSL: bool = os.getenv(
         "MAIL_USE_SSL",
         "true" if MAIL_PORT == 465 else "false",

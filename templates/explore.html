@@ -1,21 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Explore Public Home Poker Leagues · myboker.org{% endblock %}
-{% block meta_description %}Browse public home poker league results, leaderboards, sessions, and player stats from groups using myboker.org.{% endblock %}
+{% block title %}Search Public Home Poker Leagues · myboker.org{% endblock %}
+{% block meta_description %}Search public home poker league results, leaderboards, sessions, and player stats from groups using myboker.org.{% endblock %}
 {% block content %}
 
-<div class="explore-header">
-    <p class="explore-header__eyebrow">Public leagues</p>
-    <h1 class="explore-header__title">Explore</h1>
-    <p class="explore-header__sub">Browse poker leagues that have made their results publicly visible.</p>
+<section class="explore-hero">
+    <div class="explore-header">
+        <p class="explore-header__eyebrow">Public leagues</p>
+        <h1 class="explore-header__title">Search public leagues</h1>
+        <p class="explore-header__sub">Public league pages are discoverable by name, but myboker does not list every public league by default.</p>
+    </div>
+
+    <form method="get" action="{{ url_for('public.explore') }}" class="explore-search-row">
+        <label class="sr-only" for="league-search">Search by league name</label>
+        <input class="field-input" id="league-search" type="search" name="q" value="{{ q }}" placeholder="Search by league name..." autocomplete="off">
+        <button class="btn btn--primary" type="submit">Search</button>
+        {% if q %}<a class="btn btn--ghost" href="{{ url_for('public.explore') }}">Clear</a>{% endif %}
+    </form>
+
+    <div class="explore-privacy-note">
+        <span class="explore-privacy-note__dot"></span>
+        <span>Leagues are private unless an owner explicitly makes results public.</span>
+    </div>
+</section>
+
+{% if has_searched and leagues %}
+<div class="explore-results-head">
+    <span>{{ leagues|length }} result{{ 's' if leagues|length != 1 else '' }} for "{{ q }}"</span>
 </div>
-
-<form method="get" action="{{ url_for('public.explore') }}" class="explore-search-row">
-    <input class="field-input" type="text" name="q" value="{{ q }}" placeholder="Search by league name…" autocomplete="off">
-    <button class="btn btn--primary" type="submit">Search</button>
-    {% if q %}<a class="btn btn--ghost" href="{{ url_for('public.explore') }}">Clear</a>{% endif %}
-</form>
-
-{% if leagues %}
 <div class="explore-cards">
     {% for league in leagues %}
     {% set c = counts.get(league.id, {}) %}
@@ -49,16 +60,16 @@
     </a>
     {% endfor %}
 </div>
-{% elif q %}
-<div class="panel empty-panel" style="max-width:480px;">
-    <h3 class="panel__title">No results for "{{ q }}"</h3>
-    <p class="muted-text">Try a shorter search or browse all leagues.</p>
-    <a class="btn btn--ghost btn--sm" href="{{ url_for('public.explore') }}">Browse all</a>
+{% elif has_searched %}
+<div class="explore-empty">
+    <h2>No public leagues found</h2>
+    <p>No public league matched "{{ q }}". Check the spelling or ask the league owner for their shared link.</p>
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('public.explore') }}">Reset search</a>
 </div>
 {% else %}
-<div class="panel empty-panel" style="max-width:480px;">
-    <h3 class="panel__title">No public leagues yet</h3>
-    <p class="muted-text">League owners can set their league to public in league settings.</p>
+<div class="explore-empty explore-empty--start">
+    <h2>Enter a league name to search</h2>
+    <p>This page does not expose a directory of every public league. Search only returns leagues whose owners have chosen public visibility.</p>
 </div>
 {% endif %}
 
