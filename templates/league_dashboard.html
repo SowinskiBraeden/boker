@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}{{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="db-header">
+    <div class="db-header__info">
+        <div class="db-header__chips">
+            <span class="db-chip">{{ league.visibility }}</span>
+            {% if is_owner %}<span class="db-chip db-chip--accent">Owner</span>{% endif %}
+        </div>
+        <h1 class="db-header__title">{{ league.name }}</h1>
+        {% if league.description %}<p class="db-header__sub">{{ league.description }}</p>{% endif %}
+    </div>
+    {% if is_owner %}
+    <div class="db-header__actions">
+        <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.league_settings', league_ref=league.url_ref) }}">Settings</a>
+        <a class="btn btn--primary btn--sm" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">New session</a>
+    </div>
+    {% endif %}
+</div>
+
+{% if counts.open_sessions > 0 %}
+<div class="db-live-alert">
+    <div class="db-live-alert__pulse"></div>
+    <span class="db-live-alert__text">
+        {{ counts.open_sessions }} session{{ 's' if counts.open_sessions != 1 else '' }} in progress
+    </span>
+    <a class="db-live-alert__link" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">View sessions →</a>
+</div>
+{% endif %}
+
+<div class="db-stat-grid">
+    <div class="db-stat">
+        <div class="db-stat__icon db-stat__icon--accent">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M2 17c0-3.314 2.686-6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="14" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M18 17c0-2.761-1.79-5-4-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div>
+            <span class="db-stat__num">{{ counts.players }}</span>
+            <span class="db-stat__label">Players</span>
+        </div>
+    </div>
+    <div class="db-stat">
+        <div class="db-stat__icon db-stat__icon--pos">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <rect x="2.5" y="3.5" width="15" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M6 2v3M14 2v3M2.5 8h15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div>
+            <span class="db-stat__num">{{ counts.sessions }}</span>
+            <span class="db-stat__label">Sessions{% if counts.open_sessions > 0 %} · <span style="color:var(--pos);">{{ counts.open_sessions }} live</span>{% endif %}</span>
+        </div>
+    </div>
+    <div class="db-stat">
+        <div class="db-stat__icon db-stat__icon--warn">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M5 3h10l3 3v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div>
+            <span class="db-stat__num">{{ counts.events }}</span>
+            <span class="db-stat__label">Ledger events</span>
+        </div>
+    </div>
+    <div class="db-stat">
+        <div class="db-stat__icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 2v3M10 15v3M2 10h3M15 10h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="10" cy="10" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+        </div>
+        <div>
+            <span class="db-stat__num">{{ counts.seasons }}</span>
+            <span class="db-stat__label">Seasons</span>
+        </div>
+    </div>
+</div>
+
+{% if cash_stats.has_data %}
+<div class="db-cash">
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Total cash in</span>
+        <span class="db-cash__val">{{ cash_stats.total_cash_in | money }}</span>
+    </div>
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Total paid out</span>
+        <span class="db-cash__val">{{ cash_stats.total_paid_out | money }}</span>
+    </div>
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Avg pot / session</span>
+        <span class="db-cash__val">{{ cash_stats.avg_pot | money }}</span>
+    </div>
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Avg players</span>
+        <span class="db-cash__val">{{ cash_stats.avg_players }}</span>
+    </div>
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Avg buy-in</span>
+        <span class="db-cash__val">{{ cash_stats.avg_buyin | money }}</span>
+    </div>
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Biggest session</span>
+        <span class="db-cash__val">{{ cash_stats.biggest_pot | money }}</span>
+    </div>
+    {% if cash_stats.avg_sessions_per_month > 0 %}
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Sessions / month</span>
+        <span class="db-cash__val">{{ cash_stats.avg_sessions_per_month }}</span>
+    </div>
+    {% endif %}
+    {% if cash_stats.total_fronts > 0 %}
+    <div class="db-cash__div"></div>
+    <div class="db-cash__stat">
+        <span class="db-cash__label">Fronts issued</span>
+        <span class="db-cash__val">{{ cash_stats.total_fronts | money }}</span>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if cash_stats.has_sessions %}
+<div class="db-cal"
+     id="db-cal"
+     data-sessions='{{ cash_stats.session_map | tojson }}'
+     data-first-year="{{ cash_stats.first_session_year }}">
+    <div class="db-cal__hdr">
+        <span class="db-cal__title">Session history</span>
+        <div class="db-cal__nav-group">
+            <button class="db-cal__nav" id="db-cal-prev" aria-label="Previous year">&#8249;</button>
+            <span class="db-cal__year" id="db-cal-year"></span>
+            <button class="db-cal__nav" id="db-cal-next" aria-label="Next year">&#8250;</button>
+        </div>
+    </div>
+    <div class="db-cal__grid" id="db-cal-grid"></div>
+    <div class="db-cal__tip" id="db-cal-tip" hidden></div>
+</div>
+<script>
+(function () {
+    var cal = document.getElementById('db-cal');
+    if (!cal) return;
+    var sessions = JSON.parse(cal.dataset.sessions);
+    var firstYear = parseInt(cal.dataset.firstYear) || new Date().getFullYear();
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStr = today.toISOString().slice(0,10);
+    var currentYear = today.getFullYear();
+    var year = currentYear;
+    var grid = document.getElementById('db-cal-grid');
+    var yearLbl = document.getElementById('db-cal-year');
+    var prevBtn = document.getElementById('db-cal-prev');
+    var nextBtn = document.getElementById('db-cal-next');
+    var tip = document.getElementById('db-cal-tip');
+
+    function ds(d) { return d.toISOString().slice(0,10); }
+
+    function buildCalendar(y) {
+        var start = new Date(y, 0, 1);
+        var dow = start.getDay();
+        start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+        var end = new Date(y, 11, 31);
+        var edow = end.getDay();
+        if (edow !== 0) end.setDate(end.getDate() + (7 - edow));
+        var weeks = [], cur = new Date(start);
+        while (cur <= end) {
+            var days = [], monthLabel = '';
+            for (var i = 0; i < 7; i++) {
+                var d = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + i);
+                var s = ds(d);
+                if (d.getDate() === 1 && !monthLabel) monthLabel = MONTHS[d.getMonth()];
+                days.push({ date: s, count: sessions[s] || 0, future: s > todayStr, out: d.getFullYear() !== y });
+            }
+            weeks.push({ days: days, month: monthLabel });
+            cur.setDate(cur.getDate() + 7);
+        }
+        return weeks;
+    }
+
+    function render(y) {
+        var weeks = buildCalendar(y);
+        grid.innerHTML = '';
+        weeks.forEach(function(week) {
+            var mc = document.createElement('div');
+            mc.className = 'db-cal__mc';
+            mc.textContent = week.month;
+            grid.appendChild(mc);
+            week.days.forEach(function(day) {
+                var cell = document.createElement('div');
+                var cls = 'db-cal__cell';
+                if (day.out)         cls += ' db-cal__cell--out';
+                else if (day.future) cls += ' db-cal__cell--dim';
+                else if (day.count)  cls += ' db-cal__cell--on' + (day.count > 1 ? ' db-cal__cell--multi' : '');
+                cell.className = cls;
+                cell.dataset.date = day.date;
+                cell.dataset.count = day.count;
+                grid.appendChild(cell);
+            });
+        });
+        yearLbl.textContent = y;
+        prevBtn.disabled = y <= firstYear;
+        nextBtn.disabled = y >= currentYear;
+    }
+
+    function showTip(cell, e) {
+        var d = cell.dataset.date;
+        if (!d) return;
+        var parts = d.split('-').map(Number);
+        var dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        var label = dateObj.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+        var count = parseInt(cell.dataset.count) || 0;
+        tip.textContent = count ? label + ' · ' + count + ' session' + (count > 1 ? 's' : '') : label;
+        tip.hidden = false;
+        moveTip(e);
+    }
+
+    function moveTip(e) {
+        var tw = tip.offsetWidth, th = tip.offsetHeight;
+        var x = e.clientX - tw / 2, y = e.clientY - th - 10;
+        x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+        if (y < 8) y = e.clientY + 14;
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+    }
+
+    grid.addEventListener('mouseover', function(e) {
+        var cell = e.target.closest('.db-cal__cell');
+        if (cell && !cell.classList.contains('db-cal__cell--out')) showTip(cell, e);
+        else tip.hidden = true;
+    });
+    grid.addEventListener('mousemove', function(e) { if (!tip.hidden) moveTip(e); });
+    grid.addEventListener('mouseleave', function() { tip.hidden = true; });
+    prevBtn.addEventListener('click', function() { if (year > firstYear) render(--year); });
+    nextBtn.addEventListener('click', function() { if (year < currentYear) render(++year); });
+
+    render(year);
+})();
+</script>
+{% endif %}
+
+<div class="db-nav-grid">
+
+    <a class="db-nav-tile db-nav-tile--sessions {% if counts.open_sessions > 0 %}db-nav-tile--live{% endif %}" href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M3 9h18M8 3v2M16 3v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="8" cy="14" r="1.5" fill="currentColor"/>
+                <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
+                <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">Sessions</strong>
+                {% if counts.open_sessions > 0 %}
+                <span class="live-badge">{{ counts.open_sessions }} live</span>
+                {% endif %}
+            </div>
+            <p class="db-nav-tile__desc">Open a session to start tracking buy-ins and cashouts in real time. Close it when everyone is done.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+
+    <a class="db-nav-tile db-nav-tile--leaderboard" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 20h18M6 20V13M10 20V9M14 20V11M18 20V5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">Leaderboard</strong>
+            </div>
+            <p class="db-nav-tile__desc">Net profit, ROI, win rate, and rank delta. Filter by eligible players or switch to recent form.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+
+    <a class="db-nav-tile db-nav-tile--players" href="{{ url_for('leagues.players', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="9" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M2.5 21c0-3.866 2.91-7 6.5-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="16.5" cy="9.5" r="3" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M21.5 21c0-3.314-2.239-6-5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">Players</strong>
+            </div>
+            <p class="db-nav-tile__desc">View each player's full session history, net trend, and individual stats over time.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+
+    <a class="db-nav-tile db-nav-tile--seasons" href="{{ url_for('leagues.seasons', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M12 7v5l3.5 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">Seasons</strong>
+            </div>
+            <p class="db-nav-tile__desc">Browse sessions by season, view season standings, and manage date ranges.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+
+    {% if can_manage %}
+    <a class="db-nav-tile db-nav-tile--ledger" href="{{ url_for('leagues.ledger', league_ref=league.url_ref) }}">
+        <div class="db-nav-tile__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 3h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H9l-4-4V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M9 19v-4H5M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div class="db-nav-tile__body">
+            <div class="db-nav-tile__title-row">
+                <strong class="db-nav-tile__title">League ledger</strong>
+            </div>
+            <p class="db-nav-tile__desc">Track what the house holds, what it owes, and outstanding fronts across all sessions.</p>
+        </div>
+        <span class="db-nav-tile__arrow">→</span>
+    </a>
+    {% endif %}
+
+</div>
+
+{% endblock %}

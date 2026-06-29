@@ -10,11 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <div class="l-bg" aria-hidden="true"></div>
     <header class="topbar">
         <div class="topbar__inner">
-            <a class="brand" href="{{ url_for('public.leaderboard') }}">
+            <a class="brand" href="{{ url_for('public.home') }}">
                 <span class="brand__mark"></span>
-                <span class="brand__name">myboker.org</span>
+                <span class="brand__name">myboker<span class="brand__tld">.org</span></span>
             </a>
             <button class="nav-toggle" type="button" aria-controls="mainnav" aria-expanded="false" aria-label="Open navigation">
                 <span></span>
@@ -22,26 +23,38 @@
                 <span></span>
             </button>
             <nav class="mainnav" id="mainnav">
-                <a class="navlink {{ 'is-active' if request.endpoint == 'public.leaderboard' }}" href="{{ url_for('public.leaderboard') }}">Leaderboard</a>
-                <a class="navlink {{ 'is-active' if request.endpoint in ('public.sessions', 'public.session_detail') }}" href="{{ url_for('public.sessions') }}">Sessions</a>
-                {% if is_admin %}
-                    <a class="navlink {{ 'is-active' if request.endpoint == 'admin.dashboard' }}" href="{{ url_for('admin.dashboard') }}">Admin</a>
+                {% if is_logged_in %}
+                    <a class="navlink {{ 'is-active' if request.endpoint and request.endpoint.startswith('leagues.') }}" href="{{ url_for('leagues.index') }}">Leagues</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'public.explore' }}" href="{{ url_for('public.explore') }}">Explore</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint and request.endpoint.startswith('account.') and request.endpoint not in ('account.login', 'account.register') }}" href="{{ url_for('account.settings') }}">Account</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'public.help' }}" href="{{ url_for('public.help') }}">Help</a>
                 {% else %}
-                    <a class="navlink {{ 'is-active' if request.endpoint == 'admin.login' }}" href="{{ url_for('admin.login') }}">Admin</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'public.explore' }}" href="{{ url_for('public.explore') }}">Explore</a>
+                    <a class="navlink {{ 'is-active' if request.endpoint == 'public.help' }}" href="{{ url_for('public.help') }}">Help</a>
+                    <a class="navlink navlink--mobile-auth {{ 'is-active' if request.endpoint == 'account.login' }}" href="{{ url_for('account.login') }}">Login</a>
+                    <a class="navlink navlink--mobile-auth {{ 'is-active' if request.endpoint == 'account.register' }}" href="{{ url_for('account.register') }}">Register</a>
                 {% endif %}
             </nav>
             <span class="topbar__spacer"></span>
-            {% if is_admin %}
+            {% if is_logged_in %}
                 <div class="topbar__admin-actions">
-                    <form method="post" action="{{ url_for('admin.logout') }}" style="margin:0">
+                    <form method="post" action="{{ url_for('account.logout') }}" style="margin:0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="btn btn--ghost btn--sm" type="submit">Logout</button>
                     </form>
+                </div>
+            {% else %}
+                <div class="topbar__admin-actions topbar__account-actions">
+                    <a class="btn btn--ghost btn--sm" href="{{ url_for('account.login') }}">Login</a>
+                    <a class="btn btn--outline btn--sm" href="{{ url_for('account.register') }}">Register</a>
                 </div>
             {% endif %}
         </div>
     </header>
-
+    <div class="app-shell">
+    {% block sidebar %}{% endblock %}
     <main class="page {% block page_class %}page--public{% endblock %}">
+    {% block subnav %}{% endblock %}
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-stack">
@@ -55,11 +68,22 @@
         {% block content %}{% endblock %}
 
         <footer class="site-footer" aria-label="Site footer">
-            <span>&copy; 2026 myboker.org</span>
-            <span>Version {{ app_version }}</span>
-            <span>cedarline.digital</span>
+            <div class="site-footer__copy">
+                <span>&copy; 2026 <strong>myboker.org</strong></span>
+                <span class="site-footer__version">v{{ app_version }}</span>
+            </div>
+            <nav class="site-footer__links" aria-label="Footer links">
+                <a href="{{ url_for('public.help') }}">Help</a>
+                <a href="{{ url_for('public.help') }}#contact">Contact</a>
+                <a href="{{ url_for('public.privacy') }}">Privacy</a>
+                <a href="{{ url_for('public.terms') }}">Terms</a>
+            </nav>
+            <div class="site-footer__brand">
+                <a href="https://cedarline.digital" target="_blank" rel="noopener">cedarline.digital</a>
+            </div>
         </footer>
     </main>
+    </div><!-- /.app-shell -->
     <script>
     (() => {
         const toggle = document.querySelector('.nav-toggle');
@@ -89,6 +113,40 @@
         window.addEventListener('resize', () => {
             if (window.matchMedia('(min-width: 701px)').matches) setOpen(false);
         });
+    })();
+    </script>
+    <script>
+    (() => {
+      function positionBubble(tip) {
+        const bubble = tip.querySelector('.info-tip__bubble');
+        if (!bubble) return;
+        const rect = tip.getBoundingClientRect();
+        const bw = bubble.offsetWidth || 220;
+        const bh = bubble.offsetHeight || 60;
+        let left = rect.left + rect.width / 2 - bw / 2;
+        let top = rect.top - bh - 8;
+        left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+        if (top < 8) top = rect.bottom + 8;
+        bubble.style.left = left + 'px';
+        bubble.style.top = top + 'px';
+      }
+      document.querySelectorAll('.info-tip').forEach(tip => {
+        tip.addEventListener('mouseenter', () => { positionBubble(tip); tip.classList.add('is-open'); });
+        tip.addEventListener('mouseleave', () => tip.classList.remove('is-open'));
+        tip.addEventListener('click', e => {
+          e.stopPropagation();
+          const wasOpen = tip.classList.contains('is-open');
+          document.querySelectorAll('.info-tip.is-open').forEach(t => t.classList.remove('is-open'));
+          if (!wasOpen) { positionBubble(tip); tip.classList.add('is-open'); }
+        });
+        tip.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.click(); }
+          if (e.key === 'Escape') tip.classList.remove('is-open');
+        });
+      });
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.info-tip.is-open').forEach(t => t.classList.remove('is-open'));
+      });
     })();
     </script>
 </body>

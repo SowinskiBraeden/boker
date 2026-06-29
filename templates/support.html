@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% block title %}Help - myboker.org{% endblock %}
+{% block content %}
+
+<div class="hero" style="padding-bottom:12px;">
+    <p class="hero__kicker">Documentation</p>
+    <h1 class="hero__title">How myboker works</h1>
+    <p class="hero__sub">Everything you need to run a home poker league: sessions, ledgers, leaderboards, and settlement.</p>
+</div>
+
+<div class="docs-grid">
+
+    <nav class="docs-nav">
+        <p class="kicker">Contents</p>
+        <a href="#leagues">Leagues</a>
+        <a href="#members">Members &amp; roles</a>
+        <a href="#players">Players</a>
+        <a href="#seasons">Seasons</a>
+        <a href="#sessions">Sessions</a>
+        <a href="#events">Ledger events</a>
+        <a href="#settlement">Settlement</a>
+        <a href="#leaderboard">Leaderboard &amp; stats</a>
+        <a href="#visibility">Public vs private</a>
+        <a href="#account">Account &amp; login</a>
+        <a href="#privacy">Privacy &amp; data</a>
+        <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="docs-body">
+
+        <section class="docs-section" id="leagues">
+            <h2 class="docs-h2">Leagues</h2>
+            <p>A <strong>league</strong> is the top-level container for your home game. It holds all your members, players, sessions, and ledger events in one place. One account can manage multiple leagues, which is useful if you run separate games (a Thursday game and a weekend game, for example).</p>
+            <p>When you create a league you give it a name and optional description. A unique public key is generated automatically so you can share a link if you make the league public. All leagues start as <strong>private</strong> by default.</p>
+            <div class="docs-callout">
+                <strong>Tip:</strong> Leagues are long-lived. You don't need to create a new league every season. Use <em>sessions</em> for individual nights and <em>seasons</em> to group them into periods.
+            </div>
+        </section>
+
+        <section class="docs-section" id="members">
+            <h2 class="docs-h2">Members &amp; roles</h2>
+            <p><strong>Members</strong> are myboker.org account holders who have been granted access to a league. They are distinct from players: a member manages or observes the league, while a player is just a tracked name in the ledger.</p>
+            <p>Invite members from league settings. They'll receive an email with a unique link that expires after 7 days. Each member is assigned one of three roles:</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Owner</strong>
+                    <span>Full control. Can manage settings, invite and remove members, create and close sessions, add players, and permanently delete the league.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Manager</strong>
+                    <span>Can run sessions, record ledger events, manage players, and view all data. Cannot change league settings or manage member roles.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Viewer</strong>
+                    <span>Read-only. Can view sessions, the leaderboard, and player history. Cannot record events or change anything.</span>
+                </div>
+            </div>
+            <div class="docs-callout">
+                <strong>Removing a member:</strong> Disabling a member removes their access but preserves all their historical contributions. Past session data recorded by them remains intact.
+            </div>
+        </section>
+
+        <section class="docs-section" id="players">
+            <h2 class="docs-h2">Players</h2>
+            <p>Players are the people tracked in your league's ledger. They <strong>do not need a myboker.org account</strong>. A player is just a display name added by a manager or owner. Their results, stats, and history are tied to that name.</p>
+            <p>Display names don't have to be legal names. They can be nicknames or aliases. Player data is only visible to league members.</p>
+            <p>You can optionally <strong>link a player profile to a member account</strong>. This lets a real account "claim" their stats, but it is never required.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Active</strong>
+                    <span>Shows on the roster and is available to record events against.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Archived</strong>
+                    <span>Hidden from the active roster. History and stats are fully preserved. Can be reactivated at any time.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="seasons">
+            <h2 class="docs-h2">Seasons</h2>
+            <p>Seasons let you group sessions into defined time periods, for example <em>Season 1</em> or <em>Spring 2026</em>. They are entirely optional. Sessions can exist without belonging to any season.</p>
+            <p>When viewing the leaderboard, you can filter by season to see rankings for just that period. Seasons have optional start and end dates for reference but these do not restrict which sessions can be assigned to them.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Active</strong>
+                    <span>Visible in the league and available to assign sessions to.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Archived</strong>
+                    <span>Hidden from the active list. Sessions assigned to it are preserved and remain filterable.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="sessions">
+            <h2 class="docs-h2">Sessions</h2>
+            <p>A <strong>session</strong> is a single night of poker. Sessions are date-stamped and sequenced automatically. If you play twice on the same day, they become S1 and S2 for that date.</p>
+            <p>Sessions have two states: <strong>open</strong> and <strong>closed</strong>. While open, you record buy-ins, cashouts, and all other ledger events. When everyone has settled, close the session. Closing doesn't delete anything and the session can always be reopened.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Date</strong>
+                    <span>The calendar date the game was played. Used to order sessions and group same-day games.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Label</strong>
+                    <span>Optional short name for this session (e.g. "Main table", "Side game"). Shown in lists.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Season</strong>
+                    <span>Optional. Assigns the session to a season so it appears in that season's leaderboard filter.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Notes</strong>
+                    <span>Optional freeform context (e.g. "Holiday game", "Marcus's place").</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Open</strong>
+                    <span>Session is live. Events can be added and settlement is still in progress.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Closed</strong>
+                    <span>Session is settled. Books are considered final. Can be reopened if needed.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="events">
+            <h2 class="docs-h2">Ledger events</h2>
+            <p>All activity in a session is recorded as <strong>ledger events</strong>. The ledger is <strong>append-only</strong>. Events are never deleted. This keeps the record auditable even when corrections are needed. To fix a mistake, void the incorrect event and add the correct one.</p>
+            <div class="docs-events">
+                <div class="docs-event">
+                    <span class="pill pill-buyin">buy-in</span>
+                    <div>
+                        <strong>A player buys chips with cash.</strong>
+                        <p>Cash comes into the pot. Records how much the player has invested. Record one every time someone puts money on the table.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-front">front</span>
+                    <div>
+                        <strong>The house covers a player's buy-in.</strong>
+                        <p>When a player doesn't have cash, the house can front them chips. This creates a debt. The player owes that amount back to the house. Track fronts carefully so you know who owes what at the end of the night.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-cashout">cashout</span>
+                    <div>
+                        <strong>A player exchanges their chips for their cash value.</strong>
+                        <p>Records the chip count a player walks away with. This is the "owed X" event. It doesn't mean cash has left the house yet. Use <em>paid out</em> to record the actual handover.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-paid_out">paid out</span>
+                    <div>
+                        <strong>Cash physically leaves the house to the player.</strong>
+                        <p>Closes the loop on a cashout. Once paid out, the player's balance goes to $0. Record this separately from cashout because payments may happen at different times.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-rollover_in">rollover in</span>
+                    <div>
+                        <strong>Chips or a balance carried in from a previous session.</strong>
+                        <p>Record a rollover in when a player carries an unpaid winning forward from a prior session. Always paired with a rollover out on the source session.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-rollover_out">rollover out</span>
+                    <div>
+                        <strong>An unpaid winning deferred to a future session.</strong>
+                        <p>Recorded when a player's payout isn't settled immediately and will be carried to the next game. Paired with a rollover in on the receiving session.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-payout_carry_in">payout carry-in</span>
+                    <div>
+                        <strong>An outstanding winning from a prior session honoured here.</strong>
+                        <p>Similar to rollover in but used when the balance isn't tied to a specific session's rollover out. Adds to the player's total payout due in this session.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-debt_repayment">debt repayment</span>
+                    <div>
+                        <strong>A player repays an outstanding front.</strong>
+                        <p>When a player who was fronted chips pays the house back, record a debt repayment. This reduces their outstanding balance with the house.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-writeoff">write-off</span>
+                    <div>
+                        <strong>The house forgives a debt.</strong>
+                        <p>If a front won't be collected (player left, debt forgiven), write it off. The debt is cleared from the open balance without cash changing hands. Add a note explaining why.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="settlement">
+            <h2 class="docs-h2">Settlement</h2>
+            <p>The ledger tracks two types of open balance at all times:</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Due to players</strong>
+                    <span>Cash the house owes to players who have cashed out but haven't been paid yet. Record a paid out event to clear each balance.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Due to house</strong>
+                    <span>Cash players owe from unpaid fronts. Collect debt repayments or write off to clear the balance.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Cash in</strong>
+                    <span>Total real cash that has entered the pot: buy-ins and repaid fronts only. Fronts themselves don't count because no cash entered.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Cash paid out</strong>
+                    <span>Total real cash that has left the house to players. Should approach cash in over time once all balances are settled.</span>
+                </div>
+            </div>
+            <div class="docs-callout">
+                <strong>Fronts vs buy-ins:</strong> A front doesn't add to "cash in" because no cash actually entered the pot. The house covered it. Cash in only counts money physically on the table.
+            </div>
+        </section>
+
+        <section class="docs-section" id="leaderboard">
+            <h2 class="docs-h2">Leaderboard &amp; stats</h2>
+            <p>The leaderboard ranks players by their all-time performance within a league. Stats are computed directly from ledger events and are never manually entered.</p>
+            <p>Players must meet the <strong>minimum sessions threshold</strong> set in league settings (default: 3) before appearing in the ranked leaderboard. Players below the threshold are shown in a provisional section.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Net</strong>
+                    <span>Total cash out minus total invested across all sessions. Positive means up, negative means down.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>ROI</strong>
+                    <span>Net divided by total invested, as a percentage. Compares performance independent of how much someone plays.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Win rate</strong>
+                    <span>Percentage of sessions where the player finished with a positive net. Breaking exactly even counts as a loss.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Sessions played</strong>
+                    <span>Number of sessions with at least one ledger event for this player.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Biggest win</strong>
+                    <span>The single session where the player netted the most profit.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Biggest loss</strong>
+                    <span>The single session where the player lost the most money.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="visibility">
+            <h2 class="docs-h2">Public vs private</h2>
+            <p>Each league has a <strong>visibility</strong> setting you can change in league settings at any time.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Private</strong>
+                    <span>Only invited members can see this league. It will not appear on the Explore page. This is the default for all new leagues.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Public</strong>
+                    <span>Anyone on the Explore page can view the leaderboard and session results. No account required to view. Members still need an account to manage it.</span>
+                </div>
+            </div>
+            <div class="docs-callout">
+                <strong>Note:</strong> Making a league public shares leaderboard rankings and session results, but not private financial details like individual debt balances or member email addresses.
+            </div>
+        </section>
+
+        <!-- ── Account & Login (FAQ dropdowns) ─────────────────────── -->
+        <section class="docs-section" id="account">
+            <h2 class="docs-h2">Account &amp; login</h2>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">I didn't receive a verification email.</summary>
+                <div class="faq-item__a">
+                    <p>Check your spam or junk folder first. Verification emails are sent from <strong>noreply@myboker.org</strong>. If you still can't find it, sign in and use the <em>Resend verification email</em> option on your account page.</p>
+                    <p>If you continue to have trouble, contact us at <a href="mailto:support@cedarline.digital">support@cedarline.digital</a>.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">How do I reset my password?</summary>
+                <div class="faq-item__a">
+                    <p>On the sign-in page, click <strong>Forgot password?</strong> and enter your email address. You will receive a reset link that expires after <strong>1 hour</strong>. Follow the link and choose a new password.</p>
+                    <p>If you don't receive the email, check your spam folder or contact support.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">How do I accept a league invitation?</summary>
+                <div class="faq-item__a">
+                    <p>When a league owner invites you, you will receive an email with a unique invitation link. Clicking it will either sign you in directly (if you already have an account with that email) or guide you through creating an account first.</p>
+                    <p>Invitation links expire after <strong>7 days</strong>. If yours has expired, ask the league owner to send a new one.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">How do I delete my account?</summary>
+                <div class="faq-item__a">
+                    <p>Account deletion is available in your account settings. <strong>This is permanent and cannot be undone.</strong> Deleting your account removes your login credentials, all leagues you own and their complete session history, and your membership records in any leagues you belong to.</p>
+                    <p>If you own leagues with other active members, consider notifying them before deleting your account as they will lose access to that league's data.</p>
+                </div>
+            </details>
+        </section>
+
+        <!-- ── Privacy & Data (FAQ dropdowns) ──────────────────────── -->
+        <section class="docs-section" id="privacy">
+            <h2 class="docs-h2">Privacy &amp; your data</h2>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">Who can see my league data?</summary>
+                <div class="faq-item__a">
+                    <p>For private leagues (the default): only invited members with active access. No one outside your league can see sessions, players, or financials.</p>
+                    <p>For public leagues: the leaderboard is visible to any signed-in user on the Explore page. Full session detail and financials are still restricted to invited members.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">Does myboker.org track me or use analytics?</summary>
+                <div class="faq-item__a">
+                    <p>There are no third-party analytics scripts on myboker.org. We set one functional session cookie to keep you signed in. We may calculate first-party aggregate service metrics from existing account, league, session, and ledger records to understand service health and usage. We do not sell or share your data for advertising. See the full <a href="{{ url_for('public.privacy') }}">Privacy Policy</a> for details.</p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-item__q">How do I request a copy of my data or have it deleted?</summary>
+                <div class="faq-item__a">
+                    <p>You can permanently delete your account and all associated data directly from account settings at any time. To request an export or to have data deleted on your behalf, email <a href="mailto:support@cedarline.digital">support@cedarline.digital</a> from the address associated with your account. We respond within 30 days.</p>
+                </div>
+            </details>
+        </section>
+
+        <!-- ── Contact ──────────────────────────────────────────────── -->
+        <section class="docs-section" id="contact">
+            <h2 class="docs-h2">Contact</h2>
+            <p>myboker.org is owned and operated by <strong>Cedarline Digital</strong>.</p>
+            <p>For support, data requests, or anything else: <a href="mailto:support@cedarline.digital">support@cedarline.digital</a>. Please allow a few days for a response.</p>
+            <div class="docs-callout">
+                <strong>Legal:</strong> See the <a href="{{ url_for('public.privacy') }}">Privacy Policy</a> and <a href="{{ url_for('public.terms') }}">Terms of Service</a> for details on how your data is handled and the rules governing use of the service.
+            </div>
+        </section>
+
+    </div>
+</div>
+
+{% endblock %}

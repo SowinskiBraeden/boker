@@ -1,38 +1,39 @@
-# Poker Portal
+# myboker.org
 
-A small Flask app I put together for tracking our low-stakes hold'em nights without having to keep a spreadsheet open all the time.
+Flask app for running home-poker leagues without keeping a spreadsheet open all night.
 
-The idea is pretty simple: public pages for stats and session history, plus a small admin area for recording buy-ins, gross cashout results, actual paid-out cash, and notes. The data sits in a CSV audit log, so everything is append-only and easy to follow later.
+The current app is account-based and league-based. League owners/managers record sessions and ledger events, viewers can inspect public-facing league data, and site-admin access is reserved for internal tooling.
 
-## What it does
+## What It Does
 
-- all-time leaderboard
-- per-session pages
-- per-player stat pages
-- admin login for recording events
-- open / closed session tracking
-- actual cash payout tracking with `paid_out` events
-- debt repayments and write-offs with `debt_repayment` / `writeoff` events
-- session and player charts
-- CSV import / export from the admin page
-- append-only `entries.csv` ledger instead of overwriting old rows
+- account signup, login, and email verification
+- league creation, invitations, ownership transfer, and member roles
+- player, season, session, and ledger management per league
+- append-only ledger events with void/correction support
+- public/private league visibility
+- leaderboards, charts, dashboard stats, and session summaries
+- CSV import/export for league ledgers
 
 ## Stack
 
-Built with a pretty lightweight setup:
-
 - Python
 - Flask
+- SQLAlchemy / Flask-Migrate
 - Jinja templates
 - Chart.js
 - plain CSS
-- CSV event log for storage
 
-## Ledger model
+## Project Layout
 
-The app treats `data/entries.csv` as the source of truth.
+- `app.py` is the deployment entrypoint for `flask --app app` and Gunicorn.
+- `boker/` contains the Flask application package, routes, models, services, repositories, and config.
+- `templates/` and `static/` contain Jinja views and public assets.
+- `migrations/` contains Alembic migrations for database deploys.
+- `tests/` contains the committed regression suite.
 
-Each row is an event, not a final snapshot. Instead of editing an old row, I append another one. That keeps rebuys, corrections, payouts, and session state changes visible in the log instead of hiding them behind edits.
+## Ledger Model
+
+Each ledger row is an event, not a final snapshot. Corrections are made by appending or voiding events, so the history remains auditable.
 
 Current event types:
 
@@ -49,17 +50,7 @@ Current event types:
 - `session_open`
 - `session_close`
 
-A few examples:
-
-- another `buyin` for a rebuy
-- another `cashout` if chip counts are corrected later
-- a `paid_out` event when someone is actually settled up
-- a `debt_repayment` event when a front is repaid outside poker
-- a `writeoff` event when a front will not be collected
-- a `note` event for bookkeeping context
-- `session_open` / `session_close` to mark whether a game night is still live
-
-Accounting in the app keeps poker results separate from banker cashflow:
+Accounting keeps poker results separate from banker cashflow:
 
 - poker investment is `buyin + front + rollover_in`
 - poker net is `cashout - poker investment`
@@ -67,30 +58,12 @@ Accounting in the app keeps poker results separate from banker cashflow:
 - real cash out is `paid_out`
 - `rollover_out` settles the source session without counting as cash out
 - `rollover_in` enters play in the destination session without counting as cash in
-- `payout_carry_in` records prior-session value carried into a later payout; it increases the destination payout due without counting as poker investment or cash in
+- `payout_carry_in` records prior-session value carried into a later payout without counting as poker investment or cash in
 - `writeoff` resolves a receivable without counting as cash in
 
-Older ledgers may still contain `paid`, `front_collected`, or `front_writeoff`.
-The app reads those historical names as aliases for `paid_out`,
-`debt_repayment`, and `writeoff`.
+Older imports may still contain `paid`, `front_collected`, or `front_writeoff`; those are read as aliases for `paid_out`, `debt_repayment`, and `writeoff`.
 
-It is still just a small side project, but I wanted the event model to stay clean enough that the numbers are easy to trust and the history is easy to read back through.
-
-## CSV format
-
-Main file:
-
-`data/entries.csv`
-
-Header:
-
-```csv
-id,created_at,session_id,session_date,player_name,event_type,amount_cents,note,actor
-```
-
-Amounts are stored in cents to avoid floating-point issues.
-
-## Running it locally
+## Running Locally
 
 ```bash
 python -m venv .venv
@@ -102,31 +75,49 @@ python app.py
 
 Then open:
 
-`http://127.0.0.1:8000`
+`http://127.0.0.1:5000`
 
-## Environment values
+## Environment Values
 
-The app reads these from `.env`:
+The app reads these from `.env`. Use `.env.example` for local development and `.env.production.example` as the production checklist.
 
 - `SECRET_KEY`
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
+- `APP_ENV`
+- `DATABASE_URL`
+- `APP_BASE_URL`
+- `RATELIMIT_STORAGE_URI`
+- `MAIL_SERVER`
+- `MAIL_PORT`
+- `MAIL_USE_TLS`
+- `MAIL_USE_SSL`
+- `MAIL_USERNAME`
+- `MAIL_PASSWORD`
+- `MAIL_DEFAULT_SENDER`
 
-Example:
+For local development, omit `DATABASE_URL` to use the default SQLite database at `data/boker-dev.sqlite3`.
 
-```env
-SECRET_KEY=change-this
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change-me
+For public deployments, set `APP_ENV=production`. Production mode enables secure cookies and refuses to start with the development `SECRET_KEY` or any SQLite database. Use PostgreSQL for `DATABASE_URL`, install dependencies from `requirements.txt`, then run:
+
+```bash
+flask --app app db upgrade
 ```
 
-## Notes
+Set `RATELIMIT_STORAGE_URI` to a shared backend such as Redis so login and signup limits are enforced across processes.
 
-A few choices here were deliberate:
+## Site Admin Access
 
-- no database for now
-- no user accounts, just one admin login
-- public-facing stats pages, admin-only controls
-- CSV backup before importing a replacement ledger
+Internal admin access uses normal database-backed accounts, not hardcoded `.env` credentials.
 
-If I ever decide to take it further, the first real upgrade would probably be moving the storage layer to SQLite while keeping the rest of the app roughly the same.
+Grant access:
+
+```bash
+flask --app app grant-site-admin user@example.com
+```
+
+Revoke access:
+
+```bash
+flask --app app revoke-site-admin user@example.com
+```
+
+The old single-password `/admin` system has been removed.

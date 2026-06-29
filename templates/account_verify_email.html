@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Verify Email · myboker.org{% endblock %}
+{% block page_class %}page--auth{% endblock %}
+{% block content %}
+
+<div class="auth-split">
+    <div class="auth-split__form-col">
+        <div class="auth-split__form-inner">
+            <a class="auth-split__brand" href="{{ url_for('public.home') }}">
+                <div class="auth-split__brand-mark"></div>
+                <span class="auth-split__brand-name">myboker<span class="auth-split__brand-tld">.org</span></span>
+            </a>
+
+            <h1 class="auth-split__title">Verify your email.</h1>
+            <p class="auth-split__sub">Enter the six-digit code sent to {{ email }}.</p>
+
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="auth-field auth-field--code">
+                    <label for="code">Verification code</label>
+                    <input id="code" class="auth-code-input" type="text" name="code"
+                           inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}"
+                           maxlength="6" placeholder="000000" required autofocus>
+                </div>
+                <button class="btn btn--primary auth-submit" type="submit">Continue</button>
+            </form>
+
+            <form method="post" action="{{ url_for('account.resend_verification_code') }}" class="auth-resend-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="auth-link-button" type="submit">Resend code</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="auth-split__visual auth-split__visual--diamond" aria-hidden="true">
+        <div class="auth-visual__body">
+            <div class="auth-visual__icon">
+                <span class="auth-visual__suit-sym">♦</span>
+            </div>
+            <p class="auth-visual__title">One quick check.</p>
+            <p class="auth-visual__sub">Email verification keeps league invites tied to the right account.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

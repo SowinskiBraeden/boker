@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Help · myboker.org{% endblock %}
+{% block content %}
+
+<div class="hero" style="padding-bottom:12px;">
+    <p class="hero__kicker">Documentation</p>
+    <h1 class="hero__title">How myboker works</h1>
+    <p class="hero__sub">Everything you need to run a home poker league — sessions, ledgers, leaderboards, and settlement.</p>
+</div>
+
+<div class="docs-grid">
+
+    <nav class="docs-nav">
+        <p class="kicker">Contents</p>
+        <a href="#leagues">Leagues</a>
+        <a href="#players">Players</a>
+        <a href="#sessions">Sessions</a>
+        <a href="#events">Ledger events</a>
+        <a href="#settlement">Settlement</a>
+        <a href="#leaderboard">Leaderboard &amp; stats</a>
+        <a href="#visibility">Public vs private</a>
+    </nav>
+
+    <div class="docs-body">
+
+        <section class="docs-section" id="leagues">
+            <h2 class="docs-h2">Leagues</h2>
+            <p>A <strong>league</strong> is the top-level container for your home game. It holds all your players, sessions, and ledger events in one place. One account can manage multiple leagues — useful if you run separate games (e.g. a Thursday game and a weekend game).</p>
+            <p>When you create a league you give it a name and optional description. A unique public key is automatically generated so you can share a link to it later if you make it public.</p>
+            <div class="docs-callout">
+                <strong>Tip:</strong> Leagues are long-lived. You don't need to create a new league every season — use <em>sessions</em> to separate individual nights of play.
+            </div>
+        </section>
+
+        <section class="docs-section" id="players">
+            <h2 class="docs-h2">Players</h2>
+            <p>Players are the people in your league. They <strong>do not need a myboker account</strong> — only the league owner or manager needs one. You just add names.</p>
+            <p>Each player has a display name that appears on the leaderboard and in ledger events. You can add an optional note (like a payment handle) to help with settlement later.</p>
+            <p><strong>Archiving</strong> a player hides them from the active roster but preserves all their history. You can reactivate them at any time.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Active</strong>
+                    <span>Shows on the roster and is available to record events against.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Archived</strong>
+                    <span>Hidden from the roster. History and stats are preserved. Reactivate any time.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="sessions">
+            <h2 class="docs-h2">Sessions</h2>
+            <p>A <strong>session</strong> is a single night of poker. Sessions are date-stamped and sequenced — if you play twice on the same day, they become S1 and S2 automatically.</p>
+            <p>Sessions have two states: <strong>open</strong> and <strong>closed</strong>. While open, you can record buy-ins, cashouts, and other ledger events. When everyone has settled up and cashed out, you close the session. Closing doesn't delete anything — you can always reopen it.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Date</strong>
+                    <span>The calendar date the game was played. Used to order sessions and group same-day games.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Label</strong>
+                    <span>Optional short name for this session (e.g. "Main table", "Side game"). Shown in lists.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Notes</strong>
+                    <span>Optional freeform context visible in the session list (e.g. "Holiday game", "Marcus's place").</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Open</strong>
+                    <span>Session is live — events can be added and settlement is still in progress.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Closed</strong>
+                    <span>Session is settled. Books are considered final. Can be reopened if needed.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="events">
+            <h2 class="docs-h2">Ledger events</h2>
+            <p>All activity in a session is recorded as <strong>ledger events</strong>. The ledger is <strong>append-only</strong> — events are never deleted. This keeps the record clean and auditable, even if you need to correct a mistake (you just add a correcting entry).</p>
+            <p>There are eight event types:</p>
+            <div class="docs-events">
+                <div class="docs-event">
+                    <span class="pill pill-buyin">buy-in</span>
+                    <div>
+                        <strong>A player buys chips with cash.</strong>
+                        <p>Cash comes into the pot. Records how much the player has invested. Most common event — record one every time someone puts money on the table.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-front">front</span>
+                    <div>
+                        <strong>The house covers a player's buy-in.</strong>
+                        <p>When a player doesn't have cash handy, the organizer (house) can front them chips. This creates a debt — the player owes that amount back to the house. Track fronts carefully so you know who owes what at the end of the night.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-cashout">cashout</span>
+                    <div>
+                        <strong>A player exchanges their chips for their cash value.</strong>
+                        <p>Records the chip count a player walks away with. This is the "you are owed X" event — but it doesn't mean cash has left the house yet. Use <em>paid out</em> to record the actual cash handover.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-paid_out">paid out</span>
+                    <div>
+                        <strong>Cash physically leaves the house to the player.</strong>
+                        <p>Closes the loop on a cashout. Once a player has been paid out, their balance goes to $0. Record this separately from cashout because you may pay people out at different times (end of night, next day via transfer, etc.).</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-rollover_in">rollover in</span>
+                    <div>
+                        <strong>Chips carried in from a previous session.</strong>
+                        <p>If a player didn't cash out at the end of a session and instead carries their chip stack forward to the next game, record a rollover in at the start of the new session.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-rollover_out">rollover out</span>
+                    <div>
+                        <strong>Chips carried out to a future session.</strong>
+                        <p>Recorded when a player leaves a session without cashing out, intending to carry their stack forward. Paired with a rollover in at the next session.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-debt_repayment">debt repayment</span>
+                    <div>
+                        <strong>A player repays an outstanding front.</strong>
+                        <p>When a player who was fronted chips pays the house back (cash, transfer, etc.), record a debt repayment. This reduces their outstanding balance with the house.</p>
+                    </div>
+                </div>
+                <div class="docs-event">
+                    <span class="pill pill-writeoff">write-off</span>
+                    <div>
+                        <strong>The house forgives a debt.</strong>
+                        <p>If a front won't be collected (player left, debt forgiven, etc.), write it off. The debt is cleared from the open balance without cash changing hands. This is irreversible — add a note explaining why.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="settlement">
+            <h2 class="docs-h2">Settlement</h2>
+            <p>The ledger tracks two types of open balances at all times:</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Due to players</strong>
+                    <span>Cash the house owes to players who have cashed out but haven't been paid yet. Pay these out to clear the balance.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Due to house</strong>
+                    <span>Cash players owe to the house from unpaid fronts. Collect debt repayments or write these off to clear the balance.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Cash in</strong>
+                    <span>Total real cash that has come into the pot across all sessions — buy-ins and repaid fronts only, not fronts themselves.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Cash paid out</strong>
+                    <span>Total real cash that has left the house to players. Ideally this approaches cash in over time.</span>
+                </div>
+            </div>
+            <div class="docs-callout">
+                <strong>Fronts vs buy-ins:</strong> A front doesn't add to "cash in" because no cash actually entered the pot — the house covered it. Cash in only counts real money on the table.
+            </div>
+        </section>
+
+        <section class="docs-section" id="leaderboard">
+            <h2 class="docs-h2">Leaderboard &amp; stats</h2>
+            <p>The leaderboard ranks players by their all-time performance. Stats are computed from ledger events, not manually entered.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Net</strong>
+                    <span>Total cash out minus total cash in across all sessions. Positive means up, negative means down.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>ROI</strong>
+                    <span>Net divided by total invested, expressed as a percentage. Compares performance independent of how much someone plays.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Win rate</strong>
+                    <span>Percentage of sessions where the player finished with a positive net. Ties (exactly break even) count as a loss.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Sessions played</strong>
+                    <span>Number of sessions with at least one ledger event for this player.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Biggest win</strong>
+                    <span>The single session where the player netted the most profit.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Biggest loss</strong>
+                    <span>The single session where the player lost the most money.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="docs-section" id="visibility">
+            <h2 class="docs-h2">Public vs private</h2>
+            <p>Each league has a <strong>visibility</strong> setting you can change in league settings.</p>
+            <div class="docs-term-grid">
+                <div class="docs-term">
+                    <strong>Private</strong>
+                    <span>Only members (owners and managers) can see this league. The league won't appear on the Explore page. This is the default.</span>
+                </div>
+                <div class="docs-term">
+                    <strong>Public</strong>
+                    <span>Anyone with the link — or who finds it on the Explore page — can view the leaderboard and session history. No account required to view. Members still need an account to manage it.</span>
+                </div>
+            </div>
+            <div class="docs-callout">
+                <strong>Note:</strong> Making a league public shares leaderboard rankings and session results, but not private financial details like individual debt balances or account emails.
+            </div>
+        </section>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -30,6 +30,8 @@ class EventRow(TypedDict):
     amount_cents: int
     note: str
     actor: str
+    voided_at: str
+    void_reason: str
 
 
 VALID_EVENT_TYPES = {
@@ -79,6 +81,8 @@ def load_events(csv_path: Path) -> list[EventRow]:
                     amount_cents=int(row["amount_cents"] or 0),
                     note=row.get("note", ""),
                     actor=row.get("actor", ""),
+                    voided_at="",
+                    void_reason="",
                 )
             )
 

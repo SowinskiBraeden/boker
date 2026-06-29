@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Account settings · myboker.org{% endblock %}
+{% block content %}
+
+<div class="settings-profile">
+    <div class="settings-avatar">{{ user.email[0] | upper }}</div>
+    <div class="settings-profile__meta">
+        <h1 class="settings-profile__title">Account Settings</h1>
+        <p class="settings-profile__email">{{ user.email }}</p>
+    </div>
+    <div style="margin-left:auto;">
+        <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.index') }}">My leagues</a>
+    </div>
+</div>
+
+<div class="stack">
+
+    <form class="panel form-card" method="post" action="{{ url_for('account.update_email') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Profile</p>
+            <h2 class="panel__title" style="margin-top:4px;">Email address</h2>
+        </div>
+        <label>
+            <span>Email</span>
+            <input type="email" name="email" value="{{ user.email }}" required autocomplete="email">
+        </label>
+        <label>
+            <span>Current password <span class="form-opt-hint">(required to change)</span></span>
+            <input type="password" name="current_password" required autocomplete="current-password">
+        </label>
+        <div>
+            <button class="btn btn--primary" type="submit">Update email</button>
+        </div>
+    </form>
+
+    <form class="panel form-card" method="post" action="{{ url_for('account.update_password') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Security</p>
+            <h2 class="panel__title" style="margin-top:4px;">Change password</h2>
+        </div>
+        <label>
+            <span>Current password</span>
+            <input type="password" name="current_password" required autocomplete="current-password">
+        </label>
+        <label>
+            <span>New password</span>
+            <input type="password" name="new_password" required autocomplete="new-password">
+        </label>
+        <label>
+            <span>Confirm new password</span>
+            <input type="password" name="confirm_password" required autocomplete="new-password">
+        </label>
+        <div>
+            <button class="btn btn--primary" type="submit">Change password</button>
+        </div>
+    </form>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;color:var(--neg);">Danger zone</p>
+                <h2 class="panel__title">Destructive actions</h2>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Disable account</strong>
+                    <p class="muted-text">Disables your account and archives all leagues you own. Your data is preserved — you can sign up again with the same email to restore access.</p>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-disable-account">Disable account</button>
+            </div>
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Delete account</strong>
+                    <p class="muted-text">Permanently deletes your account and all leagues, sessions, and ledger data you own. This cannot be undone.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-delete-account">Delete account</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Disable account modal -->
+<div class="modal-backdrop" id="modal-disable-account" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Account</span>
+            <h2 class="panel__title">Disable account</h2>
+        </div>
+        <p class="modal-card__text">
+            Your account will be disabled and all leagues you own will be archived. Your data is preserved — you can sign up again with the same email to restore access.<br><br>
+            Type <strong>DISABLE</strong> and enter your password to confirm.
+        </p>
+        <form method="post" action="{{ url_for('account.disable_account') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;gap:10px;">
+                <input
+                    class="confirm-text-input"
+                    type="text"
+                    name="confirm"
+                    placeholder='Type "DISABLE"'
+                    autocomplete="off"
+                    data-match="DISABLE"
+                    data-submit="disable-confirm-btn"
+                    data-requires-password="disable-password-input"
+                >
+                <input
+                    class="confirm-password-input"
+                    id="disable-password-input"
+                    type="password"
+                    name="current_password"
+                    placeholder="Your password"
+                    autocomplete="current-password"
+                    data-submit="disable-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="disable-confirm-btn" type="submit" disabled>Disable my account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete account modal -->
+<div class="modal-backdrop" id="modal-delete-account" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Account</span>
+            <h2 class="panel__title">Delete account</h2>
+        </div>
+        <p class="modal-card__text">
+            Your account and all leagues, sessions, and ledger data you own will be <strong>permanently deleted</strong>. This cannot be undone.<br><br>
+            Type <strong>DELETE</strong> and enter your password to confirm.
+        </p>
+        <form method="post" action="{{ url_for('account.delete_account') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;gap:10px;">
+                <input
+                    class="confirm-text-input"
+                    type="text"
+                    name="confirm"
+                    placeholder='Type "DELETE"'
+                    autocomplete="off"
+                    data-match="DELETE"
+                    data-submit="delete-confirm-btn"
+                    data-requires-password="delete-password-input"
+                >
+                <input
+                    class="confirm-password-input"
+                    id="delete-password-input"
+                    type="password"
+                    name="current_password"
+                    placeholder="Your password"
+                    autocomplete="current-password"
+                    data-submit="delete-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="delete-confirm-btn" type="submit" disabled>Permanently delete account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.removeAttribute('hidden');
+        const txt = el.querySelector('.confirm-text-input');
+        const pwd = el.querySelector('.confirm-password-input');
+        if (txt) { txt.value = ''; txt.focus(); }
+        if (pwd) pwd.value = '';
+        refreshModal(el);
+    }
+
+    function refreshModal(modalEl) {
+        const txt = modalEl.querySelector('.confirm-text-input');
+        if (!txt) return;
+        const btnId = txt.dataset.submit;
+        const pwdId = txt.dataset.requiresPassword;
+        const btn = document.getElementById(btnId);
+        const pwd = pwdId ? document.getElementById(pwdId) : null;
+        if (!btn) return;
+        const textOk = txt.value === txt.dataset.match;
+        const pwdOk = !pwd || pwd.value.length >= 1;
+        btn.disabled = !(textOk && pwdOk);
+    }
+
+    document.querySelectorAll('[data-modal]').forEach(trigger => {
+        trigger.addEventListener('click', () => openModal(trigger.dataset.modal));
+    });
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest('.modal-backdrop').setAttribute('hidden', ''));
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.setAttribute('hidden', ''); });
+    });
+
+    document.querySelectorAll('.confirm-text-input, .confirm-password-input').forEach(inp => {
+        inp.addEventListener('input', () => refreshModal(inp.closest('.modal-backdrop')));
+    });
+})();
+</script>
+
+{% endblock %}

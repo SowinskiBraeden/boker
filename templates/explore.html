@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Explore leagues · myboker.org{% endblock %}
+{% block content %}
+
+<div class="explore-header">
+    <p class="explore-header__eyebrow">Public leagues</p>
+    <h1 class="explore-header__title">Explore</h1>
+    <p class="explore-header__sub">Browse poker leagues that have made their results publicly visible.</p>
+</div>
+
+<form method="get" action="{{ url_for('public.explore') }}" class="explore-search-row">
+    <input class="field-input" type="text" name="q" value="{{ q }}" placeholder="Search by league name…" autocomplete="off">
+    <button class="btn btn--primary" type="submit">Search</button>
+    {% if q %}<a class="btn btn--ghost" href="{{ url_for('public.explore') }}">Clear</a>{% endif %}
+</form>
+
+{% if leagues %}
+<div class="explore-cards">
+    {% for league in leagues %}
+    {% set c = counts.get(league.id, {}) %}
+    <a class="ex-card" href="{{ url_for('leagues.dashboard', league_ref=league.url_ref) }}">
+        <div class="ex-card__initial">{{ league.name[0] | upper }}</div>
+        <h2 class="ex-card__name">{{ league.name }}</h2>
+        {% if league.description %}
+        <p class="ex-card__desc">{{ league.description }}</p>
+        {% else %}
+        <p class="ex-card__desc" style="opacity:.35;">No description</p>
+        {% endif %}
+        <div class="ex-card__stats">
+            <div class="ex-card__stat">
+                <span class="kicker">Players</span>
+                <strong>{{ c.get('players', 0) }}</strong>
+            </div>
+            <div class="ex-card__stat">
+                <span class="kicker">Sessions</span>
+                <strong>{{ c.get('sessions', 0) }}</strong>
+            </div>
+            {% if c.get('open_sessions', 0) > 0 %}
+            <div class="ex-card__stat">
+                <span class="kicker">Live</span>
+                <strong style="color:var(--pos);">{{ c.get('open_sessions', 0) }}</strong>
+            </div>
+            {% endif %}
+        </div>
+        <div class="ex-card__footer">
+            <span class="ex-card__link">View league →</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% elif q %}
+<div class="panel empty-panel" style="max-width:480px;">
+    <h3 class="panel__title">No results for "{{ q }}"</h3>
+    <p class="muted-text">Try a shorter search or browse all leagues.</p>
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('public.explore') }}">Browse all</a>
+</div>
+{% else %}
+<div class="panel empty-panel" style="max-width:480px;">
+    <h3 class="panel__title">No public leagues yet</h3>
+    <p class="muted-text">League owners can set their league to public in league settings.</p>
+</div>
+{% endif %}
+
+{% endblock %}

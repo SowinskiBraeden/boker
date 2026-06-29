@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from models import SessionEntry, SessionSummary
-from utils import net_result_bucket, session_chart_label, session_sort_key
+from boker.models import SessionEntry, SessionSummary
+from boker.utils import net_result_bucket, session_chart_label, session_sort_key
 
 PLAYER_PALETTE = [
     "#9b8cf0",  # --line-1 violet
@@ -31,8 +31,8 @@ def color_for_name(name: str, names: list[str]) -> str:
     return PLAYER_PALETTE[index % len(PLAYER_PALETTE)]
 
 
-def net_tone(value_cents: int) -> str:
-    bucket = net_result_bucket(value_cents)
+def net_tone(value_cents: int, break_even_cents: int = 100) -> str:
+    bucket = net_result_bucket(value_cents, break_even_cents)
 
     if bucket == "win":
         return "#6fc093"  # --pos
@@ -96,7 +96,7 @@ def cumulative_profit_series(sessions: list[SessionSummary]) -> dict[str, object
 
 
 def player_session_series(
-    sessions: list[SessionSummary], player_name: str
+    sessions: list[SessionSummary], player_name: str, break_even_cents: int = 100
 ) -> dict[str, Any]:
     ordered_sessions = sorted(sessions, key=session_sort_key)
     labels: list[str] = []
@@ -130,12 +130,12 @@ def player_session_series(
         "labels": labels,
         "color": color_for_name(player_name, all_player_names),
         "net_values": net_values,
-        "net_colors": [net_tone(round(value * 100)) for value in net_values],
+        "net_colors": [net_tone(round(value * 100), break_even_cents) for value in net_values],
         "cumulative_values": cumulative_values,
     }
 
 
-def session_breakdown_series(session: SessionSummary) -> dict[str, Any]:
+def session_breakdown_series(session: SessionSummary, break_even_cents: int = 100) -> dict[str, Any]:
     ordered_entries = sorted(
         session.entries,
         key=lambda entry: (entry.net_cents, entry.player_name.casefold()),
@@ -145,5 +145,5 @@ def session_breakdown_series(session: SessionSummary) -> dict[str, Any]:
     return {
         "labels": [entry.player_name for entry in ordered_entries],
         "net_values": [round(entry.net_cents / 100, 2) for entry in ordered_entries],
-        "net_colors": [net_tone(entry.net_cents) for entry in ordered_entries],
+        "net_colors": [net_tone(entry.net_cents, break_even_cents) for entry in ordered_entries],
     }

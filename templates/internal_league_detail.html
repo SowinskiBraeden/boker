@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ league.name }} · Admin · myboker.org{% endblock %}
+{% block sidebar %}{% include "_internal_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="db-header" style="margin-bottom:20px;">
+    <div>
+        <div class="db-header__chips">
+            <a class="badge" href="{{ url_for('internal.leagues') }}">← Leagues</a>
+            {% if league.archived_at %}<span class="badge badge--closed">Archived</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}
+            <span class="badge">{{ league.visibility }}</span>
+        </div>
+        <h1 class="db-header__title">{{ league.name }}</h1>
+        <p class="db-header__sub">Owner: {% if owner %}<a href="{{ url_for('internal.user_detail', user_id=owner.id) }}">{{ owner.email }}</a>{% else %}<span class="muted-text">missing</span>{% endif %}</p>
+    </div>
+    <a class="btn btn--primary btn--sm" href="{{ url_for('leagues.league_settings', league_ref=league.url_ref) }}">Manage league</a>
+</div>
+
+<div class="db-stat-grid">
+    <div class="db-stat"><span class="db-stat__num">{{ stats.members }}</span><span class="db-stat__label">Active members</span></div>
+    <div class="db-stat"><span class="db-stat__num">{{ stats.players }}</span><span class="db-stat__label">Players</span></div>
+    <div class="db-stat"><span class="db-stat__num">{{ stats.sessions }}</span><span class="db-stat__label">Sessions</span></div>
+    <div class="db-stat"><span class="db-stat__num">{{ stats.events }}</span><span class="db-stat__label">Ledger events</span></div>
+</div>
+
+<div class="cards-2">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Members</h2>
+            <span class="panel__tag">{{ members|length }}</span>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for membership, member_user in members %}
+                        <tr>
+                            <td><a href="{{ url_for('internal.user_detail', user_id=member_user.id) }}">{{ member_user.email }}</a></td>
+                            <td>{{ membership.role }}</td>
+                            <td>{% if membership.disabled_at %}<span class="badge badge--closed">Removed</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="3" class="muted-text">No members.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">League settings</h2>
+            <span class="panel__tag">Internal manage</span>
+        </div>
+        <div class="panel__body">
+            <form method="post" action="{{ url_for('internal.update_league_settings', league_id=league.id) }}" class="form-card form-stack">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="field-label" for="league-name">Name</label>
+                <input class="field-input" id="league-name" name="name" value="{{ league.name }}" required>
+
+                <label class="field-label" for="league-description">Description</label>
+                <textarea class="field-input" id="league-description" name="description" rows="3">{{ league.description or '' }}</textarea>
+
+                <label class="field-label" for="league-visibility">Visibility</label>
+                <select class="field-input" id="league-visibility" name="visibility">
+                    <option value="private" {% if league.visibility == 'private' %}selected{% endif %}>Private</option>
+                    <option value="public" {% if league.visibility == 'public' %}selected{% endif %}>Public</option>
+                </select>
+
+                <div class="inline-form">
+                    <div>
+                        <label class="field-label" for="eligible-min">Eligible minimum</label>
+                        <input class="field-input" id="eligible-min" type="number" min="1" max="100" name="eligible_min_sessions" value="{{ league.eligible_min_sessions }}">
+                    </div>
+                    <div>
+                        <label class="field-label" for="break-even">Break-even dollars</label>
+                        <input class="field-input" id="break-even" type="number" min="0" max="100" step="0.01" name="break_even_dollars" value="{{ '%.2f'|format(league.break_even_cents / 100) }}">
+                    </div>
+                </div>
+
+                <button class="btn btn--primary btn--sm" type="submit">Save settings</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+<div class="cards-2">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">League actions</h2>
+            <span class="panel__tag">Support tools</span>
+        </div>
+        <div class="panel__body form-stack">
+            <form method="post" action="{{ url_for('internal.transfer_league_owner', league_id=league.id) }}" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="field-label" for="new-owner-email">Transfer ownership to active user</label>
+                <div class="inline-form">
+                    <input class="field-input" id="new-owner-email" type="email" name="new_owner_email" placeholder="owner@example.com" required>
+                    <button class="btn btn--warning btn--sm" type="submit">Transfer</button>
+                </div>
+            </form>
+
+            {% if league.archived_at %}
+                <form method="post" action="{{ url_for('internal.restore_league', league_id=league.id) }}" class="form-card">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--primary btn--sm" type="submit">Restore league</button>
+                </form>
+            {% else %}
+                <form method="post" action="{{ url_for('internal.archive_league', league_id=league.id) }}" class="form-card">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn--warning btn--sm" type="submit">Archive league</button>
+                </form>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('internal.delete_internal_league', league_id=league.id) }}" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="field-label" for="confirm-delete-league">Type DELETE to permanently delete this league</label>
+                <div class="inline-form">
+                    <input class="field-input" id="confirm-delete-league" name="confirm" autocomplete="off">
+                    <button class="btn btn--danger btn--sm" type="submit">Delete</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}{{ session_model.display_label }} · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="breadcrumb">
+    <a href="{{ url_for('leagues.sessions', league_ref=league.url_ref) }}">Sessions</a>
+    <span class="breadcrumb__sep">/</span>
+    <span>{{ session_model.display_label }}</span>
+    <span style="flex:1"></span>
+    {% if prev_session_id %}
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_public_view', league_ref=league.url_ref, session_id=prev_session_id) }}">← Prev</a>
+    {% endif %}
+    {% if next_session_id %}
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_public_view', league_ref=league.url_ref, session_id=next_session_id) }}">Next →</a>
+    {% endif %}
+    <button class="btn btn--outline btn--sm" id="copyLinkBtn" type="button" onclick="copySessionLink(this)">Share</button>
+</div>
+
+<div class="hero" style="padding-top:0;">
+    <p class="hero__kicker session-number">Session #{{ "%03d"|format(session_number) }}</p>
+    <h1 class="hero__title">{{ session_model.display_label }}</h1>
+    <p class="hero__sub">{{ session.entries|length }} player{{ 's' if session.entries|length != 1 else '' }} · <span class="status-badge status-{{ session_model.status }}">{{ session_model.status }}</span>{% if season %} · <a class="season-tag" href="{{ url_for('leagues.sessions', league_ref=league.url_ref, season=session_model.season_id) }}">{{ season.name }}</a>{% endif %}</p>
+</div>
+
+<!-- Recon cards -->
+<div class="recon-grid" style="margin-bottom:20px;">
+    <div class="panel">
+        <div class="recon-card-head">
+            <span class="kicker kicker--dot kicker--dot-accent">Banker cash flow</span>
+        </div>
+        <div class="recon-metric-grid">
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Actual cash in</span>
+                <div class="recon-val recon-val--num">{{ session.total_real_cash_in_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Gross player claim</span>
+                <div class="recon-val recon-val--num">{{ session.total_gross_payout_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Cash paid out</span>
+                <div class="recon-val recon-val--pos">{{ session.total_real_cash_out_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Rolled out</span>
+                <div class="recon-val" style="color:var(--rolled)">{{ session.total_rollover_out_cents | money }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="recon-card-head">
+            <span class="kicker kicker--dot kicker--dot-warn">Open items</span>
+        </div>
+        <div class="recon-metric-grid">
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">House owes players</span>
+                <div class="recon-val {{ 'recon-val--neg' if session.total_current_due_to_player_cents > 0 else 'recon-val--pos' }}">
+                    {{ session.total_current_due_to_player_cents | money }}
+                </div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Players owe house</span>
+                <div class="recon-val {{ 'recon-val--warn' if session.total_current_due_to_house_cents > 0 else '' }}">
+                    {{ session.total_current_due_to_house_cents | money }}
+                </div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Cash debt repaid</span>
+                <div class="recon-val" style="color:var(--pos)">{{ session.total_debt_repayment_cents | money }}</div>
+            </div>
+            <div class="recon-cell">
+                <span class="kicker" style="font-size:10px;">Written off</span>
+                <div class="recon-val" style="color:var(--neg)">{{ session.total_writeoff_cents | money }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player totals table -->
+<div class="panel" style="margin-bottom:20px;">
+    <div class="panel__head">
+        <div>
+            <span class="kicker" style="margin:0;">Results</span>
+            <h2 class="panel__title">Player totals</h2>
+        </div>
+        <div class="segmented" id="viewToggle">
+            <button class="seg is-on" data-view="compact">Compact</button>
+            <button class="seg" data-view="full">Full ledger</button>
+        </div>
+    </div>
+    <div class="tbl-scroll">
+        <table class="tbl tbl--session" id="sessionTable">
+            <thead>
+                <tr>
+                    <th class="col-player">Player</th>
+                    <th>Invested</th>
+                    <th>Gross cashout</th>
+                    <th>Net</th>
+                    <th>Paid out</th>
+                    <th>Open settlement</th>
+                    <th>Settlement status</th>
+                    <th class="col-acct">Front</th>
+                    <th class="col-acct">Rolled in</th>
+                    <th class="col-acct">Payout carry-in</th>
+                    <th class="col-acct">Gross player claim</th>
+                    <th class="col-acct">Rolled out</th>
+                    <th class="col-acct">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in session.entries %}
+                <tr>
+                    <td class="col-player">{{ entry.player_name }}</td>
+                    <td>{{ entry.invested_cents | money }}</td>
+                    <td>{{ entry.cash_out_cents | money }}</td>
+                    <td class="num-net {{ 'num-pos' if entry.net_cents > 0 else 'num-neg' if entry.net_cents < 0 else 'num-muted' }}">
+                        {{ '+' if entry.net_cents > 0 else '' }}{{ entry.net_cents | money }}
+                    </td>
+                    <td style="color:var(--pos)">{{ entry.paid_out_cents | money }}</td>
+                    <td>
+                        {% if entry.current_due_to_house_cents > 0 %}
+                            <span style="color:var(--owes)">owes {{ entry.current_due_to_house_cents | money }}</span>
+                        {% elif entry.current_due_to_player_cents > 0 %}
+                            <span style="color:var(--neg)">due {{ entry.current_due_to_player_cents | money }}</span>
+                        {% else %}
+                            <span class="num-muted">{{ 0 | money }}</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge--{{ entry.payout_status }}">{{ entry.payout_status }}</span></td>
+                    <td class="col-acct" style="color:var(--warn)">{{ entry.front_cents | money }}</td>
+                    <td class="col-acct" style="color:var(--rolled)">{{ entry.rollover_in_cents | money }}</td>
+                    <td class="col-acct" style="color:var(--rolled)">{{ entry.payout_carry_in_cents | money }}</td>
+                    <td class="col-acct">
+                        {% if entry.gross_due_to_house_cents > 0 %}—{% else %}{{ entry.gross_payout_cents | money }}{% endif %}
+                    </td>
+                    <td class="col-acct" style="color:var(--rolled)">{{ entry.rollover_out_cents | money }}</td>
+                    <td class="col-acct" style="text-align:left;font-family:var(--font-ui);">
+                        {% if entry.notes %}
+                            <ul class="note-list">{% for n in entry.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+                        {% else %}
+                            <span style="color:var(--faintest-2)">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="13" style="text-align:left;padding:28px;color:var(--muted);">No player events yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Net bars + snapshot -->
+<div class="split">
+    <div class="panel col-main">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">Breakdown</span>
+                <h2 class="panel__title">Net by player</h2>
+            </div>
+        </div>
+        <div class="chart-wrap">
+            <div class="session-net-bars" id="sessionBreakdownChart" aria-label="Net by player"></div>
+        </div>
+    </div>
+
+    <div class="panel col-side">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">Quick read</span>
+                <h2 class="panel__title">Session snapshot</h2>
+            </div>
+        </div>
+        {% set winners = session.entries | selectattr('net_cents', 'gt', 0) | list %}
+        {% set losers  = session.entries | selectattr('net_cents', 'lt', 0) | list %}
+        <div class="snapshot-grid">
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Biggest winner</span>
+                <div class="snapshot-val" style="color:var(--pos)">
+                    {% if winners %}{{ (winners | sort(attribute='net_cents', reverse=True) | first).net_cents | money }}{% else %}—{% endif %}
+                </div>
+                {% if winners %}<div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ winners | sort(attribute='net_cents', reverse=True) | first | attr('player_name') }}</div>{% endif %}
+            </div>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Biggest loser</span>
+                <div class="snapshot-val" style="color:var(--neg)">
+                    {% if losers %}{{ (losers | sort(attribute='net_cents') | first).net_cents | money }}{% else %}—{% endif %}
+                </div>
+                {% if losers %}<div style="font-size:12px;color:var(--muted);margin-top:4px;">{{ losers | sort(attribute='net_cents') | first | attr('player_name') }}</div>{% endif %}
+            </div>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Gross cashout result</span>
+                <div class="snapshot-val">{{ session.total_cash_out_cents | money }}</div>
+            </div>
+            <div class="snapshot-cell">
+                <span class="kicker" style="font-size:10px;">Open items</span>
+                <div class="snapshot-val {{ 'recon-val--neg' if (session.total_current_due_to_player_cents + session.total_current_due_to_house_cents) > 0 else '' }}">
+                    {{ (session.total_current_due_to_player_cents + session.total_current_due_to_house_cents) | money }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const sessionChartData = {{ chart_data | tojson }};
+const breakdownCtx = document.getElementById('sessionBreakdownChart');
+if (breakdownCtx) {
+    const values = sessionChartData.net_values || [];
+    const labels = sessionChartData.labels || [];
+    const colors = sessionChartData.net_colors || [];
+    const maxAbs = Math.max(...values.map(v => Math.abs(v)), 1);
+    const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    breakdownCtx.innerHTML = labels.map((label, i) => {
+        const val = Number(values[i] || 0);
+        const w = Math.min(Math.abs(val) / maxAbs * 50, 50);
+        const cls = val < 0 ? 'session-net-bars__bar--neg' : 'session-net-bars__bar--pos';
+        const amt = `${val > 0 ? '+' : ''}${fmt.format(val)}`;
+        const color = colors[i] || (val < 0 ? '#e0758a' : val > 0 ? '#6fc093' : '#84828e');
+        return `<div class="session-net-bars__row">
+            <div class="session-net-bars__name">${esc(label)}</div>
+            <div class="session-net-bars__track"><span class="session-net-bars__bar ${cls}" style="width:${w}%;background:${color};"></span></div>
+            <div class="session-net-bars__amount">${amt}</div>
+        </div>`;
+    }).join('');
+}
+
+document.querySelectorAll('#viewToggle .seg').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#viewToggle .seg').forEach(b => b.classList.remove('is-on'));
+        btn.classList.add('is-on');
+        document.getElementById('sessionTable').classList.toggle('is-full', btn.dataset.view === 'full');
+    });
+});
+
+function copySessionLink(btn) {
+    navigator.clipboard.writeText(window.location.href).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.disabled = true;
+        setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 2000);
+    }).catch(function() {
+        // Fallback for non-HTTPS or denied clipboard
+        var ta = document.createElement('textarea');
+        ta.value = window.location.href;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        var orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.disabled = true;
+        setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 2000);
+    });
+}
+</script>
+
+{% endblock %}

@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 from markupsafe import Markup
 
-from models import SessionEntry, SessionSummary
+from boker.models import SessionEntry, SessionSummary
 
 BREAK_EVEN_TOLERANCE_CENTS = 100
+
+
+def slugify(value: str, fallback: str = "league") -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().casefold()).strip("-")
+    return slug or fallback
 
 
 def cents_to_dollars(cents: int) -> Markup:
@@ -76,9 +82,9 @@ def entry_sort_key(entry: SessionEntry) -> tuple[str, int, str]:
     )
 
 
-def net_result_bucket(value_cents: int) -> str:
-    if value_cents > BREAK_EVEN_TOLERANCE_CENTS:
+def net_result_bucket(value_cents: int, tolerance_cents: int = BREAK_EVEN_TOLERANCE_CENTS) -> str:
+    if value_cents > tolerance_cents:
         return "win"
-    if value_cents < -BREAK_EVEN_TOLERANCE_CENTS:
+    if value_cents < -tolerance_cents:
         return "loss"
     return "even"

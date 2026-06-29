@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from models import PlayerStats, SessionEntry, SessionSummary
-from storage import EventRow
-from utils import entry_sort_key, net_result_bucket, session_sort_key
+from boker.models import PlayerStats, SessionEntry, SessionSummary
+from boker.storage import EventRow
+from boker.utils import entry_sort_key, net_result_bucket, session_sort_key
 
 SESSION_MARKER_TYPES = {"session_open", "session_close"}
 
@@ -103,7 +103,7 @@ def build_session_summaries(events: list[EventRow]) -> list[SessionSummary]:
     return sessions
 
 
-def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | None]:
+def summarize_player_runs(entries: list[SessionEntry], break_even_cents: int = 100) -> dict[str, int | str | None]:
     ordered_entries = sorted(entries, key=entry_sort_key)
 
     longest_win_streak = 0
@@ -116,7 +116,7 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
 
     for entry in ordered_entries:
         net = entry.net_cents
-        bucket = net_result_bucket(net)
+        bucket = net_result_bucket(net, break_even_cents)
 
         if best_entry is None or net > best_entry.net_cents:
             best_entry = entry
@@ -141,7 +141,7 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
     current_loss_streak = 0
 
     for entry in reversed(ordered_entries):
-        bucket = net_result_bucket(entry.net_cents)
+        bucket = net_result_bucket(entry.net_cents, break_even_cents)
 
         if bucket == "win":
             if current_loss_streak > 0:
@@ -166,7 +166,7 @@ def summarize_player_runs(entries: list[SessionEntry]) -> dict[str, int | str | 
     }
 
 
-def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
+def build_leaderboard(sessions: list[SessionSummary], break_even_cents: int = 100) -> list[PlayerStats]:
     player_entries: dict[str, list[SessionEntry]] = defaultdict(list)
     for session in sessions:
         for entry in session.entries:
@@ -175,9 +175,9 @@ def build_leaderboard(sessions: list[SessionSummary]) -> list[PlayerStats]:
     leaderboard: list[PlayerStats] = []
     for player_name, entries in player_entries.items():
         nets = [entry.net_cents for entry in entries]
-        run_summary = summarize_player_runs(entries)
-        wins = [value for value in nets if net_result_bucket(value) == "win"]
-        losses = [value for value in nets if net_result_bucket(value) == "loss"]
+        run_summary = summarize_player_runs(entries, break_even_cents)
+        wins = [value for value in nets if net_result_bucket(value, break_even_cents) == "win"]
+        losses = [value for value in nets if net_result_bucket(value, break_even_cents) == "loss"]
 
         sessions_played = len(entries)
         winning_sessions = len(wins)

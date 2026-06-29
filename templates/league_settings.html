@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+
+<div class="stack">
+
+    <form class="panel form-card" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">General</p>
+            <h2 class="panel__title" style="margin-top:4px;">League info</h2>
+        </div>
+        <label>
+            <span>Name <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">The display name for this league. Shown on your dashboard and the public leaderboard.</span></span></span>
+            <input type="text" name="name" value="{{ form.name }}" required>
+        </label>
+        <label>
+            <span>Description <span class="form-opt-hint">(optional)</span> <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Optional. A short note about the league — game night, buy-in rules, anything useful to members.</span></span></span>
+            <textarea name="description">{{ form.description }}</textarea>
+        </label>
+        <label>
+            <span>Visibility <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Private keeps the league off the Explore page. Public makes the leaderboard and session history visible to anyone with the link — no account needed.</span></span></span>
+            <select name="visibility">
+                <option value="private" {{ 'selected' if form.visibility == 'private' else '' }}>Private — only members can see this league</option>
+                <option value="public" {{ 'selected' if form.visibility == 'public' else '' }}>Public — leaderboard is visible to anyone</option>
+            </select>
+        </label>
+        <div style="margin-top:8px;padding-top:20px;border-top:1px solid var(--border);">
+            <p class="eyebrow">Leaderboard</p>
+            <p class="muted-text" style="margin-top:4px;margin-bottom:0;font-size:.82rem;">Controls how players qualify and how sessions are classified.</p>
+        </div>
+        <div class="session-create-row" style="grid-template-columns:1fr 1fr;">
+            <label>
+                <span>Sessions to rank <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Minimum number of sessions a player must have played to appear on the ranked leaderboard. Players below this threshold are shown as provisional.</span></span></span>
+                <input type="number" name="eligible_min_sessions" value="{{ form.eligible_min_sessions }}" min="1" max="100" step="1" required>
+            </label>
+            <label>
+                <span>Break-even threshold ($) <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">A session within ±this amount of $0 is counted as a break-even rather than a win or loss. Default is $1.00.</span></span></span>
+                <input type="number" name="break_even_dollars" value="{{ form.break_even_dollars }}" min="0" max="100" step="0.50" required>
+            </label>
+        </div>
+        <div>
+            <button class="btn btn--primary" type="submit">Save changes</button>
+        </div>
+    </form>
+
+    <div class="panel access-panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Access</p>
+                <h2 class="panel__title">Members</h2>
+            </div>
+            <span class="panel__tag">{{ members|length }} member{{ 's' if members|length != 1 else '' }}</span>
+        </div>
+        <div class="access-panel__grid">
+            <div class="access-panel__members" aria-label="League members">
+                {% for membership, member_user in members %}
+                <div class="member-row">
+                    <div class="member-row__identity">
+                        <strong>{{ member_user.email }}</strong>
+                        <span class="member-role member-role--{{ membership.role }}">{{ membership.role }}</span>
+                    </div>
+                    {% if membership.role != 'owner' and member_user.id != current_user_id %}
+                    <div class="member-row__actions">
+                        {% if membership.role == 'viewer' %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="promote"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-role="manager"
+                            data-member-url="{{ url_for('leagues.update_member_role', league_ref=league.url_ref, user_id=member_user.id) }}">Promote</button>
+                        {% elif membership.role == 'manager' %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="demote"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-role="viewer"
+                            data-member-url="{{ url_for('leagues.update_member_role', league_ref=league.url_ref, user_id=member_user.id) }}">Demote</button>
+                        {% endif %}
+                        <button class="btn btn--ghost btn--sm" type="button"
+                            data-member-action="remove"
+                            data-member-email="{{ member_user.email }}"
+                            data-member-url="{{ url_for('leagues.remove_member', league_ref=league.url_ref, user_id=member_user.id) }}">Remove</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <form class="access-panel__invite form-card" id="invite-member-form" method="post" action="{{ url_for('leagues.invite_member', league_ref=league.url_ref) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div>
+                    <p class="kicker" style="margin:0 0 4px;">Invite by email</p>
+                    <h3 class="access-panel__invite-title">Add a member</h3>
+                </div>
+                <label>
+                    <span>Email</span>
+                    <input type="email" name="email" placeholder="friend@example.com" required>
+                </label>
+                <label>
+                    <span>Role</span>
+                    <select name="role">
+                        <option value="manager">Manager</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </label>
+                <button class="btn btn--primary btn--sm" type="submit">Send invite</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;color:var(--neg);">Danger zone</p>
+                <h2 class="panel__title">Destructive actions</h2>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Transfer ownership</strong>
+                    <p class="muted-text">Choose an existing member to become the league owner. Your role will change to manager.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-transfer-owner" {% if members|length <= 1 %}disabled{% endif %}>Transfer ownership</button>
+            </div>
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Archive league</strong>
+                    <p class="muted-text">Removes this league from your dashboard. All players, sessions, and ledger data are preserved.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-archive">Archive league</button>
+            </div>
+            <div class="danger-row">
+                <div>
+                    <strong class="danger-row__title">Delete league</strong>
+                    <p class="muted-text">Permanently deletes this league and all players, sessions, and ledger data. This cannot be undone.</p>
+                </div>
+                <button class="btn btn--warning btn--sm danger-row__btn" type="button" data-modal="modal-delete-league">Delete league</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal-backdrop" id="modal-transfer-owner" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-transfer-owner-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Ownership</span>
+            <h2 class="panel__title" id="modal-transfer-owner-title">Transfer ownership</h2>
+        </div>
+        <p class="modal-card__text">The selected member will become the owner of <strong>{{ league.name }}</strong>. Your role will change to manager.</p>
+        <form method="post" action="{{ url_for('leagues.transfer_ownership', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 16px;gap:12px;">
+                <label>
+                    <span>New owner</span>
+                    <select name="new_owner_user_id" id="transfer-owner-select" required>
+                        <option value="">Select a member</option>
+                        {% for membership, member_user in members %}
+                        {% if membership.role != 'owner' %}
+                        <option value="{{ member_user.id }}">{{ member_user.email }} · {{ membership.role }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Transfer ownership</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modal-member-role" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-member-role-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Access</span>
+            <h2 class="panel__title" id="modal-member-role-title">Change member role?</h2>
+        </div>
+        <p class="modal-card__text" id="modal-member-role-text"></p>
+        <form id="member-role-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="role" id="member-role-input" value="">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" id="member-role-confirm" type="submit">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modal-member-remove" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-member-remove-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Access</span>
+            <h2 class="panel__title" id="modal-member-remove-title">Remove member?</h2>
+        </div>
+        <p class="modal-card__text" id="modal-member-remove-text"></p>
+        <form id="member-remove-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--danger btn--sm" type="submit">Remove member</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modal-archive" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Danger zone</span>
+            <h2 class="panel__title">Archive league</h2>
+        </div>
+        <p class="modal-card__text">
+            <strong>{{ league.name }}</strong> will be hidden from your dashboard. All data is preserved and can be recovered by contacting support. This does not delete any sessions or ledger events.<br><br>
+            Type the league name to confirm:
+        </p>
+        <form method="post" action="{{ url_for('leagues.archive_league', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;">
+                <input
+                    class="modal-confirm-input"
+                    type="text"
+                    name="confirm_name"
+                    placeholder="{{ league.name }}"
+                    autocomplete="off"
+                    data-match="{{ league.name }}"
+                    data-target="archive-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="archive-confirm-btn" type="submit" disabled>Archive league</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="modal-backdrop" id="modal-delete-league" hidden>
+    <div class="modal-card">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Danger zone</span>
+            <h2 class="panel__title">Delete league</h2>
+        </div>
+        <p class="modal-card__text">
+            <strong>{{ league.name }}</strong> and all its players, sessions, and ledger data will be <strong>permanently deleted</strong>. This cannot be undone.<br><br>
+            Type the league name to confirm:
+        </p>
+        <form method="post" action="{{ url_for('leagues.delete_league_route', league_ref=league.url_ref) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;">
+                <input
+                    class="modal-confirm-input"
+                    type="text"
+                    name="confirm_name"
+                    placeholder="{{ league.name }}"
+                    autocomplete="off"
+                    data-match="{{ league.name }}"
+                    data-target="delete-league-confirm-btn"
+                >
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--sm btn--danger" id="delete-league-confirm-btn" type="submit" disabled>Permanently delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.removeAttribute('hidden');
+            const inp = el.querySelector('.modal-confirm-input, input[type="password"]');
+            if (inp) { inp.value = ''; inp.focus(); checkConfirmInput(inp); }
+        }
+    }
+    function closeModal(el) {
+        el.closest('.modal-backdrop').setAttribute('hidden', '');
+    }
+    function checkConfirmInput(inp) {
+        const targetId = inp.dataset.target;
+        const btn = document.getElementById(targetId);
+        if (!btn) return;
+        if (inp.dataset.match) {
+            btn.disabled = inp.value !== inp.dataset.match;
+        } else if (inp.dataset.minlength) {
+            btn.disabled = inp.value.length < parseInt(inp.dataset.minlength, 10);
+        }
+    }
+
+    document.querySelectorAll('[data-modal]').forEach(trigger => {
+        trigger.addEventListener('click', () => openModal(trigger.dataset.modal));
+    });
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn));
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.setAttribute('hidden', ''); });
+    });
+    document.querySelectorAll('.modal-confirm-input').forEach(inp => {
+        inp.addEventListener('input', () => checkConfirmInput(inp));
+    });
+
+    const roleModal = document.getElementById('modal-member-role');
+    const roleForm = document.getElementById('member-role-form');
+    const roleInput = document.getElementById('member-role-input');
+    const roleTitle = document.getElementById('modal-member-role-title');
+    const roleText = document.getElementById('modal-member-role-text');
+    const roleConfirm = document.getElementById('member-role-confirm');
+    const removeModal = document.getElementById('modal-member-remove');
+    const removeForm = document.getElementById('member-remove-form');
+    const removeTitle = document.getElementById('modal-member-remove-title');
+    const removeText = document.getElementById('modal-member-remove-text');
+
+    document.querySelectorAll('[data-member-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.memberAction;
+            const email = btn.dataset.memberEmail;
+
+            if (action === 'remove') {
+                removeForm.action = btn.dataset.memberUrl;
+                removeTitle.textContent = 'Remove ' + email + '?';
+                removeText.textContent = 'This member will lose access to ' + {{ league.name|tojson }} + '. Their league data and ledger history will stay intact.';
+                removeModal.removeAttribute('hidden');
+                removeModal.querySelector('[data-close-modal]')?.focus();
+                return;
+            }
+
+            const nextRole = btn.dataset.memberRole;
+            roleForm.action = btn.dataset.memberUrl;
+            roleInput.value = nextRole;
+            roleTitle.textContent = (action === 'promote' ? 'Promote ' : 'Demote ') + email + '?';
+            roleText.textContent = email + ' will become a ' + nextRole + ' for ' + {{ league.name|tojson }} + '.';
+            roleConfirm.textContent = action === 'promote' ? 'Promote member' : 'Demote member';
+            roleModal.removeAttribute('hidden');
+            roleModal.querySelector('[data-close-modal]')?.focus();
+        });
+    });
+
+    const inviteForm = document.getElementById('invite-member-form');
+    if (inviteForm) {
+        inviteForm.addEventListener('submit', () => {
+            const btn = inviteForm.querySelector('button[type="submit"]');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            inviteForm.setAttribute('aria-busy', 'true');
+        });
+    }
+})();
+</script>
+
+{% endblock %}

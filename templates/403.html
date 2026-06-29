@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}403 · Access Denied · myboker.org{% endblock %}
+{% block page_class %}page--error{% endblock %}
+{% block content %}
+
+<div class="error-pg error-pg--403">
+    <div class="error-pg__suit" aria-hidden="true">♣</div>
+    <div class="error-pg__body">
+        <span class="error-pg__code">403</span>
+        <h1 class="error-pg__title">Access denied.</h1>
+        <p class="error-pg__sub">You don't have permission to view this page. If you think this is a mistake, contact your league owner.</p>
+        <div class="error-pg__actions">
+            <a class="btn btn--primary btn--lg" href="{{ url_for('public.home') }}">Go home →</a>
+            {% if not is_logged_in %}
+            <a class="btn btn--ghost btn--lg" href="{{ url_for('account.login') }}">Sign in</a>
+            {% else %}
+            <a class="btn btn--ghost btn--lg" href="javascript:history.back()">Go back</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

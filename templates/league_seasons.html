@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Seasons · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Seasons</h1>
+        <p class="page-header__sub">Organise sessions into named seasons for {{ league.name }}</p>
+    </div>
+</div>
+
+<div class="stack">
+
+    {% if can_manage %}
+    {% set has_dated_seasons = active_seasons | selectattr('start_date') | list | length > 0 %}
+    {% if has_dated_seasons %}
+    <div class="panel" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+        <div>
+            <p class="panel__title" style="margin:0;">Auto-assign sessions</p>
+            <p class="muted-text" style="margin:4px 0 0;font-size:13px;">Assign unassigned sessions to seasons based on their date. Sessions that match zero or multiple seasons are skipped.</p>
+        </div>
+        <form method="post" action="{{ url_for('leagues.auto_assign_seasons', league_ref=league.url_ref) }}" style="margin:0;flex-shrink:0;margin-left:20px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn--ghost btn--sm" type="submit">Auto-assign</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <form class="panel form-card" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Seasons</p>
+            <h2 class="panel__title" style="margin-top:4px;">New season</h2>
+        </div>
+        <div class="session-create-row">
+            <label>
+                <span>Name</span>
+                <input type="text" name="name" value="{{ form.name or '' }}" placeholder="e.g. Season 1" required>
+            </label>
+            <label>
+                <span>Start date <span class="form-opt-hint">(optional)</span></span>
+                <input type="date" name="start_date" value="{{ form.start_date or '' }}">
+            </label>
+            <label>
+                <span>End date <span class="form-opt-hint">(optional)</span></span>
+                <input type="date" name="end_date" value="{{ form.end_date or '' }}">
+            </label>
+        </div>
+        <div>
+            <button class="btn btn--primary" type="submit">Create season</button>
+        </div>
+    </form>
+    {% endif %}{# can_manage #}
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Active</p>
+                <h2 class="panel__title">Current seasons</h2>
+            </div>
+            <span class="panel__tag">{{ active_seasons|length }} season{{ 's' if active_seasons|length != 1 else '' }}</span>
+        </div>
+        {% if active_seasons %}
+        <div>
+            {% for season in active_seasons %}
+            <div class="session-row session-row--closed">
+                <div class="session-row__info">
+                    <div class="session-row__text">
+                        <div class="session-row__title">
+                            <a href="{{ url_for('leagues.sessions', league_ref=league.url_ref, season=season.id) }}">{{ season.name }}</a>
+                        </div>
+                        <div class="session-row__meta">
+                            {% if season.start_date %}
+                            <span>{{ season.start_date.strftime('%b %-d, %Y') }}</span>
+                            {% endif %}
+                            {% if season.start_date and season.end_date %}
+                            <span>—</span>
+                            {% endif %}
+                            {% if season.end_date %}
+                            <span>{{ season.end_date.strftime('%b %-d, %Y') }}</span>
+                            {% endif %}
+                            {% if not season.start_date and not season.end_date %}
+                            <span class="muted-text">No dates set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if can_manage %}
+                <div class="session-row__actions">
+                    <button class="btn btn--ghost btn--sm" type="button"
+                        data-modal="modal-edit-season"
+                        data-season-id="{{ season.id }}"
+                        data-season-name="{{ season.name }}"
+                        data-season-start="{{ season.start_date.isoformat() if season.start_date else '' }}"
+                        data-season-end="{{ season.end_date.isoformat() if season.end_date else '' }}">Edit</button>
+                    <form method="post" action="{{ url_for('leagues.archive_season', league_ref=league.url_ref, season_id=season.id) }}" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--ghost btn--sm" type="submit">Archive</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-panel">
+            <p class="muted-text">No active seasons. Create one above.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if archived_seasons %}
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Archived</p>
+                <h2 class="panel__title">Past seasons</h2>
+            </div>
+            <span class="panel__tag">{{ archived_seasons|length }}</span>
+        </div>
+        <div>
+            {% for season in archived_seasons %}
+            <div class="session-row session-row--closed" style="opacity:.7;">
+                <div class="session-row__info">
+                    <div class="session-row__text">
+                        <div class="session-row__title">{{ season.name }}</div>
+                        <div class="session-row__meta">
+                            {% if season.start_date %}
+                            <span>{{ season.start_date.strftime('%b %-d, %Y') }}</span>
+                            {% endif %}
+                            {% if season.start_date and season.end_date %}
+                            <span>—</span>
+                            {% endif %}
+                            {% if season.end_date %}
+                            <span>{{ season.end_date.strftime('%b %-d, %Y') }}</span>
+                            {% endif %}
+                            {% if not season.start_date and not season.end_date %}
+                            <span class="muted-text">No dates set</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if can_manage %}
+                <div class="session-row__actions">
+                    <form method="post" action="{{ url_for('leagues.unarchive_season', league_ref=league.url_ref, season_id=season.id) }}" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--ghost btn--sm" type="submit">Restore</button>
+                    </form>
+                    <button class="btn btn--ghost btn--sm" type="button"
+                        data-modal="modal-delete-season"
+                        data-season-id="{{ season.id }}"
+                        data-season-name="{{ season.name }}">Delete</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% if can_manage %}
+<!-- Edit season modal -->
+<div class="modal-backdrop" id="modal-edit-season" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-edit-season-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Season</span>
+            <h2 class="panel__title" id="modal-edit-season-title">Edit season</h2>
+        </div>
+        <form method="post" id="form-edit-season" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;gap:12px;">
+                <label>
+                    <span>Name</span>
+                    <input type="text" name="name" id="edit-season-name" required>
+                </label>
+                <label>
+                    <span>Start date <span class="form-opt-hint">(optional)</span></span>
+                    <input type="date" name="start_date" id="edit-season-start">
+                </label>
+                <label>
+                    <span>End date <span class="form-opt-hint">(optional)</span></span>
+                    <input type="date" name="end_date" id="edit-season-end">
+                </label>
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete season confirmation modal -->
+<div class="modal-backdrop" id="modal-delete-season" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-delete-season-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Season</span>
+            <h2 class="panel__title" id="modal-delete-season-title">Delete season</h2>
+        </div>
+        <p class="modal-card__text">Permanently delete <strong id="delete-season-name"></strong>? Sessions assigned to this season will not be deleted — they will simply become unassigned. This cannot be undone.</p>
+        <form method="post" id="form-delete-season" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--destructive btn--sm" type="submit">Delete season</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const leagueRef = {{ league.url_ref | tojson }};
+
+    function openModal(id) {
+        document.getElementById(id).hidden = false;
+    }
+    function closeModal(el) {
+        el.closest('.modal-backdrop').hidden = true;
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target.matches('[data-close-modal]') || e.target.closest('[data-close-modal]')) {
+            closeModal(e.target.closest('[data-close-modal]') || e.target);
+        }
+        if (e.target.matches('.modal-backdrop')) {
+            e.target.hidden = true;
+        }
+    });
+
+    document.querySelectorAll('[data-modal="modal-edit-season"]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = btn.dataset.seasonId;
+            document.getElementById('edit-season-name').value = btn.dataset.seasonName;
+            document.getElementById('edit-season-start').value = btn.dataset.seasonStart || '';
+            document.getElementById('edit-season-end').value = btn.dataset.seasonEnd || '';
+            document.getElementById('form-edit-season').action = '/l/' + leagueRef + '/seasons/' + id + '/update';
+            openModal('modal-edit-season');
+        });
+    });
+
+    document.querySelectorAll('[data-modal="modal-delete-season"]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = btn.dataset.seasonId;
+            document.getElementById('delete-season-name').textContent = btn.dataset.seasonName;
+            document.getElementById('form-delete-season').action = '/l/' + leagueRef + '/seasons/' + id + '/delete';
+            openModal('modal-delete-season');
+        });
+    });
+})();
+</script>
+{% endif %}{# can_manage #}
+
+{% endblock %}

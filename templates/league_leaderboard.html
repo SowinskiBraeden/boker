@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Leaderboard · myboker.org{% endblock %}
+{% block title %}Leaderboard · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
 {% block content %}
 
-<div class="hero" style="display:flex;flex-wrap:wrap;gap:var(--s6);align-items:flex-start;justify-content:space-between;">
+<div class="page-header">
     <div>
-        <p class="hero__kicker">All-time results</p>
-        <h1 class="hero__title">Leaderboard</h1>
-        <p class="hero__sub">{{ session_count }} session{{ 's' if session_count != 1 else '' }}{% if selected_session_date %} through {{ selected_session_label }}{% endif %}</p>
+        <h1 class="page-header__title">Leaderboard</h1>
+        <p class="page-header__sub">{{ session_count }} session{{ 's' if session_count != 1 else '' }}{% if selected_session_date %} through {{ selected_session_label }}{% endif %}</p>
     </div>
     <div class="leaderboard-hero-stats">
         <div class="stat">
@@ -63,8 +64,20 @@
         </p>
     </div>
     <div class="toolbar__right">
+        {% if seasons %}
+        <form class="session-filter-form" method="get" style="margin-right:8px;">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <select class="session-filter-select" name="season" onchange="this.form.submit()">
+                <option value="">All seasons</option>
+                {% for s in seasons %}
+                <option value="{{ s.id }}" {{ 'selected' if selected_season_id == s.id else '' }}>{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
         <form class="session-filter-form" method="get">
             <input type="hidden" name="mode" value="{{ mode }}">
+            {% if selected_season_id %}<input type="hidden" name="season" value="{{ selected_season_id }}">{% endif %}
             <select class="session-filter-select" name="through_session" onchange="this.form.submit()">
                 <option value="">Latest session</option>
                 {% for s in available_sessions %}
@@ -72,7 +85,7 @@
                 {% endfor %}
             </select>
             {% if selected_session_id %}
-            <a class="btn btn--ghost btn--sm" href="{{ url_for('public.leaderboard', mode=mode) }}">Reset</a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.leaderboard', league_ref=league.url_ref, mode=mode) }}">Reset</a>
             {% endif %}
         </form>
     </div>
@@ -100,13 +113,14 @@
         <tbody>
             {% for player in main_board %}
             {% set idx = loop.index %}
+            {% set player_href = url_for('leagues.player_detail', league_ref=league.url_ref, player_id=player_ids[player.player_name]) if player_ids.get(player.player_name) else '' %}
             <tr data-player-row="true" data-original-rank="{{ idx }}"
-                onclick="window.location='{{ url_for('public.player_detail', player_name=player.player_name) }}'">
+                {% if player_href %}onclick="window.location='{{ player_href }}'"{% endif %}>
                 <td class="col-rank" data-sort-value="{{ idx }}">
                     <span class="rank-num {{ 'rank-1' if idx==1 else 'rank-2' if idx==2 else 'rank-3' if idx==3 else '' }}" data-rank-cell>#{{ idx }}</span>
                 </td>
                 <td class="col-player" data-sort-value="{{ player.player_name|lower }}">
-                    <a href="{{ url_for('public.player_detail', player_name=player.player_name) }}">{{ player.player_name }}</a>
+                    {% if player_href %}<a href="{{ player_href }}">{{ player.player_name }}</a>{% else %}{{ player.player_name }}{% endif %}
                 </td>
                 <td class="col-rank-delta" data-sort-value="{{ player.rank_change }}">
                     {% if player.rank_change > 0 %}
@@ -131,7 +145,7 @@
             {% else %}
             <tr>
                 <td colspan="9" style="text-align:left;padding:28px;color:var(--muted);">
-                    No players yet.
+                    No players yet — add the first event from a league session ledger.
                 </td>
             </tr>
             {% endfor %}
@@ -146,7 +160,8 @@
     </div>
     <div class="provisional-grid">
         {% for player in provisional_board %}
-        <a class="provisional-card" href="{{ url_for('public.player_detail', player_name=player.player_name) }}"
+        {% set player_href = url_for('leagues.player_detail', league_ref=league.url_ref, player_id=player_ids[player.player_name]) if player_ids.get(player.player_name) else '' %}
+        <a class="provisional-card" href="{{ player_href or '#' }}"
            style="display:block;text-decoration:none;">
             <p class="provisional-card__name">{{ player.player_name }}</p>
             <div class="provisional-card__meta">

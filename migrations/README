@@ -1,0 +1,13 @@
+Single-database Alembic environment managed through Flask-Migrate.
+
+Install dependencies with:
+
+    pip install -r requirements.txt
+
+Then run migrations with:
+
+    flask --app app db upgrade
+
+For a quick local development bootstrap without Alembic, the app also exposes:
+
+    flask --app app init-db

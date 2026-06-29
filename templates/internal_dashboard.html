@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}Overview · Admin · myboker.org{% endblock %}
+{% block sidebar %}{% include "_internal_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="db-header int-page-header">
+    <div>
+        <div class="db-header__chips">
+            <span class="badge badge--paid">Site Admin</span>
+            {% if stats.open_sessions > 0 %}
+            <span class="badge badge--open">{{ stats.open_sessions }} live session{{ 's' if stats.open_sessions != 1 }}</span>
+            {% endif %}
+        </div>
+        <h1 class="db-header__title">Overview</h1>
+        <p class="db-header__sub">Signed in as {{ admin_user.email }}. Site health, growth, and recent activity at a glance.</p>
+    </div>
+</div>
+
+<!-- Hero metrics -->
+<div class="int-hero-grid">
+    <div class="int-hero-card">
+        <div class="int-hero-card__icon int-hero-card__icon--users">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                <path d="M13 18v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 1 16.5V18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="7" cy="6.5" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M17 18v-1.5a3.5 3.5 0 0 0-2.5-3.37M13.5 3.13a3.5 3.5 0 0 1 0 6.74" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <span class="int-hero-card__num">{{ stats.users }}</span>
+        <span class="int-hero-card__label">Total users</span>
+        <span class="int-hero-card__sub">{{ stats.active_users }} active · +{{ stats.new_users_7d }} this week</span>
+    </div>
+    <div class="int-hero-card">
+        <div class="int-hero-card__icon int-hero-card__icon--leagues">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                <path d="M2 18V8l8-5 8 5v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 18v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <span class="int-hero-card__num">{{ stats.active_leagues }}</span>
+        <span class="int-hero-card__label">Active leagues</span>
+        <span class="int-hero-card__sub">{{ stats.public_leagues }} public · {{ stats.archived_leagues }} archived</span>
+    </div>
+    <div class="int-hero-card">
+        <div class="int-hero-card__icon int-hero-card__icon--sessions">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                <rect x="2" y="3" width="16" height="14" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M6 1v4M14 1v4M2 8h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <span class="int-hero-card__num">{{ stats.sessions }}</span>
+        <span class="int-hero-card__label">Total sessions</span>
+        <span class="int-hero-card__sub">{{ stats.open_sessions }} open · {{ stats.sessions_7d }} this week · {{ '%.1f'|format(stats.avg_players_per_session) }} avg players</span>
+    </div>
+    <div class="int-hero-card">
+        <div class="int-hero-card__icon int-hero-card__icon--health">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                <path d="M10 2.5l6.5 3v4.7c0 4.1-2.75 7-6.5 7.8-3.75-.8-6.5-3.7-6.5-7.8V5.5l6.5-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M7.2 10.1l1.8 1.8 3.9-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <span class="int-hero-card__num">{{ stats.active_users_30d }}</span>
+        <span class="int-hero-card__label">Active users · 30d</span>
+        <span class="int-hero-card__sub">{{ stats.users_in_leagues }} in leagues · {{ stats.orphan_users }} solo</span>
+    </div>
+</div>
+
+<div class="int-trend-grid int-section-grid">
+    {% for card in trend_cards %}
+    <section class="int-trend-card">
+        <div>
+            <span class="int-trend-card__label">{{ card.label }}</span>
+            <span class="int-trend-card__value">{{ card.value }}</span>
+            <span class="int-trend-card__delta int-trend-card__delta--{{ card.delta.direction }}">
+                {% if card.delta.pct is none %}
+                    New
+                {% else %}
+                    {{ '+' if card.delta.current > card.delta.previous else '' }}{{ '%.1f'|format(card.delta.pct) }}%
+                {% endif %}
+                <span>vs previous</span>
+            </span>
+        </div>
+        <div class="int-sparkline-wrap">
+            <canvas id="trend-{{ card.key }}"></canvas>
+        </div>
+    </section>
+    {% endfor %}
+</div>
+
+<!-- Charts row 1: growth -->
+<div class="cards-2 int-section-grid">
+    <section class="panel int-chart-panel">
+        <div class="int-chart-head">
+            <p class="kicker" style="margin:0;">Growth</p>
+            <h2 class="panel__title">User signups · 8 weeks</h2>
+        </div>
+        <div class="int-chart-wrap">
+            <canvas id="chart-users"></canvas>
+        </div>
+    </section>
+    <section class="panel int-chart-panel">
+        <div class="int-chart-head">
+            <p class="kicker" style="margin:0;">Activity</p>
+            <h2 class="panel__title">Sessions per week · 8 weeks</h2>
+        </div>
+        <div class="int-chart-wrap">
+            <canvas id="chart-sessions"></canvas>
+        </div>
+    </section>
+</div>
+
+<!-- Charts row 2: leagues + weekday -->
+<div class="cards-2 int-section-grid">
+    <section class="panel int-chart-panel">
+        <div class="int-chart-head">
+            <p class="kicker" style="margin:0;">Growth</p>
+            <h2 class="panel__title">New leagues per week · 8 weeks</h2>
+        </div>
+        <div class="int-chart-wrap">
+            <canvas id="chart-leagues"></canvas>
+        </div>
+    </section>
+    <section class="panel int-chart-panel">
+        <div class="int-chart-head">
+            <p class="kicker" style="margin:0;">Patterns</p>
+            <h2 class="panel__title">Sessions by day of week</h2>
+        </div>
+        <div class="int-chart-wrap">
+            <canvas id="chart-weekday"></canvas>
+        </div>
+    </section>
+</div>
+
+<!-- Breakdown + top leagues -->
+<div class="cards-2 int-section-grid">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Activity breakdown</h2>
+            <span class="panel__tag">7d</span>
+        </div>
+        <div class="panel__body">
+            <div class="int-breakdown-grid">
+                <div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">New users (7d)</span><span class="int-breakdown-row__val">{{ stats.new_users_7d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Active users (7d)</span><span class="int-breakdown-row__val">{{ stats.active_users_7d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Active users (30d)</span><span class="int-breakdown-row__val">{{ stats.active_users_30d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Users in leagues</span><span class="int-breakdown-row__val">{{ stats.users_in_leagues }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Unverified accounts</span><span class="int-breakdown-row__val">{{ stats.unverified_users }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Disabled accounts</span><span class="int-breakdown-row__val">{{ stats.disabled_users }}</span></div>
+                </div>
+                <div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Sessions (7d)</span><span class="int-breakdown-row__val">{{ stats.sessions_7d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Open sessions</span><span class="int-breakdown-row__val">{{ stats.open_sessions }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Leagues active (7d)</span><span class="int-breakdown-row__val">{{ stats.leagues_active_7d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg players / session</span><span class="int-breakdown-row__val">{{ '%.1f'|format(stats.avg_players_per_session) }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Ledger events (7d)</span><span class="int-breakdown-row__val">{{ stats.ledger_events_7d }}</span></div>
+                    <div class="int-breakdown-row"><span class="int-breakdown-row__label">Avg sessions / league</span><span class="int-breakdown-row__val">{{ '%.1f'|format(stats.avg_sessions_per_active_league) }}</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Top leagues</h2>
+            <a class="panel__tag" href="{{ url_for('internal.leagues') }}">All leagues →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>League</th><th>Owner</th><th style="text-align:right;">Sessions</th></tr></thead>
+                <tbody>
+                    {% for league, session_count in top_leagues %}
+                    {% set owner = owners.get(league.id) %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('internal.league_detail', league_id=league.id) }}">{{ league.name }}</a>
+                            {% if league.visibility == 'public' %}<span class="badge" style="font-size:10px;margin-left:4px;">public</span>{% endif %}
+                        </td>
+                        <td style="font-size:12px;color:var(--muted);">{% if owner %}{{ owner.email }}{% else %}<span class="muted-text">—</span>{% endif %}</td>
+                        <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">{{ session_count }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="muted-text">No leagues yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="panel int-section-grid">
+    <div class="panel__head">
+        <h2 class="panel__title">Totals at a glance</h2>
+        <span class="panel__tag">All time</span>
+    </div>
+    <div class="panel__body">
+        <div class="int-summary-grid">
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.users }}</span><span class="int-summary-item__label">Total users</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.leagues }}</span><span class="int-summary-item__label">Total leagues</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.sessions }}</span><span class="int-summary-item__label">Total sessions</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.ledger_events }}</span><span class="int-summary-item__label">Ledger events</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.cash_in_cents / 100) }}</span><span class="int-summary-item__label">Recorded buy-ins</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.cash_out_cents / 100) }}</span><span class="int-summary-item__label">Recorded payouts</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">${{ '%.0f'|format(stats.avg_cash_in_per_session_cents / 100) }}</span><span class="int-summary-item__label">Avg volume / session</span></div>
+            <div class="int-summary-item"><span class="int-summary-item__val">{{ stats.verified_users }}</span><span class="int-summary-item__label">Verified accounts</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent users + leagues -->
+<div class="cards-2 int-section-grid int-section-grid--last">
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Recent users</h2>
+            <a class="panel__tag" href="{{ url_for('internal.users') }}">All users →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>Email</th><th>Status</th><th>Joined</th></tr></thead>
+                <tbody>
+                    {% for user in recent_users %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('internal.user_detail', user_id=user.id) }}">{{ user.email }}</a>
+                            {% if user.is_site_admin %}<span class="badge badge--paid" style="font-size:10px;">Admin</span>{% endif %}
+                        </td>
+                        <td>{% if user.disabled_at %}<span class="badge badge--closed">Disabled</span>{% elif not user.email_verified_at %}<span class="badge">Unverified</span>{% else %}<span class="badge badge--open">Active</span>{% endif %}</td>
+                        <td style="color:var(--muted);font-size:12px;">{{ user.created_at.strftime('%b %-d') if user.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__head">
+            <h2 class="panel__title">Recent leagues</h2>
+            <a class="panel__tag" href="{{ url_for('internal.leagues') }}">All leagues →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="tbl">
+                <thead><tr><th>League</th><th>Visibility</th><th>Created</th></tr></thead>
+                <tbody>
+                    {% for league in recent_leagues %}
+                    <tr>
+                        <td><a href="{{ url_for('internal.league_detail', league_id=league.id) }}">{{ league.name }}</a></td>
+                        <td><span class="badge">{{ league.visibility }}</span></td>
+                        <td style="color:var(--muted);font-size:12px;">{{ league.created_at.strftime('%b %-d') if league.created_at else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+(function () {
+    const labels       = {{ growth.labels | tojson }};
+    const userSignups  = {{ growth.user_signups | tojson }};
+    const sessionData  = {{ growth.session_counts | tojson }};
+    const leagueData   = {{ growth.league_counts | tojson }};
+    const wdLabels     = {{ weekday_data.labels | tojson }};
+    const wdData       = {{ weekday_data.data | tojson }};
+    const trendCards   = {{ trend_cards | tojson }};
+
+    const axisStyle = {
+        grid: { color: 'rgba(255,255,255,.05)' },
+        ticks: { color: 'rgba(255,255,255,.38)', font: { size: 11 } },
+    };
+    const tooltipStyle = {
+        backgroundColor: 'rgba(20,20,28,.92)',
+        borderColor: 'rgba(255,255,255,.08)',
+        borderWidth: 1,
+        titleColor: 'rgba(255,255,255,.5)',
+        bodyColor: '#fff',
+        padding: 10,
+    };
+    const baseOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: tooltipStyle },
+        scales: {
+            x: axisStyle,
+            y: { ...axisStyle, beginAtZero: true, ticks: { ...axisStyle.ticks, precision: 0 } },
+        },
+    };
+
+    const lineDataset = (data, color) => ({
+        data,
+        borderColor: color,
+        backgroundColor: color.replace('1)', '.12)'),
+        borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        tension: .35,
+        fill: true,
+    });
+
+    new Chart(document.getElementById('chart-users'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [lineDataset(userSignups, 'rgba(155,140,240,1)')]
+        },
+        options: baseOpts,
+    });
+
+    new Chart(document.getElementById('chart-sessions'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [lineDataset(sessionData, 'rgba(111,192,147,1)')]
+        },
+        options: baseOpts,
+    });
+
+    new Chart(document.getElementById('chart-leagues'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{ data: leagueData, backgroundColor: 'rgba(111,192,147,.45)', borderColor: 'rgba(111,192,147,.9)', borderWidth: 1, borderRadius: 4 }]
+        },
+        options: baseOpts,
+    });
+
+    new Chart(document.getElementById('chart-weekday'), {
+        type: 'bar',
+        data: {
+            labels: wdLabels,
+            datasets: [{ data: wdData, backgroundColor: 'rgba(224,177,92,.45)', borderColor: 'rgba(224,177,92,.9)', borderWidth: 1, borderRadius: 4 }]
+        },
+        options: baseOpts,
+    });
+
+    trendCards.forEach((card) => {
+        const canvas = document.getElementById('trend-' + card.key);
+        if (!canvas) return;
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: card.labels,
+                datasets: [lineDataset(card.series, 'rgba(155,140,240,1)')]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+                elements: { point: { radius: 0 } },
+            },
+        });
+    });
+})();
+</script>
+
+{% endblock %}

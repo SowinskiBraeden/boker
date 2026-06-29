@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Ledger · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="cash-strip">
+    <div class="stat stat--rail" style="--rail:var(--accent);">
+        <span class="kicker">Cash in <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Total real cash brought into the pot across all sessions. Counts buy-ins and collected fronts only — not fronts that haven't been repaid.</span></span></span>
+        <div class="stat__val" style="color:var(--num)">{{ totals.cash_in_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--pos);">
+        <span class="kicker">Cash paid out <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Total cash physically returned to players via 'paid out' events. Should approach Cash In once everyone has settled.</span></span></span>
+        <div class="stat__val" style="color:var(--pos)">{{ totals.cash_out_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--rolled);">
+        <span class="kicker">House holds <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Cash in minus cash paid out — what the house physically holds right now before settling remaining claims.</span></span></span>
+        <div class="stat__val" style="color:var(--num)">{{ totals.book_held_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--neg);">
+        <span class="kicker">Due to players <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Cash the house still owes to players who cashed out but haven't been paid yet. Record a 'paid out' event to clear these.</span></span></span>
+        <div class="stat__val {{ 'num-neg' if totals.due_to_players_cents > 0 else 'num-muted' }}">{{ totals.due_to_players_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--owes);">
+        <span class="kicker">Due to house <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Outstanding fronts — chips the house covered that players haven't repaid yet. Collect or write off using the Debt resolution panel below.</span></span></span>
+        <div class="stat__val {{ 'num-neg' if totals.due_to_house_cents > 0 else 'num-muted' }}">{{ totals.due_to_house_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:{{ 'var(--pos)' if totals.net_position_cents >= 0 else 'var(--neg)' }};">
+        <span class="kicker">Net position <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">House holds + owed by players − owed to players. Should be near zero once all sessions are settled.</span></span></span>
+        <div class="stat__val {{ 'num-pos' if totals.net_position_cents > 0 else 'num-neg' if totals.net_position_cents < 0 else 'num-muted' }}">{{ totals.net_position_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--warn);">
+        <span class="kicker">Events <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Total number of active ledger entries across all sessions.</span></span></span>
+        <div class="stat__val" style="color:var(--num)">{{ totals.events }}</div>
+    </div>
+</div>
+
+<!-- Open sessions alert -->
+{% if open_sessions %}
+<div class="panel" style="margin-top:20px; border-left:3px solid var(--pos);">
+    <div class="panel__head">
+        <span class="kicker" style="margin:0;display:flex;align-items:center;gap:8px;"><span class="live-badge">{{ open_sessions | length }} live</span> Open sessions</span>
+    </div>
+    <div class="audit-item-list">
+        {% for s in open_sessions %}
+        <div class="audit-item">
+            <span>{{ session_label(s) }}</span>
+            <span class="audit-item__right">
+                <span class="stat__sub">{{ s.entries | length }} entries · {{ s.total_real_cash_in_cents | money }} in</span>
+                <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_detail', league_ref=league.url_ref, session_id=session_ids[s.session_id]) }}">View →</a>
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Debt resolution -->
+<div class="panel debt-panel" style="margin-top:20px;">
+    <div class="panel__head">
+        <div>
+            <span class="kicker" style="margin:0;">Front receivables <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">A front is chips the house covered for a player who didn't have cash. This section tracks who still owes money back to the house.</span></span></span>
+            <h2 class="panel__title">Debt resolution</h2>
+        </div>
+        <div class="debt-summary">
+            <span class="badge badge--owes">Open {{ totals.due_to_house_cents | money }}</span>
+            <span class="badge badge--paid">Collected {{ totals.collected_cents | money }}</span>
+            <span class="badge badge--written_off">Written off {{ totals.written_off_cents | money }}</span>
+        </div>
+    </div>
+    {% if debt_entries %}
+    <div class="debt-layout">
+        <div class="debt-list">
+            {% for item in debt_entries %}
+            {% set s = item.session %}
+            {% set e = item.entry %}
+            <div class="debt-list-item">
+                <div>
+                    <strong>{{ e.player_name }}</strong>
+                    <span>{{ session_label(s) }}</span>
+                </div>
+                <b>{{ e.current_due_to_house_cents | money }}</b>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if can_manage %}
+        <div class="debt-action-grid">
+            <form class="form-card debt-form" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <h3>Collect debt</h3>
+                <label>
+                    <span>Outstanding debt</span>
+                    <select class="debt-select" data-target="collect" required>
+                        <option value="">Select debt</option>
+                        {% for item in debt_entries %}
+                        {% set s = item.session %}
+                        {% set e = item.entry %}
+                        <option value="{{ session_ids[s.session_id] }}||{{ player_ids[e.player_name] }}">
+                            {{ e.player_name }} · {{ session_label(s) }} · owes {{ e.current_due_to_house_cents | money }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <input type="hidden" name="session_id" value="">
+                <input type="hidden" name="player_id" value="">
+                <input type="hidden" name="event_type" value="debt_repayment">
+                <label>
+                    <span>Amount</span>
+                    <input type="number" step="0.01" min="0.01" name="amount" placeholder="0.00" required>
+                </label>
+                <label>
+                    <span>Note <span class="field__opt">(optional)</span></span>
+                    <textarea name="note" rows="2" placeholder="E-transfer, cash, etc."></textarea>
+                </label>
+                <button class="btn btn--primary" type="submit">Mark collected</button>
+            </form>
+
+            <form class="form-card debt-form" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <h3>Write off debt</h3>
+                <label>
+                    <span>Outstanding debt</span>
+                    <select class="debt-select" data-target="writeoff" required>
+                        <option value="">Select debt</option>
+                        {% for item in debt_entries %}
+                        {% set s = item.session %}
+                        {% set e = item.entry %}
+                        <option value="{{ session_ids[s.session_id] }}||{{ player_ids[e.player_name] }}">
+                            {{ e.player_name }} · {{ session_label(s) }} · owes {{ e.current_due_to_house_cents | money }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <input type="hidden" name="session_id" value="">
+                <input type="hidden" name="player_id" value="">
+                <input type="hidden" name="event_type" value="writeoff">
+                <label>
+                    <span>Amount</span>
+                    <input type="number" step="0.01" min="0.01" name="amount" placeholder="0.00" required>
+                </label>
+                <label>
+                    <span>Note <span class="field__opt">(optional)</span></span>
+                    <textarea name="note" rows="2" placeholder="Won't be collected."></textarea>
+                </label>
+                <button class="btn btn--ghost" type="submit">Write off</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="debt-empty">
+        <div class="debt-empty__mark">$0</div>
+        <p>No open player debts right now.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Due to players -->
+{% if due_to_player_items %}
+<div class="panel" style="margin-top:16px;">
+    <div class="panel__head">
+        <div>
+            <span class="kicker" style="margin:0;">Unpaid cashout claims</span>
+            <h2 class="panel__title">Due to players</h2>
+        </div>
+        <span class="badge badge--owes">{{ totals.due_to_players_cents | money }}</span>
+    </div>
+    <div class="audit-item-list">
+        {% for item in due_to_player_items %}
+        <div class="audit-item">
+            <div>
+                <strong>{{ item.entry.player_name }}</strong>
+                <span class="stat__sub">{{ session_label(item.session) }}</span>
+            </div>
+            <span class="num-neg">{{ item.entry.current_due_to_player_cents | money }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Import / Export -->
+{% if can_manage %}
+<div class="panel panel--pad import-export-panel" style="margin-top:16px;">
+    <h2 class="panel__title" style="margin:0 0 4px">Import / export</h2>
+    <p class="csv__desc">Back up or migrate the raw event ledger for this league.</p>
+    <form method="post" action="{{ url_for('leagues.import_ledger_csv', league_ref=league.url_ref) }}" enctype="multipart/form-data" class="import-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="csv__btns">
+            <a class="csv-btn-ghost" href="{{ url_for('leagues.export_ledger_csv', league_ref=league.url_ref) }}">&darr; Export CSV</a>
+            <label class="csv-btn-ghost" for="csvImport">&uarr; Import CSV</label>
+        </div>
+        <input id="csvImport" type="file" accept=".csv,text/csv" name="csv_file" hidden onchange="this.form.submit()">
+        <label class="csv__drop" id="csvDrop" for="csvImport">Drop ledger.csv here to import</label>
+    </form>
+</div>
+{% else %}
+<div class="panel panel--pad import-export-panel" style="margin-top:16px;">
+    <h2 class="panel__title" style="margin:0 0 4px">Export</h2>
+    <p class="csv__desc">Download the raw event ledger for this league.</p>
+    <div class="csv__btns">
+        <a class="csv-btn-ghost" href="{{ url_for('leagues.export_ledger_csv', league_ref=league.url_ref) }}">&darr; Export CSV</a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sessions + events -->
+<div class="admin-bottom-grid" style="margin-top:16px;">
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">All sessions</span>
+                <h2 class="panel__title">Ledger totals</h2>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th>Players</th>
+                        <th>Cash in</th>
+                        <th>Paid out</th>
+                        <th>Due to house</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sessions %}
+                    <tr>
+                        <td><a href="{{ url_for('leagues.session_detail', league_ref=league.url_ref, session_id=session_ids[s.session_id]) }}">{{ session_label(s) }}</a></td>
+                        <td style="font-family:var(--font-mono);color:var(--num)">{{ s.entries|length }}</td>
+                        <td style="font-family:var(--font-mono);color:var(--num)">{{ s.total_real_cash_in_cents | money }}</td>
+                        <td style="font-family:var(--font-mono);color:var(--pos)">{{ s.total_real_cash_out_cents | money }}</td>
+                        <td class="{{ 'negative' if s.total_current_due_to_house_cents > 0 else '' }}" style="font-family:var(--font-mono)">{{ s.total_current_due_to_house_cents | money }}</td>
+                        <td><span class="status-pill status-pill--{{ s.status }}">{{ s.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="muted-text">No sessions yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <span class="kicker" style="margin:0;">All events</span>
+                <h2 class="panel__title">Ledger feed</h2>
+            </div>
+            <span class="badge badge--closed">append-only</span>
+        </div>
+        <div class="event-feed feed feed--inline">
+            {% for event in raw_events %}
+            <div class="event-card event-card--inline {% if event.voided_at %}event-card--voided{% endif %}">
+                <div class="event-card-top">
+                    <strong>{{ event.player_name or "Session" }}</strong>
+                    <span class="pill pill-{{ event.event_type }}">{{ event.event_type | replace('_', ' ') }}</span>
+                    {% if event.voided_at %}<span class="void-badge">voided</span>{% endif %}
+                    {% if event.note and not event.voided_at %}<span class="event-note">{{ event.note }}</span>{% endif %}
+                </div>
+                <p class="event-amount">{{ event.amount_cents | money }}</p>
+                {% if event.voided_at %}
+                <p class="tiny-text void-reason">{{ event.void_reason }}</p>
+                {% else %}
+                <p class="tiny-text">{{ event.session_date }}</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="muted-text" style="padding:20px;">No events recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.debt-select').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+        var parts = this.value.split('||');
+        var form = this.closest('form');
+        form.querySelector('[name=session_id]').value = parts[0] || '';
+        form.querySelector('[name=player_id]').value = parts[1] || '';
+    });
+});
+
+var csvDrop = document.getElementById('csvDrop');
+var csvInput = document.getElementById('csvImport');
+if (csvDrop && csvInput) {
+    csvDrop.addEventListener('dragover', function(e) { e.preventDefault(); csvDrop.classList.add('is-drag'); });
+    csvDrop.addEventListener('dragleave', function() { csvDrop.classList.remove('is-drag'); });
+    csvDrop.addEventListener('drop', function(e) {
+        e.preventDefault();
+        csvDrop.classList.remove('is-drag');
+        if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+        csvInput.files = e.dataTransfer.files;
+        csvInput.form.submit();
+    });
+}
+
+</script>
+
+{% endblock %}

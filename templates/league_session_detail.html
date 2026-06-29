@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+{% block title %}{{ session_model.display_label }} · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="hero" style="padding-top:0;padding-bottom:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;">
+    <div>
+        <h1 class="hero__title">{{ session_model.display_label }}</h1>
+        <p class="hero__sub">{{ session_model.session_date.isoformat() | pretty_date }} · <span class="status-badge status-{{ session_model.status }}">{{ session_model.status }}</span></p>
+    </div>
+    <div class="button-row">
+        <a class="btn btn--ghost btn--sm" href="{{ url_for('leagues.session_public_view', league_ref=league.url_ref, session_id=session_model.id) }}">Public view</a>
+        {% if can_manage %}
+        <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-edit-session">Edit session</button>
+        {% if session_model.status == 'open' %}
+        <form method="post" action="{{ url_for('leagues.close_league_session', league_ref=league.url_ref, session_id=session_model.id) }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn--ghost btn--sm" type="submit">Close session</button>
+        </form>
+        {% else %}
+        <button class="btn btn--ghost btn--sm" type="button" data-modal="modal-reopen-session">Reopen session</button>
+        {% endif %}
+        {% endif %}
+        {% if is_owner %}
+        <button class="btn btn--danger btn--sm" type="button" data-modal="modal-delete-session">Delete session</button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="cash-strip">
+    <div class="stat stat--rail" style="--rail:var(--accent);">
+        <span class="kicker">Invested</span>
+        <div class="stat__val" style="color:var(--num)">{{ session.total_invested_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--rank-2);">
+        <span class="kicker">Cashout</span>
+        <div class="stat__val" style="color:var(--num)">{{ session.total_cash_out_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--pos);">
+        <span class="kicker">Paid out</span>
+        <div class="stat__val" style="color:var(--pos)">{{ session.total_paid_out_cents | money }}</div>
+    </div>
+    <div class="stat stat--rail" style="--rail:var(--warn);">
+        <span class="kicker">Open items</span>
+        <div class="stat__val" style="color:var(--num)">{{ (session.total_current_due_to_player_cents + session.total_current_due_to_house_cents) | money }}</div>
+    </div>
+</div>
+
+<div class="league-manage-grid" style="margin-top:20px;align-items:stretch;">
+    {% if can_manage %}
+    <form class="panel form-card" method="post" id="appendForm" style="align-self:stretch;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <p class="eyebrow">Append event</p>
+            <h2 class="panel__title" style="margin-top:4px;">Ledger entry</h2>
+        </div>
+        {% if session_model.status != 'open' %}
+        <div class="session-locked-banner">
+            <strong>Session closed</strong>
+            <span>Books assumed settled. Reopen to add events.</span>
+        </div>
+        {% endif %}
+        <fieldset {% if session_model.status != 'open' %}disabled{% endif %} style="border:none;padding:0;margin:0;min-width:0;">
+            <label>
+                <span>Player</span>
+                <input
+                    type="text"
+                    id="playerSearch"
+                    list="playerList"
+                    placeholder="Start typing a name…"
+                    autocomplete="off"
+                    value="{{ players | selectattr('id', 'equalto', append_form.player_id) | map(attribute='display_name') | first | default('') }}"
+                >
+                <datalist id="playerList">
+                    {% for player in players %}
+                    <option value="{{ player.display_name }}"></option>
+                    {% endfor %}
+                </datalist>
+                <input type="hidden" name="player_id" id="playerIdInput" value="{{ append_form.player_id or '' }}">
+            </label>
+            <label>
+                <span>Event type</span>
+                <select name="event_type" id="eventTypeSelect" required>
+                    {% for value, label in event_types %}
+                    <option value="{{ value }}" {{ 'selected' if append_form.event_type == value else '' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>Amount</span>
+                <input type="number" step="0.01" min="0" name="amount" value="{{ append_form.amount }}" placeholder="0.00">
+            </label>
+            <label>
+                <span>Note <span class="form-opt-hint">(optional)</span></span>
+                <textarea name="note" placeholder="Optional context">{{ append_form.note or '' }}</textarea>
+            </label>
+            <button class="btn btn--primary" type="submit" style="margin-top:8px;">Append event</button>
+        </fieldset>
+    </form>
+    {% else %}
+    <div class="panel empty-panel">
+        <h2 class="panel__title">Read only</h2>
+        <p class="muted-text">Your role can inspect this session but cannot append ledger events.</p>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <div class="panel__head">
+            <div>
+                <p class="kicker" style="margin:0;">Results</p>
+                <h2 class="panel__title">Player totals</h2>
+            </div>
+            <span class="panel__tag">{{ session.entries|length }} players</span>
+        </div>
+        {% if session.entries %}
+        <div class="player-ledger-list">
+            {% for entry in session.entries %}
+            {% set row_cls = 'player-ledger-row--pos' if entry.net_cents > 0 else 'player-ledger-row--neg' if entry.net_cents < 0 else '' %}
+            <div class="player-ledger-row {{ row_cls }}">
+                <div class="player-ledger-row__header">
+                    <span class="player-ledger-row__name">{{ entry.player_name }}</span>
+                    {% if entry.current_due_to_house_cents > 0 %}
+                    <span class="badge badge--owes">Owes {{ entry.current_due_to_house_cents | money }}</span>
+                    {% elif entry.current_due_to_player_cents > 0 %}
+                    <span class="badge badge--unpaid">Due {{ entry.current_due_to_player_cents | money }}</span>
+                    {% else %}
+                    <span class="badge badge--settled">Settled</span>
+                    {% endif %}
+                </div>
+                <div class="player-ledger-row__fields">
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Buy in</span>
+                        <span class="player-ledger-row__val">{{ entry.invested_cents | money }}</span>
+                    </div>
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Cashout claim</span>
+                        <span class="player-ledger-row__val">{{ entry.cash_out_cents | money }}</span>
+                    </div>
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Paid out</span>
+                        <span class="player-ledger-row__val" style="color:var(--pos)">{{ entry.paid_out_cents | money if entry.paid_out_cents else '—' }}</span>
+                    </div>
+                    <div class="player-ledger-row__field player-ledger-row__field--net">
+                        <span class="player-ledger-row__lbl">Net</span>
+                        <span class="player-ledger-row__val {{ 'num-pos' if entry.net_cents > 0 else 'num-neg' if entry.net_cents < 0 else 'num-muted' }}">
+                            {{ '+' if entry.net_cents > 0 else '' }}{{ entry.net_cents | money }}
+                        </span>
+                    </div>
+                </div>
+                {% if entry.rollover_in_cents or entry.rollover_out_cents or entry.payout_carry_in_cents %}
+                <div class="player-ledger-row__fields player-ledger-row__fields--secondary">
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Rolled in</span>
+                        <span class="player-ledger-row__val" style="color:var(--rolled)">{{ entry.rollover_in_cents | money }}</span>
+                    </div>
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Carry in</span>
+                        <span class="player-ledger-row__val" style="color:var(--rolled)">{{ entry.payout_carry_in_cents | money }}</span>
+                    </div>
+                    <div class="player-ledger-row__field">
+                        <span class="player-ledger-row__lbl">Rolled out</span>
+                        <span class="player-ledger-row__val" style="color:var(--rolled)">{{ entry.rollover_out_cents | money }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted-text" style="padding:28px;">No player ledger events yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel" style="margin-top:20px;">
+    <div class="panel__head">
+        <div>
+            <p class="kicker" style="margin:0;">Audit trail</p>
+            <h2 class="panel__title">Raw ledger events</h2>
+        </div>
+        <span class="badge badge--closed">append-only</span>
+    </div>
+    <div class="event-feed feed feed--inline" style="max-height:none;">
+        {% for event in raw_events | reverse %}
+        <div class="event-card event-card--inline {% if event.voided_at %}event-card--voided{% endif %}">
+            <div class="event-card-top">
+                <strong>{{ event.player_name or "Session" }}</strong>
+                <span class="pill pill-{{ event.event_type }}">{{ event.event_type | replace('_', ' ') }}</span>
+                {% if event.voided_at %}<span class="void-badge">voided</span>{% endif %}
+                {% if event.note and not event.voided_at %}<span class="event-note">{{ event.note }}</span>{% endif %}
+            </div>
+            <p class="event-amount">{{ event.amount_cents | money }}</p>
+            {% if event.voided_at %}
+            <p class="tiny-text void-reason">{{ event.void_reason }}</p>
+            {% else %}
+            <p class="tiny-text">{{ event.created_at }}</p>
+            {% if is_owner %}
+            <button class="btn-void-toggle" type="button"
+                data-void-id="{{ event.id }}"
+                data-void-player="{{ event.player_name or 'Session' }}"
+                data-void-type="{{ event.event_type | replace('_', ' ') }}"
+                data-void-amount="${{ '%.2f' % (event.amount_cents / 100) }}"
+                data-void-action="{{ url_for('leagues.void_event', league_ref=league.url_ref, event_id=event.id) }}">
+                void
+            </button>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="muted-text" style="padding:20px;">No events recorded.</p>
+        {% endfor %}
+    </div>
+</div>
+
+{% if is_owner %}
+<div class="modal-backdrop" id="modal-void-event" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-void-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;color:var(--warn);">Correct the record</span>
+            <h2 class="panel__title" id="modal-void-title">Void event</h2>
+        </div>
+        <p class="modal-card__text" id="modal-void-desc">This event will remain visible in the audit trail but will no longer count toward any calculations.</p>
+        <form id="modal-void-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+                <span style="font:600 12px/1 var(--font-ui);color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;">Reason</span>
+                <input type="text" name="void_reason" placeholder="What was wrong with this event?" required maxlength="200"
+                    style="background:var(--field);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:9px 12px;font:400 14px/1.4 var(--font-ui);color:var(--text-1);">
+            </label>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--danger btn--sm" type="submit">Void this event</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="modal-backdrop" id="modal-delete-session" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;color:var(--neg);">Destructive action</span>
+            <h2 class="panel__title" id="modal-delete-title">Delete {{ session_model.display_label }}?</h2>
+        </div>
+        <p class="modal-card__text">This will permanently delete the session and <strong>all {{ session_model.event_count if session_model.event_count is defined else 'its' }} ledger events</strong> attached to it. There is no undo.</p>
+        <div class="modal-card__actions">
+            <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+            <form method="post" action="{{ url_for('leagues.delete_session', league_ref=league.url_ref, session_id=session_model.id) }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn--danger btn--sm" type="submit">Yes, delete permanently</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if can_manage %}
+<div class="modal-backdrop" id="modal-edit-session" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-edit-session-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Session</span>
+            <h2 class="panel__title" id="modal-edit-session-title">Edit session</h2>
+        </div>
+        <form method="post" action="{{ url_for('leagues.edit_session', league_ref=league.url_ref, session_id=session_model.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;gap:12px;">
+                <label>
+                    <span>Date</span>
+                    <input type="date" name="session_date" value="{{ session_model.session_date.isoformat() }}" required>
+                </label>
+                {% if seasons %}
+                <label>
+                    <span>Season <span class="form-opt-hint">(optional)</span></span>
+                    <select name="season_id">
+                        <option value="">No season</option>
+                        {% for s in seasons %}
+                        <option value="{{ s.id }}" {{ 'selected' if session_model.season_id == s.id else '' }}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% endif %}
+                <label>
+                    <span>Label <span class="form-opt-hint">(optional)</span></span>
+                    <input type="text" name="label" value="{{ session_model.label or '' }}" placeholder="e.g. Main table">
+                </label>
+                <label>
+                    <span>Notes <span class="form-opt-hint">(optional)</span></span>
+                    <input type="text" name="notes" value="{{ session_model.notes or '' }}" placeholder="Optional context">
+                </label>
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="modal-backdrop" id="modal-reopen-session" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-reopen-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Settled session</span>
+            <h2 class="panel__title" id="modal-reopen-title">Reopen this session?</h2>
+        </div>
+        <p class="modal-card__text">This session has been closed and books are assumed to be settled. Reopening will allow new ledger events to be appended and may affect settlement totals.</p>
+        <div class="modal-card__actions">
+            <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+            <form method="post" action="{{ url_for('leagues.open_league_session', league_ref=league.url_ref, session_id=session_model.id) }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn--primary btn--sm" type="submit">Reopen session</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const playerMap = {
+    {% for player in players %}"{{ player.display_name | replace('"', '\\"') }}": "{{ player.id }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+const searchInput = document.getElementById('playerSearch');
+const idInput = document.getElementById('playerIdInput');
+const eventTypeSelect = document.getElementById('eventTypeSelect');
+
+if (searchInput && idInput) {
+    searchInput.addEventListener('input', function () {
+        idInput.value = playerMap[this.value.trim()] || '';
+    });
+    searchInput.addEventListener('change', function () {
+        idInput.value = playerMap[this.value.trim()] || '';
+    });
+}
+
+if (eventTypeSelect && searchInput && idInput) {
+    eventTypeSelect.addEventListener('change', function () {
+        if (this.value === 'note') {
+            searchInput.value = '';
+            idInput.value = '';
+            searchInput.placeholder = 'No player (session note)';
+        } else {
+            searchInput.placeholder = 'Start typing a name…';
+        }
+    });
+    if (eventTypeSelect.value === 'note') {
+        searchInput.placeholder = 'No player (session note)';
+    }
+}
+
+document.querySelectorAll('[data-modal]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var target = document.getElementById(this.dataset.modal);
+        if (target) target.removeAttribute('hidden');
+    });
+});
+document.querySelectorAll('[data-close-modal]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        this.closest('.modal-backdrop').setAttribute('hidden', '');
+    });
+});
+document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+    backdrop.addEventListener('click', function(e) {
+        if (e.target === this) this.setAttribute('hidden', '');
+    });
+});
+
+document.querySelectorAll('[data-void-id]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var player = this.dataset.voidPlayer;
+        var type = this.dataset.voidType;
+        var amount = this.dataset.voidAmount;
+        document.getElementById('modal-void-title').textContent = 'Void ' + type + ' — ' + player;
+        document.getElementById('modal-void-desc').textContent =
+            'The ' + amount + ' ' + type + ' event for ' + player +
+            ' will be marked voided and excluded from all calculations. It stays visible in the audit trail.';
+        var form = document.getElementById('modal-void-form');
+        form.action = this.dataset.voidAction;
+        form.querySelector('[name=void_reason]').value = '';
+        document.getElementById('modal-void-event').removeAttribute('hidden');
+    });
+});
+</script>
+
+{% endblock %}

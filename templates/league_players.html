@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Players · {{ league.name }} · myboker.org{% endblock %}
+{% block sidebar %}{% include "_league_sidebar.html" %}{% endblock %}
+{% block page_class %}page--app{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Players</h1>
+        <p class="page-header__sub">Roster for {{ league.name }}</p>
+    </div>
+</div>
+
+{% if can_manage %}
+<form class="panel form-card" method="post" style="margin-bottom:20px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+        <p class="eyebrow">Roster</p>
+        <h2 class="panel__title" style="margin-top:4px;">Add player</h2>
+    </div>
+    <div class="session-create-row">
+        <label>
+            <span>Name <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">The player's display name. Appears on the leaderboard and in all ledger events. Players don't need a myboker account.</span></span></span>
+            <input type="text" name="display_name" value="{{ form.display_name or '' }}" placeholder="Alex" required>
+        </label>
+        <label>
+            <span>Notes <span class="form-opt-hint">(optional)</span> <span class="info-tip" tabindex="0"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 6v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="4" r=".7" fill="currentColor"/></svg><span class="info-tip__bubble">Optional. Useful for payment handles like 'Venmo @alex'. Visible only to league managers, not on public pages.</span></span></span>
+            <input type="text" name="notes" value="{{ form.notes or '' }}" placeholder="Venmo @alex">
+        </label>
+    </div>
+    <div>
+        <button class="btn btn--primary" type="submit">Add player</button>
+    </div>
+</form>
+{% endif %}
+
+{% set active_players = players | selectattr('status', 'equalto', 'active') | list %}
+{% set archived_players = players | selectattr('status', 'equalto', 'archived') | list %}
+
+<div class="panel">
+    <div class="panel__head">
+        <div>
+            <p class="kicker" style="margin:0;">Roster</p>
+            <h2 class="panel__title">Active players</h2>
+        </div>
+        <span class="panel__tag">{{ active_players|length }} players</span>
+    </div>
+    {% if active_players %}
+    <div class="player-grid">
+        {% for player in active_players %}
+        {% set stats = stats_by_name.get(player.display_name) %}
+        {% set initials = player.display_name.split()|map('first')|join('')|upper %}
+        {% set avatar_cls = 'player-avatar--pos' if stats and stats.total_net_cents > 0 else 'player-avatar--neg' if stats and stats.total_net_cents < 0 else '' %}
+        <div class="player-card">
+            <div class="player-card__head">
+                <div class="player-avatar {{ avatar_cls }}">{{ initials[:2] }}</div>
+                <div class="player-card__name-block">
+                    <a class="player-card__name" href="{{ url_for('leagues.player_detail', league_ref=league.url_ref, player_id=player.id) }}">{{ player.display_name }}</a>
+                    <span class="player-card__sub">
+                        {% if stats %}{{ stats.sessions_played }} session{{ 's' if stats.sessions_played != 1 else '' }}{% else %}No sessions yet{% endif %}
+                    </span>
+                </div>
+                {% if can_manage %}
+                <div class="card-menu">
+                    <button class="card-menu__trigger" type="button" aria-label="Player options">···</button>
+                    <div class="card-menu__dropdown" hidden>
+                        <button class="card-menu__item" type="button"
+                            data-edit-name="{{ player.display_name }}"
+                            data-edit-notes="{{ player.notes or '' }}"
+                            data-edit-action="{{ url_for('leagues.edit_player', league_ref=league.url_ref, player_id=player.id) }}">Edit player</button>
+                        {% if player.status == 'active' %}
+                        <button class="card-menu__item card-menu__item--warn" type="button"
+                            data-archive-name="{{ player.display_name }}"
+                            data-archive-action="{{ url_for('leagues.archive_player', league_ref=league.url_ref, player_id=player.id) }}">Archive</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% if stats %}
+            <div class="player-card__stats">
+                <div class="player-card__stat">
+                    <span class="kicker">Net</span>
+                    <span class="player-card__stat-val {{ 'num-pos' if stats.total_net_cents > 0 else 'num-neg' if stats.total_net_cents < 0 else 'num-muted' }}">
+                        {{ '+' if stats.total_net_cents > 0 else '' }}{{ stats.total_net_cents | money }}
+                    </span>
+                </div>
+                <div class="player-card__stat">
+                    <span class="kicker">Win rate</span>
+                    <span class="player-card__stat-val">{{ "%.0f"|format(stats.win_pct * 100) }}%</span>
+                </div>
+                <div class="player-card__stat">
+                    <span class="kicker">Best win</span>
+                    <span class="player-card__stat-val" style="color:var(--pos)">{{ stats.biggest_win_cents | money }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-panel">
+        <p class="kicker">Empty roster</p>
+        <h3 class="panel__title">No players yet</h3>
+        <p class="muted-text">Add the people who play in this league. Players don't need accounts.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if archived_players %}
+<div class="panel" style="margin-top:20px;">
+    <div class="panel__head">
+        <div>
+            <p class="kicker" style="margin:0;">Archive</p>
+            <h2 class="panel__title">Archived players</h2>
+        </div>
+        <span class="panel__tag">{{ archived_players|length }}</span>
+    </div>
+    <div class="player-list">
+        {% for player in archived_players %}
+        {% set stats = stats_by_name.get(player.display_name) %}
+        <div class="player-row" style="opacity:0.6;">
+            <div>
+                <strong>{{ player.display_name }}</strong>
+                {% if stats %}<span>{{ stats.sessions_played }} sessions · {{ stats.total_net_cents | money }} net</span>{% endif %}
+            </div>
+            <div class="player-row__actions">
+                {% if can_manage %}
+                <div class="card-menu">
+                    <button class="card-menu__trigger" type="button" aria-label="Player options">···</button>
+                    <div class="card-menu__dropdown" hidden>
+                        <button class="card-menu__item" type="button"
+                            data-edit-name="{{ player.display_name }}"
+                            data-edit-notes="{{ player.notes or '' }}"
+                            data-edit-action="{{ url_for('leagues.edit_player', league_ref=league.url_ref, player_id=player.id) }}">Edit player</button>
+                        <form method="post" action="{{ url_for('leagues.reactivate_player', league_ref=league.url_ref, player_id=player.id) }}" style="margin:0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="card-menu__item" type="submit">Reactivate</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if can_manage %}
+<div class="modal-backdrop" id="modal-edit-player" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-edit-player-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Roster</span>
+            <h2 class="panel__title" id="modal-edit-player-title">Edit player</h2>
+        </div>
+        <form id="edit-player-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-card" style="padding:0 20px 4px;gap:12px;">
+                <label>
+                    <span>Name</span>
+                    <input type="text" name="display_name" id="edit-player-name" required minlength="2">
+                </label>
+                <label>
+                    <span>Notes <span class="form-opt-hint">(optional)</span></span>
+                    <input type="text" name="notes" id="edit-player-notes" placeholder="Venmo @alex">
+                </label>
+            </div>
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--primary btn--sm" type="submit">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="modal-archive-player" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-archive-player-title">
+        <div class="modal-card__head">
+            <span class="kicker" style="margin:0;">Roster</span>
+            <h2 class="panel__title" id="modal-archive-player-title">Archive player?</h2>
+        </div>
+        <p style="padding:0 20px 16px;margin:0;font:400 14px/1.5 var(--font-ui);color:var(--text-2);">Archived players are hidden from the active roster. Their history is preserved. You can reactivate them any time.</p>
+        <form id="archive-player-form" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-card__actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-close-modal>Cancel</button>
+                <button class="btn btn--danger btn--sm" type="submit">Archive player</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var editForm    = document.getElementById('edit-player-form');
+    var editName    = document.getElementById('edit-player-name');
+    var editNotes   = document.getElementById('edit-player-notes');
+    var editModal   = document.getElementById('modal-edit-player');
+    var archiveForm  = document.getElementById('archive-player-form');
+    var archiveTitle = document.getElementById('modal-archive-player-title');
+    var archiveModal = document.getElementById('modal-archive-player');
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.card-menu__dropdown').forEach(function (d) {
+            d.setAttribute('hidden', '');
+            d.style.cssText = '';
+        });
+    }
+
+    // Keep the menu outside clipped card panels.
+    document.querySelectorAll('.card-menu__trigger').forEach(function (trigger) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var dropdown = this.nextElementSibling;
+            var isOpen = !dropdown.hasAttribute('hidden');
+            closeAllDropdowns();
+            if (!isOpen) {
+                var tr = trigger.getBoundingClientRect();
+                dropdown.style.position = 'fixed';
+                dropdown.style.right = 'auto';
+                dropdown.style.top = 'auto';
+                dropdown.removeAttribute('hidden');
+                var dw = dropdown.offsetWidth;
+                var dh = dropdown.offsetHeight;
+                var left = tr.right - dw;
+                var top  = tr.bottom + 4;
+                if (top + dh > window.innerHeight - 8) top = tr.top - dh - 4;
+                if (left < 8) left = 8;
+                dropdown.style.left = left + 'px';
+                dropdown.style.top  = top  + 'px';
+            }
+        });
+    });
+    document.addEventListener('click', closeAllDropdowns);
+
+    document.querySelectorAll('.card-menu__item[data-edit-action]').forEach(function (item) {
+        item.addEventListener('click', function () {
+            closeAllDropdowns();
+            editForm.action = this.dataset.editAction;
+            editName.value  = this.dataset.editName;
+            editNotes.value = this.dataset.editNotes;
+            editModal.removeAttribute('hidden');
+            setTimeout(function () { editName.focus(); }, 50);
+        });
+    });
+
+    document.querySelectorAll('.card-menu__item[data-archive-action]').forEach(function (item) {
+        item.addEventListener('click', function () {
+            closeAllDropdowns();
+            archiveTitle.textContent = 'Archive ' + this.dataset.archiveName + '?';
+            archiveForm.action = this.dataset.archiveAction;
+            archiveModal.removeAttribute('hidden');
+        });
+    });
+
+    document.querySelectorAll('[data-close-modal]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            this.closest('.modal-backdrop').setAttribute('hidden', '');
+        });
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+        backdrop.addEventListener('click', function (e) {
+            if (e.target === this) this.setAttribute('hidden', '');
+        });
+    });
+})();
+</script>
+{% endif %}
+
+{% endblock %}
