@@ -94,7 +94,7 @@ The app reads these from `.env`:
 - `MAIL_PASSWORD`
 - `MAIL_DEFAULT_SENDER`
 
-For public deployments, set `APP_ENV=production`. Production mode enables secure cookies and refuses to start with the development `SECRET_KEY`. Set `RATELIMIT_STORAGE_URI` to a shared backend such as Redis so login and signup limits are enforced across processes.
+For public deployments, set `APP_ENV=production`. Production mode enables secure cookies and refuses to start with the development `SECRET_KEY` or the local SQLite database. Use PostgreSQL for `DATABASE_URL`, then run `flask --app app db upgrade` during deploy. Set `RATELIMIT_STORAGE_URI` to a shared backend such as Redis so login and signup limits are enforced across processes.
 
 ## Site Admin Access
 

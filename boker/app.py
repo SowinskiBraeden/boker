@@ -9,7 +9,7 @@ from flask import Flask, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from boker.auth import current_user_id, is_logged_in, is_site_admin, normalize_email
-from boker.config import DEFAULT_SECRET_KEY, Config, ProductionConfig
+from boker.config import DEFAULT_DATABASE_URL, DEFAULT_SECRET_KEY, Config, ProductionConfig
 from boker.db import database_extensions_available, db, init_database
 from boker.extensions import csrf, limiter, mail
 from boker.routes.account import account_bp
@@ -35,6 +35,10 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 
     if app.config["SESSION_COOKIE_SECURE"] and app.config["SECRET_KEY"] == DEFAULT_SECRET_KEY:
         raise RuntimeError("Set SECRET_KEY before running in production.")
+    if app.config["SESSION_COOKIE_SECURE"]:
+        database_url = app.config["SQLALCHEMY_DATABASE_URI"]
+        if database_url == DEFAULT_DATABASE_URL or database_url.startswith("sqlite:"):
+            raise RuntimeError("Set DATABASE_URL to a production PostgreSQL database before running in production.")
 
     ensure_data_file(app.config["DATA_PATH"])
     init_database(app)
