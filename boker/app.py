@@ -51,11 +51,18 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 
     @app.context_processor
     def inject_globals() -> dict:
+        base_url = app.config.get("APP_BASE_URL", "https://myboker.org").rstrip("/")
         return {
             "app_version": app.config["APP_VERSION"],
             "current_user_id": current_user_id(),
             "is_logged_in": is_logged_in(),
             "current_user_is_site_admin": is_site_admin(),
+            "seo_site_url": base_url,
+            "seo_canonical_url": f"{base_url}{request.path}",
+            "seo_default_description": (
+                "Free home poker league tracker for sessions, ledgers, leaderboards, "
+                "settlement, buy-ins, cashouts, and private game records."
+            ),
         }
 
     app.register_blueprint(public_bp)

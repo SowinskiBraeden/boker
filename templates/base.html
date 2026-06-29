@@ -1,12 +1,25 @@
 <!doctype html>
 <html lang="en">
 <head>
+    {% set page_title %}{% block title %}myboker.org{% endblock %}{% endset %}
+    {% set page_description %}{% block meta_description %}{{ seo_default_description }}{% endblock %}{% endset %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}myboker.org{% endblock %}</title>
+    <title>{{ page_title | trim }}</title>
+    <meta name="description" content="{{ page_description | striptags | trim }}">
+    <link rel="canonical" href="{{ seo_canonical_url }}">
+    <meta property="og:site_name" content="myboker.org">
+    <meta property="og:title" content="{{ page_title | trim }}">
+    <meta property="og:description" content="{{ page_description | striptags | trim }}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{{ seo_canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ page_title | trim }}">
+    <meta name="twitter:description" content="{{ page_description | striptags | trim }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block structured_data %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>

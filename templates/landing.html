@@ -1,5 +1,33 @@
 {% extends "base.html" %}
-{% block title %}myboker.org · Poker league records{% endblock %}
+{% block title %}Free Home Poker Tracker, Ledger & League Leaderboards · myboker.org{% endblock %}
+{% block meta_description %}Track home poker sessions, buy-ins, cashouts, settlements, player stats, and league leaderboards with a free append-only poker ledger built for private games.{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "myboker.org",
+    "url": seo_site_url,
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "description": "Free home poker league tracker for sessions, ledgers, leaderboards, buy-ins, cashouts, and settlement records.",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    }
+} | tojson }}
+</script>
+<script type="application/ld+json">
+{{ {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "myboker.org",
+    "url": seo_site_url,
+    "description": "Home poker tracker for private game ledgers, sessions, settlement, and league leaderboards."
+} | tojson }}
+</script>
+{% endblock %}
 {% block page_class %}page--landing{% endblock %}
 {% block content %}
 
