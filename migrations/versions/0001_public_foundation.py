@@ -1,7 +1,7 @@
 """public multi-league foundation
 
 Revision ID: 0001_public_foundation
-Revises: 
+Revises:
 Create Date: 2026-06-23
 """
 from __future__ import annotations
