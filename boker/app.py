@@ -16,7 +16,6 @@ from boker.routes.account import account_bp
 from boker.routes.internal import internal_bp
 from boker.routes.leagues import leagues_bp
 from boker.routes.public import public_bp
-from boker.storage import ensure_data_file
 from boker.utils import cents_to_dollars, safe_date_label
 
 
@@ -40,7 +39,6 @@ def create_app(config_overrides: dict | None = None) -> Flask:
         if database_url == DEFAULT_DATABASE_URL or database_url.startswith("sqlite:"):
             raise RuntimeError("Set DATABASE_URL to a production PostgreSQL database before running in production.")
 
-    ensure_data_file(app.config["DATA_PATH"])
     init_database(app)
     csrf.init_app(app)
     limiter.init_app(app)

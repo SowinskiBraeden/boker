@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from app import create_app
+from boker.config import DEFAULT_DATABASE_URL
 
 
 class ProductionConfigTests(unittest.TestCase):
@@ -13,7 +14,12 @@ class ProductionConfigTests(unittest.TestCase):
             clear=False,
         ):
             with self.assertRaisesRegex(RuntimeError, "DATABASE_URL"):
-                create_app({"SECRET_KEY": "test-production-secret"})
+                create_app(
+                    {
+                        "SECRET_KEY": "test-production-secret",
+                        "SQLALCHEMY_DATABASE_URI": DEFAULT_DATABASE_URL,
+                    }
+                )
 
     def test_production_accepts_postgresql_database_url(self):
         with patch.dict(

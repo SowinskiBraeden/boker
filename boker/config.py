@@ -5,12 +5,10 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 DEFAULT_SECRET_KEY = "change-this-before-deploying"
 
-ELIGIBLE_MIN_SESSIONS = 3
-APP_VERSION = "2.5.31"
+APP_VERSION = "2.5.32"
 
 
 def load_local_env(env_path: Path) -> None:
@@ -39,7 +37,6 @@ class Config:
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = "Lax"
     SESSION_COOKIE_NAME: str = "myboker_org_session"
-    DATA_PATH: Path = DATA_PATH
     WTF_CSRF_TIME_LIMIT: int = 3600
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5000")
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "")

@@ -121,6 +121,12 @@ class Phase2AuthLeagueRouteTests(unittest.TestCase):
         response = self.client.get("/admin/login")
         self.assertEqual(response.status_code, 404)
 
+    def test_legacy_csv_public_routes_are_not_registered(self):
+        for path in ("/leaderboard", "/sessions", "/sessions/legacy-session", "/players/Legacy"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 404)
+
     def test_duplicate_league_slug_is_allowed_because_route_uses_public_key(self):
         owner = self.create_verified_user()
         self.login_as(owner)
