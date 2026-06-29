@@ -6,7 +6,7 @@ Create Date: 2026-06-28
 """
 from __future__ import annotations
 
-from alembic import op
+from alembic import context, op
 import sqlalchemy as sa
 
 
@@ -17,6 +17,18 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if context.is_offline_mode():
+        op.add_column(
+            "users",
+            sa.Column(
+                "is_site_admin",
+                sa.Boolean(),
+                nullable=False,
+                server_default=sa.false(),
+            ),
+        )
+        return
+
     columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
     if "is_site_admin" not in columns:
         op.add_column(
@@ -31,6 +43,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if context.is_offline_mode():
+        op.drop_column("users", "is_site_admin")
+        return
+
     columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
     if "is_site_admin" in columns:
         op.drop_column("users", "is_site_admin")

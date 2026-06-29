@@ -6,9 +6,6 @@ Create Date: 2026-06-23
 """
 from __future__ import annotations
 
-import secrets
-import string
-
 from alembic import op
 import sqlalchemy as sa
 
@@ -18,28 +15,10 @@ down_revision = "0001_public_foundation"
 branch_labels = None
 depends_on = None
 
-ALPHABET = string.ascii_lowercase + string.digits
-
-
-def _key(existing: set[str], length: int = 6) -> str:
-    while True:
-        value = "".join(secrets.choice(ALPHABET) for _ in range(length))
-        if value not in existing:
-            existing.add(value)
-            return value
-
 
 def upgrade() -> None:
     op.add_column("leagues", sa.Column("public_key", sa.String(length=12), nullable=True))
-
-    bind = op.get_bind()
-    rows = bind.execute(sa.text("SELECT id FROM leagues")).mappings().all()
-    existing: set[str] = set()
-    for row in rows:
-        bind.execute(
-            sa.text("UPDATE leagues SET public_key = :public_key WHERE id = :id"),
-            {"public_key": _key(existing), "id": row["id"]},
-        )
+    op.execute("UPDATE leagues SET public_key = substr(replace(id, '-', ''), 1, 12) WHERE public_key IS NULL")
 
     with op.batch_alter_table("leagues") as batch_op:
         batch_op.alter_column("public_key", existing_type=sa.String(length=12), nullable=False)
