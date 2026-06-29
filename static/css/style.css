@@ -5925,6 +5925,9 @@ select.control { cursor: pointer; }
 .error-pg--403 .error-pg__suit {
   color: rgba(155,140,240,.06);
 }
+.error-pg--500 .error-pg__suit {
+  color: rgba(224,177,92,.07);
+}
 
 .error-pg__body {
   position: relative;
@@ -5969,6 +5972,18 @@ select.control { cursor: pointer; }
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.error-pg__trace {
+  margin: -12px 0 28px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--faint);
+  background: var(--panel);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* ================================================================

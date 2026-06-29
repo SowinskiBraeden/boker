@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import click
 import os
-from flask import Flask, render_template
+from uuid import uuid4
+
+from flask import Flask, render_template, request
+from werkzeug.exceptions import HTTPException
 
 from boker.auth import current_user_id, is_logged_in, is_site_admin, normalize_email
 from boker.config import DEFAULT_SECRET_KEY, Config, ProductionConfig
@@ -63,6 +66,20 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.errorhandler(403)
     def forbidden(e):
         return render_template("403.html"), 403
+
+    @app.errorhandler(Exception)
+    def unexpected_error(error):
+        if isinstance(error, HTTPException):
+            return error
+
+        crash_id = uuid4().hex[:12]
+        app.logger.exception(
+            "Unhandled exception [%s] during %s %s",
+            crash_id,
+            request.method,
+            request.path,
+        )
+        return render_template("500.html", crash_id=crash_id), 500
 
     @app.cli.command("init-db")
     def init_db_command() -> None:
