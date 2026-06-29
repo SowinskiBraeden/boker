@@ -74,8 +74,10 @@ Then open:
 The app reads these from `.env`:
 
 - `SECRET_KEY`
+- `APP_ENV`
 - `DATABASE_URL`
 - `APP_BASE_URL`
+- `RATELIMIT_STORAGE_URI`
 - `MAIL_SERVER`
 - `MAIL_PORT`
 - `MAIL_USE_TLS`
@@ -83,6 +85,8 @@ The app reads these from `.env`:
 - `MAIL_USERNAME`
 - `MAIL_PASSWORD`
 - `MAIL_DEFAULT_SENDER`
+
+For public deployments, set `APP_ENV=production`. Production mode enables secure cookies and refuses to start with the development `SECRET_KEY`. Set `RATELIMIT_STORAGE_URI` to a shared backend such as Redis so login and signup limits are enforced across processes.
 
 ## Site Admin Access
 

@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import click
+import os
 from flask import Flask, render_template
 
 from auth import current_user_id, is_logged_in, is_site_admin, normalize_email
-from config import Config
+from config import DEFAULT_SECRET_KEY, Config, ProductionConfig
 from db import database_extensions_available, db, init_database
 from extensions import csrf, limiter, mail
 from routes.account import account_bp
@@ -16,11 +17,21 @@ from storage import ensure_data_file
 from utils import cents_to_dollars, safe_date_label
 
 
+def _config_for_environment():
+    app_env = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "")).lower()
+    if app_env in {"prod", "production"}:
+        return ProductionConfig
+    return Config
+
+
 def create_app(config_overrides: dict | None = None) -> Flask:
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(_config_for_environment())
     if config_overrides:
         app.config.update(config_overrides)
+
+    if app.config["SESSION_COOKIE_SECURE"] and app.config["SECRET_KEY"] == DEFAULT_SECRET_KEY:
+        raise RuntimeError("Set SECRET_KEY before running in production.")
 
     ensure_data_file(app.config["DATA_PATH"])
     init_database(app)

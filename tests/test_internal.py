@@ -103,9 +103,9 @@ class InternalAdminAccessTests(unittest.TestCase):
         self.assertIn(b"Overview", response.data)
         self.assertIn(b"admin@example.com", response.data)
         self.assertIn(b"Active users", response.data)
-        self.assertIn(b"Returning users", response.data)
-        self.assertIn(b"Recorded ledger volume", response.data)
-        self.assertIn(b"Not platform revenue", response.data)
+        self.assertIn(b"Activity breakdown", response.data)
+        self.assertIn(b"Ledger events", response.data)
+        self.assertIn(b"Totals at a glance", response.data)
 
     def test_admin_can_search_users(self):
         self.login_as(self.admin_id)

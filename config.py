@@ -7,6 +7,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
+DEFAULT_SECRET_KEY = "change-this-before-deploying"
 
 ELIGIBLE_MIN_SESSIONS = 3
 APP_VERSION = "2.5.29"
@@ -32,7 +33,7 @@ load_local_env(BASE_DIR / ".env")
 
 class Config:
     APP_VERSION: str = APP_VERSION
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-before-deploying")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", DEFAULT_SECRET_KEY)
     SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
     SESSION_COOKIE_HTTPONLY: bool = True
@@ -52,6 +53,7 @@ class Config:
     MAIL_PASSWORD: str | None = os.getenv("MAIL_PASSWORD") or None
     MAIL_DEFAULT_SENDER: str = os.getenv("MAIL_DEFAULT_SENDER", "noreply@myboker.org")
     MAIL_TIMEOUT: float = float(os.getenv("MAIL_TIMEOUT", "5"))
+    RATELIMIT_STORAGE_URI: str | None = os.getenv("RATELIMIT_STORAGE_URI") or None
 
 
 class ProductionConfig(Config):

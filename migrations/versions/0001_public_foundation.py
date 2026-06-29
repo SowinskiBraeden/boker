@@ -184,7 +184,6 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_league_memberships_league_id"), table_name="league_memberships")
     op.drop_table("league_memberships")
     op.drop_index(op.f("ix_leagues_slug"), table_name="leagues")
-    op.drop_index(op.f("ix_leagues_public_key"), table_name="leagues")
     op.drop_index(op.f("ix_leagues_created_by_user_id"), table_name="leagues")
     op.drop_table("leagues")
     op.drop_index(op.f("ix_users_email"), table_name="users")
