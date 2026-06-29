@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 from flask import Blueprint, flash, redirect, render_template, request, session as flask_session, url_for
 
-from auth import (
+from boker.auth import (
     current_user_id,
     generate_invite_token,
     generate_reset_token,
@@ -20,8 +20,8 @@ from auth import (
     verify_password,
     verify_reset_token,
 )
-from db import database_extensions_available, db
-from extensions import limiter
+from boker.db import database_extensions_available, db
+from boker.extensions import limiter
 
 account_bp = Blueprint("account", __name__, url_prefix="/account")
 EMAIL_VERIFICATION_TTL = timedelta(minutes=15)
@@ -64,7 +64,7 @@ def _new_verification_code() -> str:
 
 
 def _issue_verification_code(user) -> str:
-    from db_models import utc_now
+    from boker.db_models import utc_now
 
     code = _new_verification_code()
     user.email_verification_code_hash = hash_password(code)
@@ -73,7 +73,7 @@ def _issue_verification_code(user) -> str:
 
 
 def _send_verification_code(user) -> None:
-    from emails import send_email_verification_code
+    from boker.emails import send_email_verification_code
 
     code = _issue_verification_code(user)
     db.session.commit()
@@ -112,7 +112,7 @@ def register():
     }
 
     if request.method == "POST":
-        from league_repositories import create_user, find_user_by_email
+        from boker.league_repositories import create_user, find_user_by_email
 
         email = normalize_email(form["email"])
         password = request.form.get("password", "")
@@ -158,7 +158,7 @@ def login():
     }
 
     if request.method == "POST":
-        from league_repositories import find_user_by_email
+        from boker.league_repositories import find_user_by_email
 
         user = find_user_by_email(form["email"])
         password = request.form.get("password", "")
@@ -195,7 +195,7 @@ def verify_email():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.login"))
 
-    from db_models import User, utc_now
+    from boker.db_models import User, utc_now
 
     user_id = flask_session.get("pending_verification_user_id")
     user = db.session.get(User, user_id) if user_id else None
@@ -245,7 +245,7 @@ def resend_verification_code():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.login"))
 
-    from db_models import User
+    from boker.db_models import User
 
     user_id = flask_session.get("pending_verification_user_id")
     user = db.session.get(User, user_id) if user_id else None
@@ -275,7 +275,7 @@ def settings():
         flash("Account database is not available.", "error")
         return redirect(url_for("leagues.index"))
 
-    from db_models import User
+    from boker.db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -292,7 +292,7 @@ def update_email():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import User
+    from boker.db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -307,7 +307,7 @@ def update_email():
     elif not verify_password(user.password_hash, current_password):
         flash("Current password is incorrect.", "error")
     else:
-        from league_repositories import find_user_by_email
+        from boker.league_repositories import find_user_by_email
 
         existing = find_user_by_email(new_email)
         if existing and existing.id != user.id:
@@ -327,7 +327,7 @@ def update_password():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import User
+    from boker.db_models import User
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -359,7 +359,7 @@ def disable_account():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import League, User, utc_now
+    from boker.db_models import League, User, utc_now
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -395,8 +395,8 @@ def delete_account():
         flash("Account database is not available.", "error")
         return redirect(url_for("account.settings"))
 
-    from db_models import League, LeagueMembership, User, utc_now
-    from league_repositories import delete_league
+    from boker.db_models import League, LeagueMembership, User, utc_now
+    from boker.league_repositories import delete_league
 
     user = db.session.get(User, current_user_id())
     if user is None:
@@ -436,9 +436,9 @@ def forgot_password():
             flash("Account database is not available.", "error")
             return redirect(url_for("account.forgot_password"))
 
-        from emails import send_password_reset
+        from boker.emails import send_password_reset
         from flask import current_app
-        from league_repositories import find_user_by_email
+        from boker.league_repositories import find_user_by_email
 
         email = normalize_email(request.form.get("email", ""))
         user = find_user_by_email(email)
@@ -472,7 +472,7 @@ def reset_password(token):
         flash("Account database is not available.", "error")
         return redirect(url_for("account.login"))
 
-    from db_models import User
+    from boker.db_models import User
 
     user = db.session.get(User, user_id)
     if user is None or user.disabled_at is not None:
@@ -507,8 +507,8 @@ def accept_invite(token):
         flash("Account database is not available.", "error")
         return redirect(url_for("leagues.index"))
 
-    from db_models import User
-    from league_repositories import add_league_member, find_league_by_id, find_membership, find_user_by_email
+    from boker.db_models import User
+    from boker.league_repositories import add_league_member, find_league_by_id, find_membership, find_user_by_email
 
     invite_email = normalize_email(data.get("email", ""))
     invite_next = url_for("account.accept_invite", token=token)

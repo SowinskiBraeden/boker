@@ -72,12 +72,12 @@ def is_site_admin() -> bool:
     if not user_id:
         return False
 
-    from db import database_extensions_available
+    from boker.db import database_extensions_available
 
     if not database_extensions_available():
         return False
 
-    from db_models import User
+    from boker.db_models import User
 
     user = User.query.filter_by(id=user_id, disabled_at=None).one_or_none()
     return bool(user and user.is_site_admin)

@@ -9,17 +9,17 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
-from auth import (
+from boker.auth import (
     current_user_id,
     generate_reset_token,
     hash_password,
     normalize_email,
     site_admin_required,
 )
-from db import db
-from db_models import LedgerEvent, League, LeagueMembership, Player, PokerSession, User, utc_now
-from league_repositories import delete_league, transfer_league_ownership
-from utils import slugify
+from boker.db import db
+from boker.db_models import LedgerEvent, League, LeagueMembership, Player, PokerSession, User, utc_now
+from boker.league_repositories import delete_league, transfer_league_ownership
+from boker.utils import slugify
 
 
 internal_bp = Blueprint("internal", __name__, url_prefix="/internal")
@@ -415,7 +415,7 @@ def send_user_password_reset(user_id: str):
         flash("Disabled users cannot receive password resets.", "error")
         return redirect(url_for("internal.user_detail", user_id=user.id))
 
-    from emails import send_password_reset
+    from boker.emails import send_password_reset
 
     token = generate_reset_token(user.id)
     base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
@@ -436,7 +436,7 @@ def create_user_temporary_password(user_id: str):
         flash("Disabled users cannot receive temporary passwords.", "error")
         return redirect(url_for("internal.user_detail", user_id=user.id))
 
-    from emails import send_temporary_password
+    from boker.emails import send_temporary_password
 
     temporary_password = _temporary_password()
     user.password_hash = hash_password(temporary_password)

@@ -24,7 +24,7 @@ def init_database(app: Any) -> bool:
         app.config["DATABASE_EXTENSIONS_AVAILABLE"] = False
         return False
 
-    import db_models  # noqa: F401 - registers SQLAlchemy models with metadata.
+    import boker.db_models  # noqa: F401 - registers SQLAlchemy models with metadata.
 
     db.init_app(app)
     migrate.init_app(app, db)

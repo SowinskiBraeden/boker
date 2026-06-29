@@ -23,6 +23,14 @@ The current app is account-based and league-based. League owners/managers record
 - Chart.js
 - plain CSS
 
+## Project Layout
+
+- `app.py` is the deployment entrypoint for `flask --app app` and Gunicorn.
+- `boker/` contains the Flask application package, routes, models, services, repositories, and config.
+- `templates/` and `static/` contain Jinja views and public assets.
+- `migrations/` contains Alembic migrations for database deploys.
+- `tests/` contains the committed regression suite.
+
 ## Ledger Model
 
 Each ledger row is an event, not a final snapshot. Corrections are made by appending or voiding events, so the history remains auditable.

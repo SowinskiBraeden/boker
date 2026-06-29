@@ -1,7 +1,7 @@
 import unittest
 
-from models import SessionEntry, SessionSummary
-from services import build_leaderboard
+from boker.models import SessionEntry, SessionSummary
+from boker.services import build_leaderboard
 
 
 class CashInAccountingTest(unittest.TestCase):

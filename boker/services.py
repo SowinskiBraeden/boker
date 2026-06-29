@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from models import PlayerStats, SessionEntry, SessionSummary
-from storage import EventRow
-from utils import entry_sort_key, net_result_bucket, session_sort_key
+from boker.models import PlayerStats, SessionEntry, SessionSummary
+from boker.storage import EventRow
+from boker.utils import entry_sort_key, net_result_bucket, session_sort_key
 
 SESSION_MARKER_TYPES = {"session_open", "session_close"}
 

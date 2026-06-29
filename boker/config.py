@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data" / "entries.csv"
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 DEFAULT_SECRET_KEY = "change-this-before-deploying"

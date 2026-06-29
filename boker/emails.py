@@ -7,7 +7,7 @@ import socket
 from flask import current_app
 from flask_mail import Message
 
-from extensions import mail
+from boker.extensions import mail
 
 
 def _mail_send_suppressed() -> bool:

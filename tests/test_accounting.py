@@ -1,13 +1,13 @@
 import unittest
 
-from charts import player_session_series
-from services import (
+from boker.charts import player_session_series
+from boker.services import (
     build_leaderboard,
     build_session_summaries,
     pending_payout_carry_items,
     prunable_empty_session_ids,
 )
-from utils import session_sort_key
+from boker.utils import session_sort_key
 
 
 def cents(amount: float) -> int:

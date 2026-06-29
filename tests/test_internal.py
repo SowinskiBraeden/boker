@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app import create_app
-from auth import hash_password
-from db import db
+from boker.auth import hash_password
+from boker.db import db
 
 
 class InternalAdminAccessTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class InternalAdminAccessTests(unittest.TestCase):
         self.client = self.app.test_client()
 
         with self.app.app_context():
-            from db_models import League, LeagueMembership, User
+            from boker.db_models import League, LeagueMembership, User
 
             db.create_all()
             self.user = User(
@@ -118,7 +118,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
     def test_admin_users_page_is_paginated(self):
         with self.app.app_context():
-            from db_models import User
+            from boker.db_models import User
 
             users = [
                 User(email=f"bulk{i:02d}@example.com", password_hash=hash_password("password123"))
@@ -136,7 +136,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
     def test_admin_leagues_page_is_paginated(self):
         with self.app.app_context():
-            from db_models import League
+            from boker.db_models import League
 
             leagues = [
                 League(
@@ -160,8 +160,8 @@ class InternalAdminAccessTests(unittest.TestCase):
 
     def test_session_growth_uses_session_date_not_created_at(self):
         with self.app.app_context():
-            from db_models import PokerSession
-            from routes.internal import _growth_data
+            from boker.db_models import PokerSession
+            from boker.routes.internal import _growth_data
 
             now = datetime.now(timezone.utc)
             old_session = PokerSession(
@@ -196,7 +196,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         with self.app.app_context():
-            from db_models import User
+            from boker.db_models import User
 
             user = db.session.get(User, self.user_id)
             self.assertEqual(user.email, "viewer@example.com")
@@ -212,7 +212,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         with self.app.app_context():
-            from db_models import User
+            from boker.db_models import User
 
             user = db.session.get(User, self.user_id)
             self.assertEqual(user.email, "changed@example.com")
@@ -220,7 +220,7 @@ class InternalAdminAccessTests(unittest.TestCase):
     def test_admin_delete_user_blocks_owned_leagues(self):
         self.login_as(self.admin_id)
         with self.app.app_context():
-            from db_models import League, LeagueMembership
+            from boker.db_models import League, LeagueMembership
 
             owned_league = League(
                 name="Manager Owned Poker",
@@ -241,7 +241,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         with self.app.app_context():
-            from db_models import User
+            from boker.db_models import User
 
             self.assertIsNotNone(db.session.get(User, self.manager_id))
 
@@ -251,7 +251,7 @@ class InternalAdminAccessTests(unittest.TestCase):
         archive_response = self.client.post(f"/internal/leagues/{self.league_id}/archive")
         self.assertEqual(archive_response.status_code, 302)
         with self.app.app_context():
-            from db_models import League
+            from boker.db_models import League
 
             league = db.session.get(League, self.league_id)
             self.assertIsNotNone(league.archived_at)
@@ -259,7 +259,7 @@ class InternalAdminAccessTests(unittest.TestCase):
         restore_response = self.client.post(f"/internal/leagues/{self.league_id}/restore")
         self.assertEqual(restore_response.status_code, 302)
         with self.app.app_context():
-            from db_models import League
+            from boker.db_models import League
 
             league = db.session.get(League, self.league_id)
             self.assertIsNone(league.archived_at)
@@ -280,7 +280,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         with self.app.app_context():
-            from db_models import League
+            from boker.db_models import League
 
             league = db.session.get(League, self.league_id)
             self.assertEqual(league.name, "Saturday Poker")
@@ -300,7 +300,7 @@ class InternalAdminAccessTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         with self.app.app_context():
-            from db_models import League, LeagueMembership
+            from boker.db_models import League, LeagueMembership
 
             league = db.session.get(League, self.league_id)
             self.assertEqual(league.created_by_user_id, self.manager_id)
