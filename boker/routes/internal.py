@@ -206,18 +206,19 @@ def _top_leagues(limit: int = 8):
 
 
 def _sessions_by_weekday() -> dict:
-    from sqlalchemy import func as f
+    from sqlalchemy import extract
+
     rows = (
         db.session.query(
-            f.strftime("%w", PokerSession.session_date).label("dow"),
-            f.count(PokerSession.id).label("cnt"),
+            extract("dow", PokerSession.session_date).label("dow"),
+            db.func.count(PokerSession.id).label("cnt"),
         )
         .group_by("dow")
         .all()
     )
     counts = {str(i): 0 for i in range(7)}
     for row in rows:
-        counts[str(row.dow)] = row.cnt
+        counts[str(int(row.dow))] = row.cnt
     return {
         "labels": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         "data": [counts[str(i)] for i in range(7)],
