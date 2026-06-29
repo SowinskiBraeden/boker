@@ -3,6 +3,9 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from sqlalchemy import select
+from sqlalchemy.dialects import postgresql
+
 from app import create_app
 from boker.auth import hash_password
 from boker.db import db
@@ -106,6 +109,19 @@ class InternalAdminAccessTests(unittest.TestCase):
         self.assertIn(b"Activity breakdown", response.data)
         self.assertIn(b"Ledger events", response.data)
         self.assertIn(b"Totals at a glance", response.data)
+
+    def test_session_weekday_expression_uses_postgresql_extract(self):
+        with self.app.app_context():
+            from boker.routes.internal import _session_weekday_expression
+
+            compiled = str(
+                select(_session_weekday_expression("postgresql")).compile(
+                    dialect=postgresql.dialect()
+                )
+            )
+
+        self.assertIn("EXTRACT(dow FROM", compiled)
+        self.assertNotIn("strftime", compiled)
 
     def test_admin_can_search_users(self):
         self.login_as(self.admin_id)

@@ -6,7 +6,7 @@ import string
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
-from sqlalchemy import or_
+from sqlalchemy import extract, or_
 from sqlalchemy.exc import IntegrityError
 
 from boker.auth import (
@@ -205,19 +205,25 @@ def _top_leagues(limit: int = 8):
     return [(league, count) for league, count in rows]
 
 
+def _session_weekday_expression(dialect_name: str | None = None):
+    dialect_name = dialect_name or db.session.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        return db.func.strftime("%w", PokerSession.session_date)
+    return extract("dow", PokerSession.session_date)
+
+
 def _sessions_by_weekday() -> dict:
-    from sqlalchemy import func as f
     rows = (
         db.session.query(
-            f.strftime("%w", PokerSession.session_date).label("dow"),
-            f.count(PokerSession.id).label("cnt"),
+            _session_weekday_expression().label("dow"),
+            db.func.count(PokerSession.id).label("cnt"),
         )
         .group_by("dow")
         .all()
     )
     counts = {str(i): 0 for i in range(7)}
     for row in rows:
-        counts[str(row.dow)] = row.cnt
+        counts[str(int(row.dow))] = row.cnt
     return {
         "labels": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         "data": [counts[str(i)] for i in range(7)],
