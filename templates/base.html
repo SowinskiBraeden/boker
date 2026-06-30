@@ -10,6 +10,10 @@
     <meta name="description" content="{{ page_description | striptags | trim }}">
     <meta name="keywords" content="{{ page_keywords | striptags | trim }}">
     <meta name="application-name" content="myboker.org">
+    <meta name="theme-color" content="#09090d">
+    <meta name="apple-mobile-web-app-title" content="myboker">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large{% endblock %}">
     <link rel="canonical" href="{{ seo_canonical_url }}">
     <meta property="og:site_name" content="myboker.org">
@@ -21,6 +25,9 @@
     <meta name="twitter:title" content="{{ page_title | trim }}">
     <meta name="twitter:description" content="{{ page_description | striptags | trim }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" sizes="180x180">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block structured_data %}{% endblock %}
