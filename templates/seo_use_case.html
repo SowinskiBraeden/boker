@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · myboker.org{% endblock %}
+{% block meta_description %}{{ page.meta }}{% endblock %}
+{% block meta_keywords %}{{ page.keywords }}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": page.title,
+    "url": seo_canonical_url,
+    "description": page.meta,
+    "isPartOf": {
+        "@type": "WebSite",
+        "name": "myboker.org",
+        "url": seo_site_url
+    }
+} | tojson }}
+</script>
+<script type="application/ld+json">
+{{ {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faq_schema
+} | tojson }}
+</script>
+{% endblock %}
+{% block content %}
+
+<article class="usecase">
+    <header class="usecase-hero">
+        <p class="usecase-eyebrow">{{ page.eyebrow }}</p>
+        <h1 class="usecase-title">{{ page.h1 }}</h1>
+        <p class="usecase-intro">{{ page.intro }}</p>
+        <div class="usecase-actions">
+            {% if is_logged_in %}
+            <a class="btn btn--primary btn--lg" href="{{ url_for('leagues.index') }}">Open my leagues</a>
+            {% else %}
+            <a class="btn btn--primary btn--lg" href="{{ url_for('account.register') }}">{{ page.primary_cta }}</a>
+            <a class="btn btn--ghost btn--lg" href="{{ url_for('public.home') }}">View homepage</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="usecase-grid" aria-label="What myboker does">
+        {% for section in page.sections %}
+        <div class="usecase-card">
+            <h2>{{ section.heading }}</h2>
+            <p>{{ section.body }}</p>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="usecase-band">
+        <div>
+            <p class="usecase-eyebrow">In practice</p>
+            <h2 class="usecase-section-title">What your group can track</h2>
+        </div>
+        <ul class="usecase-checks">
+            {% for example in page.examples %}
+            <li>{{ example }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="usecase-faq">
+        <div class="usecase-section-head">
+            <p class="usecase-eyebrow">Questions</p>
+            <h2 class="usecase-section-title">Common questions</h2>
+        </div>
+        <div class="usecase-faq-list">
+            {% for question, answer in page.faqs %}
+            <details class="faq-item">
+                <summary class="faq-item__q">{{ question }}</summary>
+                <div class="faq-item__a">
+                    <p>{{ answer }}</p>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="usecase-related">
+        <div>
+            <p class="usecase-eyebrow">Related</p>
+            <h2 class="usecase-section-title">More ways to use myboker</h2>
+        </div>
+        <div class="usecase-related__links">
+            {% for related_slug, related in related_pages %}
+            <a href="{{ url_for('public.use_case', slug=related_slug) }}">{{ related.title }}</a>
+            {% endfor %}
+        </div>
+    </section>
+</article>
+
+{% endblock %}

@@ -100,6 +100,7 @@
                 <span class="site-footer__version">v{{ app_version }}</span>
             </div>
             <nav class="site-footer__links" aria-label="Footer links">
+                <a href="{{ url_for('public.use_case', slug='free-poker-tracker') }}">Use cases</a>
                 <a href="{{ url_for('public.help') }}">Help</a>
                 <a href="{{ url_for('public.help') }}#contact">Contact</a>
                 <a href="{{ url_for('public.privacy') }}">Privacy</a>

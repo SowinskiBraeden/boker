@@ -4843,6 +4843,140 @@ select.control { cursor: pointer; }
   line-height: 1.7;
   color: var(--muted);
 }
+.lp-seo__link {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.lp-seo__link:hover { color: var(--text-strong); }
+
+/* ================================================================
+   USE CASE / SEO PAGES
+   ================================================================ */
+.usecase {
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+.usecase-hero {
+  padding: clamp(30px, 5vw, 62px) 0 28px;
+  border-bottom: 1px solid var(--border);
+}
+.usecase-eyebrow {
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.usecase-title {
+  max-width: 780px;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(34px, 6vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -.04em;
+}
+.usecase-intro {
+  max-width: 720px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.7;
+}
+.usecase-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+.usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 28px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--border);
+}
+.usecase-card {
+  padding: 24px;
+  background: var(--surface);
+}
+.usecase-card h2 {
+  margin: 0 0 10px;
+  color: var(--text-strong);
+  font-size: 1rem;
+}
+.usecase-card p,
+.usecase-checks,
+.faq-item__a p {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: .9rem;
+}
+.usecase-card p { margin: 0; }
+.usecase-band,
+.usecase-faq,
+.usecase-related {
+  display: grid;
+  gap: 18px;
+  padding: 30px 0;
+  border-top: 1px solid var(--border);
+}
+.usecase-section-head {
+  display: grid;
+  gap: 4px;
+}
+.usecase-section-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -.025em;
+}
+.usecase-checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.usecase-checks li {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+}
+.usecase-faq-list {
+  display: grid;
+  gap: 10px;
+}
+.usecase-related__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.usecase-related__links a {
+  display: inline-flex;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--field);
+  color: var(--text-2);
+  font-size: .85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.usecase-related__links a:hover {
+  border-color: var(--accent-chip-bd);
+  color: var(--accent);
+}
 
 /* ================================================================
    BOTTOM CTA SECTION
@@ -4886,11 +5020,14 @@ select.control { cursor: pointer; }
   .lp-feat-grid { grid-template-columns: 1fr; }
   .lp-feat + .lp-feat { border-left: none; border-top: 1px solid var(--border); }
   .lp-seo__grid { grid-template-columns: repeat(2, 1fr); }
+  .usecase-grid,
+  .usecase-checks { grid-template-columns: 1fr; }
 }
 @media (max-width: 680px) {
   .lp-hero__visual { display: none; }
   .lp-showcase__grid { grid-template-columns: 1fr; }
   .lp-seo__grid { grid-template-columns: 1fr; }
+  .usecase-actions .btn { width: 100%; justify-content: center; }
   .lp-demo__thead--lb,
   .lp-demo__row--lb { grid-template-columns: 28px 1fr 32px 80px; }
   .lp-demo__thead--lb > span:nth-child(5),
