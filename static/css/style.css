@@ -5813,6 +5813,17 @@ select.control { cursor: pointer; }
   line-height: 1.58;
 }
 
+.auth-inline-error {
+  margin: 0 0 18px;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--neg-tint-bd);
+  background: var(--neg-tint);
+  color: var(--neg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .auth-field {
   display: grid;
   gap: 7px;

@@ -54,15 +54,40 @@ class ErrorPageTests(unittest.TestCase):
         client = csrf_app.test_client()
 
         response = client.post(
-            "/account/login",
+            "/account/register",
             data={"csrf_token": "stale-token", "email": "owner@example.com", "password": "password123"},
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], "/account/login")
+        self.assertEqual(response.headers["Location"], "/account/register")
         with client.session_transaction() as flask_session:
             flashes = flask_session.get("_flashes", [])
         self.assertIn(("error", "Your form expired. Please try again."), flashes)
+
+    def test_login_uses_stateless_csrf_error(self):
+        csrf_app = create_app(
+            {
+                "TESTING": True,
+                "PROPAGATE_EXCEPTIONS": False,
+                "SQLALCHEMY_DATABASE_URI": self.app.config["SQLALCHEMY_DATABASE_URI"],
+                "WTF_CSRF_ENABLED": True,
+            }
+        )
+        client = csrf_app.test_client()
+
+        login_page = client.get("/account/login")
+        self.assertEqual(login_page.status_code, 200)
+        self.assertIsNone(login_page.headers.get("Set-Cookie"))
+        self.assertIn(b'name="login_csrf_token"', login_page.data)
+
+        response = client.post(
+            "/account/login",
+            data={"email": "owner@example.com", "password": "password123"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"Your sign-in form expired. Please try again.", response.data)
+        self.assertIn(b'name="login_csrf_token"', response.data)
 
 
 if __name__ == "__main__":

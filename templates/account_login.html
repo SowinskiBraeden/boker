@@ -13,9 +13,12 @@
 
             <h1 class="auth-split__title">Welcome back.</h1>
             <p class="auth-split__sub">Sign in to manage your leagues, sessions, and ledger.</p>
+            {% if login_csrf_error %}
+            <div class="auth-inline-error" role="alert">{{ login_csrf_error }}</div>
+            {% endif %}
 
             <form method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="login_csrf_token" value="{{ login_csrf_token }}">
                 <div class="auth-field">
                     <label for="email">Email</label>
                     <input id="email" type="email" name="email" autocomplete="email"

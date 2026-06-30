@@ -5,7 +5,8 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from flask import Blueprint, flash, redirect, render_template, request, session as flask_session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session as flask_session, url_for
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from boker.auth import (
     current_user_id,
@@ -21,10 +22,11 @@ from boker.auth import (
     verify_reset_token,
 )
 from boker.db import database_extensions_available, db
-from boker.extensions import limiter
+from boker.extensions import csrf, limiter
 
 account_bp = Blueprint("account", __name__, url_prefix="/account")
 EMAIL_VERIFICATION_TTL = timedelta(minutes=15)
+LOGIN_CSRF_TTL_SECONDS = 3600
 
 
 def db_ready() -> bool:
@@ -61,6 +63,23 @@ def _verification_sent_at_valid(sent_at) -> bool:
 
 def _new_verification_code() -> str:
     return f"{secrets.randbelow(1000000):06d}"
+
+
+def _login_csrf_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+
+
+def _issue_login_csrf_token() -> str:
+    return _login_csrf_serializer().dumps("login", salt="login-form")
+
+
+def _valid_login_csrf_token(token: str) -> bool:
+    if not token:
+        return False
+    try:
+        return _login_csrf_serializer().loads(token, salt="login-form", max_age=LOGIN_CSRF_TTL_SECONDS) == "login"
+    except (BadSignature, SignatureExpired):
+        return False
 
 
 def _issue_verification_code(user) -> str:
@@ -144,6 +163,7 @@ def register():
 
 
 @account_bp.route("/login", methods=["GET", "POST"])
+@csrf.exempt
 @limiter.limit("20 per minute")
 def login():
     if current_user_id():
@@ -156,9 +176,22 @@ def login():
     form = {
         "email": request.form.get("email", "").strip(),
     }
+    login_csrf_error = None
 
     if request.method == "POST":
         from boker.league_repositories import find_user_by_email
+
+        if not _valid_login_csrf_token(request.form.get("login_csrf_token", "")):
+            login_csrf_error = "Your sign-in form expired. Please try again."
+            return (
+                render_template(
+                    "account_login.html",
+                    form=form,
+                    login_csrf_token=_issue_login_csrf_token(),
+                    login_csrf_error=login_csrf_error,
+                ),
+                400,
+            )
 
         user = find_user_by_email(form["email"])
         password = request.form.get("password", "")
@@ -182,7 +215,12 @@ def login():
             flash("Logged in.", "success")
             return redirect(next_url)
 
-    return render_template("account_login.html", form=form)
+    return render_template(
+        "account_login.html",
+        form=form,
+        login_csrf_token=_issue_login_csrf_token(),
+        login_csrf_error=login_csrf_error,
+    )
 
 
 @account_bp.route("/verify-email", methods=["GET", "POST"])
