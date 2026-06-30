@@ -76,7 +76,10 @@
             {% if messages %}
                 <div class="flash-stack">
                     {% for category, message in messages %}
-                        <div class="flash {{ category }}">{{ message }}</div>
+                        <div class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">
+                            <span class="flash__message">{{ message }}</span>
+                            <button class="flash__dismiss" type="button" aria-label="Dismiss message" data-dismiss-flash>&times;</button>
+                        </div>
                     {% endfor %}
                 </div>
             {% endif %}
@@ -129,6 +132,18 @@
         });
         window.addEventListener('resize', () => {
             if (window.matchMedia('(min-width: 701px)').matches) setOpen(false);
+        });
+    })();
+    </script>
+    <script>
+    (() => {
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-dismiss-flash]');
+            if (!button) return;
+            const flash = button.closest('.flash');
+            const stack = button.closest('.flash-stack');
+            if (flash) flash.remove();
+            if (stack && !stack.querySelector('.flash')) stack.remove();
         });
     })();
     </script>

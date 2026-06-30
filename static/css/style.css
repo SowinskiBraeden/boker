@@ -627,11 +627,36 @@ h1, h2, h3, h4 { margin: 0; }
    ================================================================ */
 .flash-stack { display: grid; gap: 10px; margin-bottom: 24px; }
 .flash {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   padding: 11px 16px;
   border-radius: var(--r-sm);
   font-size: 14px;
+  line-height: 1.45;
   border: 1px solid var(--border);
   background: var(--surface);
+}
+.flash__message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.flash__dismiss {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  opacity: .62;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 0 0 8px;
+  cursor: pointer;
+  flex: none;
+}
+.flash__dismiss:hover,
+.flash__dismiss:focus-visible {
+  opacity: 1;
 }
 .flash.success {
   color: var(--pos);
@@ -5737,6 +5762,12 @@ select.control { cursor: pointer; }
 .page--auth {
   padding: 0;
   max-width: none;
+}
+.page--auth > .flash-stack {
+  width: min(380px, calc(100% - 48px));
+  margin: 24px auto -20px;
+  position: relative;
+  z-index: 2;
 }
 
 .auth-split {
