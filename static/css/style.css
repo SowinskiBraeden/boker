@@ -610,8 +610,31 @@ h1, h2, h3, h4 { margin: 0; }
 @media (max-width: 640px) {
   .site-footer {
     grid-template-columns: 1fr;
-    gap: 8px;
+    justify-items: start;
+    align-items: start;
+    gap: 9px;
     padding: 18px 0 max(20px, env(safe-area-inset-bottom));
+  }
+  .site-footer__copy {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    gap: 5px 8px;
+    white-space: normal;
+  }
+  .site-footer__copy > span:first-child {
+    min-width: 0;
+  }
+  .site-footer__version {
+    justify-self: start;
+  }
+  .site-footer__links {
+    justify-content: flex-start;
+    gap: 4px 8px;
+    margin-left: -6px;
+  }
+  .site-footer__links a {
+    padding: 3px 6px;
   }
   .page--landing .site-footer,
   .page--auth .site-footer,
@@ -619,7 +642,10 @@ h1, h2, h3, h4 { margin: 0; }
     padding-left: 16px;
     padding-right: 16px;
   }
-  .site-footer__brand { justify-self: start; }
+  .site-footer__brand {
+    justify-self: start;
+    line-height: 1.4;
+  }
 }
 
 /* ================================================================
@@ -2597,10 +2623,15 @@ select.control { cursor: pointer; }
 
 /* Danger button */
 .btn--danger {
-  background: var(--neg);
-  color: #fff;
+  background: var(--neg-tint);
+  color: var(--neg);
+  border: 1px solid var(--neg-tint-bd);
 }
-.btn--danger:hover { opacity: .88; }
+.btn--danger:hover {
+  background: color-mix(in srgb, var(--neg) 16%, transparent);
+  border-color: color-mix(in srgb, var(--neg) 48%, transparent);
+  color: var(--neg);
+}
 .btn--danger:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Session date block (used in session list rows) */
@@ -2744,9 +2775,91 @@ select.control { cursor: pointer; }
 .session-row__title a { color: var(--text-strong); text-decoration: none; }
 .session-row__title a:hover { color: var(--accent); }
 .session-row__meta { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.session-row__meta > span + span:not(.season-tag)::before {
+  content: "·";
+  color: var(--faintest);
+  margin-right: 8px;
+}
+.session-row__meta .season-tag {
+  margin-left: 0;
+}
 .session-row__stat { display: inline-flex; align-items: center; gap: 4px; }
 .session-row__actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .session-row__actions form { margin: 0; }
+
+@media (max-width: 640px) {
+  .session-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px 14px 14px 18px;
+  }
+  .session-row__info {
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+  .session-row__text {
+    flex: 1;
+    min-width: 0;
+  }
+  .session-row__title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.3;
+  }
+  .session-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px 0;
+    line-height: 1.45;
+  }
+  .session-row__meta > span {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .session-row__meta .season-tag {
+    margin-left: 8px;
+  }
+  .session-row__meta > span + span:not(.season-tag)::before {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+  .session-row__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+  .session-row__actions .status-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .session-row__actions .btn,
+  .session-row__actions form,
+  .session-row__actions form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .session-row__actions .btn {
+    min-height: 42px;
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 390px) {
+  .session-row__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .session-row__actions .status-pill {
+    grid-column: auto;
+    min-height: 42px;
+    justify-content: center;
+  }
+}
 
 /* Session detail — full-width player ledger rows */
 .player-ledger-list {
@@ -2888,6 +3001,13 @@ select.control { cursor: pointer; }
   .page {
     padding: 18px 12px 72px;
   }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+  }
   .panel {
     border-radius: 12px;
   }
@@ -2948,12 +3068,32 @@ select.control { cursor: pointer; }
   }
   .leaderboard-hero-stats {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
+    gap: 8px;
+    align-self: stretch;
   }
   .leaderboard-hero-stats .stat,
   .leaderboard-hero-stats .stat:last-child {
     min-width: 0;
+    padding: 11px 8px;
+    overflow: hidden;
+  }
+  .leaderboard-hero-stats .stat .kicker {
+    font-size: 8.5px;
+    line-height: 1.25;
+    letter-spacing: .11em;
+    white-space: nowrap;
+  }
+  .leaderboard-hero-stats .stat__val {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    font-size: clamp(18px, 6.2vw, 25px);
+    line-height: 1.08;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tbl-scroll,
   .table-wrap {
@@ -3082,6 +3222,25 @@ select.control { cursor: pointer; }
 /* Panel head: let title + action button wrap on narrow panels */
 @media (max-width: 580px) {
   .panel__head { flex-wrap: wrap; row-gap: 6px; }
+}
+
+@media (max-width: 640px) {
+  .page--app .hero .button-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .page--app .hero .button-row .btn,
+  .page--app .hero .button-row form,
+  .page--app .hero .button-row form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .page--app .hero .button-row .btn {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
 }
 
 /* Segmented control: scroll horizontally if it overflows on very small phones */
@@ -5629,10 +5788,25 @@ select.control { cursor: pointer; }
   .explore-search-row {
     align-items: stretch;
     flex-direction: column;
+    max-width: none;
+    padding: 10px 10px 9px;
+    gap: 10px;
   }
   .explore-search-row .field-input,
   .explore-search-row .btn {
     width: 100%;
+  }
+  .explore-search-row .field-input {
+    box-sizing: border-box;
+    height: 54px;
+    min-height: 54px;
+    font-size: 1rem;
+    line-height: 1.2;
+    padding-inline: 16px;
+  }
+  .explore-search-row .btn {
+    min-height: 50px;
+    justify-content: center;
   }
 }
 

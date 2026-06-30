@@ -109,13 +109,13 @@
                             <span class="season-tag">{{ season_map[session.season_id].name }}</span>
                             {% endif %}
                             {% if sm and sm.entries %}
-                            <span>· {{ sm.entries|length }} player{{ 's' if sm.entries|length != 1 else '' }}</span>
-                            <span>· {{ sm.total_invested_cents | money }} pot</span>
+                            <span>{{ sm.entries|length }} player{{ 's' if sm.entries|length != 1 else '' }}</span>
+                            <span>{{ sm.total_invested_cents | money }} pot</span>
                             {% if sm.total_current_due_to_house_cents > 0 or sm.total_current_due_to_player_cents > 0 %}
-                            <span style="color:var(--warn);">· {{ (sm.total_current_due_to_house_cents + sm.total_current_due_to_player_cents) | money }} open</span>
+                            <span style="color:var(--warn);">{{ (sm.total_current_due_to_house_cents + sm.total_current_due_to_player_cents) | money }} open</span>
                             {% endif %}
                             {% endif %}
-                            {% if session.notes %}<span>· {{ session.notes }}</span>{% endif %}
+                            {% if session.notes %}<span>{{ session.notes }}</span>{% endif %}
                         </div>
                     </div>
                 </div>

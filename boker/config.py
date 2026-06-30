@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 DEFAULT_SECRET_KEY = "change-this-before-deploying"
 
-APP_VERSION = "2.5.34"
+APP_VERSION = "2.5.35"
 
 
 def load_local_env(env_path: Path) -> None:
