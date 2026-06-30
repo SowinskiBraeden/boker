@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Free Poker Tracker, Ledger, Stats & Profit/Loss App · myboker.org{% endblock %}
-{% block meta_description %}myboker.org, also searched as My Boker, is a free poker tracker and poker ledger for home games: track sessions, buy-ins, cashouts, stats, profits, losses, settlements, and private league bookkeeping.{% endblock %}
+{% block meta_description %}myboker.org is a free poker tracker and poker ledger for home games: track sessions, buy-ins, cashouts, stats, profits, losses, settlements, and private league records.{% endblock %}
 {% block meta_keywords %}myboker, my boker, free poker tracker, free poker ledger, poker ledger tracker, poker stats tracker, poker profit loss tracker, poker bookkeeping app, home poker tracker, poker league tracker, poker bankroll tracker{% endblock %}
 {% block structured_data %}
 <script type="application/ld+json">
@@ -63,7 +63,7 @@
             "name": "What is My Boker used for?",
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "My Boker, written as myboker.org, is used for home poker bookkeeping: it records poker ledger events, calculates session totals, tracks player wins and losses, and builds league leaderboards."
+                "text": "myboker.org tracks home poker sessions, buy-ins, cashouts, player results, settlement totals, and league leaderboards."
             }
         },
         {
@@ -89,7 +89,7 @@
             <span class="lp-h1__line">tracker</span>
             <span class="lp-h1__accent">for home games.</span>
         </h1>
-        <p class="lp-sub">myboker.org, sometimes searched as My Boker, is a free poker ledger for sessions, buy-ins, cashouts, player stats, profit/loss tracking, league leaderboards, and game-night bookkeeping.</p>
+        <p class="lp-sub">Track buy-ins, cashouts, player stats, profit and loss, settlements, and league leaderboards without rebuilding the same spreadsheet every game night.</p>
         <div class="lp-cta">
             {% if is_logged_in %}
             <a class="btn btn--primary btn--lg" href="{{ url_for('leagues.index') }}">Open my leagues →</a>
@@ -206,7 +206,7 @@
     <div class="lp-features__inner">
         <div class="lp-sec-head">
             <span class="lp-eyebrow">What's included</span>
-            <h2 class="lp-sec-title">A free poker ledger, stats tracker, and league bookkeeper.</h2>
+            <h2 class="lp-sec-title">A free poker ledger and stats tracker for home games.</h2>
             <p class="lp-sec-sub">Everything your group needs to run a real poker league, built from the ground up for home games.</p>
         </div>
         <div class="lp-feat-grid">
@@ -239,8 +239,8 @@
                         <path d="M7 7h6M7 10.5h6M7 14h3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <h3 class="lp-feat__title">Poker ledger and bookkeeping</h3>
-                <p class="lp-feat__desc">Every event is logged and kept: buy-ins, cashouts, fronts, corrections, profits, and losses. Nothing is deleted; mistakes get fixed by appending. When a session closes, the house knows exactly what it holds and who is owed what.</p>
+                <h3 class="lp-feat__title">Clean records for every night</h3>
+                <p class="lp-feat__desc">Every event is logged and kept: buy-ins, cashouts, fronts, corrections, profits, and losses. Mistakes get fixed by appending a new entry, so the session history stays intact and settlement stays clear.</p>
             </div>
         </div>
     </div>
@@ -472,24 +472,24 @@
         <div class="lp-sec-head">
             <span class="lp-eyebrow">Free poker tracker</span>
             <h2 class="lp-sec-title">Poker records without a spreadsheet.</h2>
-            <p class="lp-sec-sub">myboker.org is a poker ledger tracker for home games that need simple, reliable records for money in, money out, and every player's results.</p>
+            <p class="lp-sec-sub">Keep reliable records for money in, money out, and every player's result without turning game night into admin work.</p>
         </div>
         <div class="lp-seo__grid">
             <article class="lp-seo__item">
                 <h3>Track poker profits and losses</h3>
-                <p>Record each buy-in, re-buy, cashout, correction, and note so every player's poker profit or loss is calculated from the source ledger instead of copied into a spreadsheet later.</p>
+                <p>Record each buy-in, re-buy, cashout, correction, and note as it happens. Player profit and loss updates from the ledger automatically.</p>
             </article>
             <article class="lp-seo__item">
                 <h3>Keep a clean poker ledger</h3>
-                <p>The append-only ledger gives your home game an auditable bookkeeping trail for sessions, settlements, fronts, and payouts while preserving the history behind every total.</p>
+                <p>The append-only ledger keeps sessions, settlements, fronts, and payouts in order while preserving the history behind every total.</p>
             </article>
             <article class="lp-seo__item">
                 <h3>Build poker stats automatically</h3>
                 <p>League leaderboards, net winnings, ROI, win rate, session counts, recent form, and rank movement update from the same data your group enters on game night.</p>
             </article>
             <article class="lp-seo__item">
-                <h3>Find My Boker by name</h3>
-                <p>The product is myboker.org, also written as My Boker or my boker. It is built for poker tracking, not insurance, brokerage, or general finance workflows.</p>
+                <h3>Built for home games</h3>
+                <p>Private leagues, shared results, and public league pages are all optional. Your group decides what stays private and what gets shared.</p>
             </article>
         </div>
     </div>
