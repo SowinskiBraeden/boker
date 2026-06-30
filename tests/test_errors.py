@@ -42,6 +42,28 @@ class ErrorPageTests(unittest.TestCase):
         self.assertNotIn(b"RuntimeError", response.data)
         self.assertRegex(response.get_data(as_text=True), re.compile(r"Incident [a-f0-9]{12}"))
 
+    def test_csrf_errors_redirect_to_form_with_flash(self):
+        csrf_app = create_app(
+            {
+                "TESTING": True,
+                "PROPAGATE_EXCEPTIONS": False,
+                "SQLALCHEMY_DATABASE_URI": self.app.config["SQLALCHEMY_DATABASE_URI"],
+                "WTF_CSRF_ENABLED": True,
+            }
+        )
+        client = csrf_app.test_client()
+
+        response = client.post(
+            "/account/login",
+            data={"csrf_token": "stale-token", "email": "owner@example.com", "password": "password123"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/account/login")
+        with client.session_transaction() as flask_session:
+            flashes = flask_session.get("_flashes", [])
+        self.assertIn(("error", "Your form expired. Please try again."), flashes)
+
 
 if __name__ == "__main__":
     unittest.main()

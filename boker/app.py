@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import click
 import os
+from urllib.parse import urlsplit
 from uuid import uuid4
 
-from flask import Flask, render_template, request
+from flask import Flask, flash, redirect, render_template, request, url_for
+from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import HTTPException
 
 from boker.auth import current_user_id, is_logged_in, is_site_admin, normalize_email
@@ -81,6 +83,21 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     @app.errorhandler(403)
     def forbidden(e):
         return render_template("403.html"), 403
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(error):
+        flash("Your form expired. Please try again.", "error")
+
+        referrer = request.referrer or ""
+        parsed = urlsplit(referrer)
+        if parsed.netloc == request.host and parsed.path:
+            return redirect(parsed.path)
+
+        if request.path.startswith("/account/login"):
+            return redirect(url_for("account.login"))
+        if request.path.startswith("/account/register"):
+            return redirect(url_for("account.register"))
+        return redirect(url_for("public.home"))
 
     @app.errorhandler(Exception)
     def unexpected_error(error):

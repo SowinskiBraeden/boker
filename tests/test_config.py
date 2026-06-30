@@ -35,7 +35,7 @@ class ProductionConfigTests(unittest.TestCase):
             )
 
         self.assertTrue(app.config["SESSION_COOKIE_SECURE"])
-        self.assertEqual(app.config["SESSION_COOKIE_SAMESITE"], "Strict")
+        self.assertEqual(app.config["SESSION_COOKIE_SAMESITE"], "Lax")
         self.assertTrue(app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql+psycopg://"))
 
 

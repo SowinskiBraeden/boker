@@ -34,9 +34,11 @@ class SeoTests(unittest.TestCase):
         html = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Free Home Poker Tracker, Ledger & League Leaderboards", html)
+        self.assertIn("Free Poker Tracker, Ledger, Stats & Profit/Loss App", html)
         self.assertIn('name="description"', html)
-        self.assertIn("Track home poker sessions, buy-ins, cashouts, settlements", html)
+        self.assertIn("free poker tracker and poker ledger for home games", html)
+        self.assertIn("My Boker", html)
+        self.assertIn("poker profit or loss", html)
         self.assertIn('rel="canonical" href="https://myboker.org/"', html)
         self.assertIn('application/ld+json', html)
 

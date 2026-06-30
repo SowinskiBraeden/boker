@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'boker-dev.sqlite3'}"
 DEFAULT_SECRET_KEY = "change-this-before-deploying"
 
-APP_VERSION = "2.5.32"
+APP_VERSION = "2.5.33"
 
 
 def load_local_env(env_path: Path) -> None:
@@ -59,5 +59,5 @@ class Config:
 
 class ProductionConfig(Config):
     SESSION_COOKIE_SECURE: bool = True
-    SESSION_COOKIE_SAMESITE: str = "Strict"
+    SESSION_COOKIE_SAMESITE: str = "Lax"
     PREFERRED_URL_SCHEME: str = "https"
