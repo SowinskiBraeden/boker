@@ -1,18 +1,49 @@
 # myboker.org
 
-Flask app for running home-poker leagues without keeping a spreadsheet open all night.
+Free web app for running home-poker leagues without rebuilding the same spreadsheet every game night.
 
-The current app is account-based and league-based. League owners/managers record sessions and ledger events, viewers can inspect public-facing league data, and site-admin access is reserved for internal tooling.
+myboker.org is now split into two main surfaces:
 
-## What It Does
+- a public site for discovery, SEO use-case pages, help, privacy, terms, and optional public league search
+- an account-based league app where owners and managers track players, sessions, ledgers, seasons, stats, and settlements
 
-- account signup, login, and email verification
-- league creation, invitations, ownership transfer, and member roles
-- player, season, session, and ledger management per league
+## Public Site
+
+The public site presents myboker as a free poker tracker, poker ledger, stats tracker, and profit/loss tracker for home games.
+
+Current public pages and endpoints:
+
+- `/` - overhauled landing page with structured data, feature sections, app previews, and account CTAs
+- `/explore` - search public leagues by name without exposing a full public directory
+- `/help`, `/privacy`, `/terms` - support and legal pages
+- `/robots.txt` and `/sitemap.xml` - crawler rules and sitemap entries
+- SEO use-case pages:
+  - `/free-poker-tracker`
+  - `/poker-ledger`
+  - `/poker-stats-tracker`
+  - `/home-poker-league-tracker`
+  - `/poker-profit-loss-tracker`
+
+Leagues are private by default. Public discovery and public league pages only apply when a league owner enables public visibility.
+
+## League App
+
+The logged-in app is account-based and league-based. League owners can create and configure leagues, invite members, transfer ownership, and decide whether league results are public. Managers can run league operations, and viewers can inspect league data without changing records.
+
+Core features:
+
+- account signup, login, email verification, password reset, and account settings
+- league creation, invitations, ownership transfer, member roles, and archival
+- player roster management with archived/reactivated players
+- seasons with manual management and auto-assignment
+- session creation, open/close workflow, same-day session sequencing, and session summaries
 - append-only ledger events with void/correction support
-- public/private league visibility
-- leaderboards, charts, dashboard stats, and session summaries
+- settlement views for cash in, paid out, house holds, players owe house, and house owes players
+- dashboards, player pages, leaderboards, charts, rank movement, ROI, win rate, recent form, and provisional player handling
 - CSV import/export for league ledgers
+- site-admin tooling under `/internal`
+
+myboker records poker results and settlement state. It does not process payments, hold funds, or replace a league's own settlement process.
 
 ## Stack
 
@@ -27,7 +58,10 @@ The current app is account-based and league-based. League owners/managers record
 
 - `app.py` is the deployment entrypoint for `flask --app app` and Gunicorn.
 - `boker/` contains the Flask application package, routes, models, services, repositories, and config.
-- `templates/` and `static/` contain Jinja views and public assets.
+- `boker/routes/public.py` defines the public site, SEO use-case pages, sitemap, robots file, and public league search.
+- `boker/routes/account.py`, `boker/routes/leagues.py`, and `boker/routes/internal.py` define account, league, and internal admin workflows.
+- `templates/` contains the Jinja views, including the landing page and league app screens.
+- `static/` contains CSS, favicon assets, icons, and the web manifest.
 - `migrations/` contains Alembic migrations for database deploys.
 - `tests/` contains the committed regression suite.
 
@@ -77,6 +111,8 @@ Then open:
 
 `http://127.0.0.1:5000`
 
+For local development, omit `DATABASE_URL` to use the default SQLite database at `data/boker-dev.sqlite3`.
+
 ## Environment Values
 
 The app reads these from `.env`. Use `.env.example` for local development and `.env.production.example` as the production checklist.
@@ -94,7 +130,7 @@ The app reads these from `.env`. Use `.env.example` for local development and `.
 - `MAIL_PASSWORD`
 - `MAIL_DEFAULT_SENDER`
 
-For local development, omit `DATABASE_URL` to use the default SQLite database at `data/boker-dev.sqlite3`.
+`APP_BASE_URL` is used for canonical URLs, sitemap URLs, email links, and other absolute public URLs.
 
 For public deployments, set `APP_ENV=production`. Production mode enables secure cookies and refuses to start with the development `SECRET_KEY` or any SQLite database. Use PostgreSQL for `DATABASE_URL`, install dependencies from `requirements.txt`, then run:
 
@@ -120,4 +156,4 @@ Revoke access:
 flask --app app revoke-site-admin user@example.com
 ```
 
-The old single-password `/admin` system has been removed.
+Site admins can review platform stats, users, and leagues under `/internal`.
